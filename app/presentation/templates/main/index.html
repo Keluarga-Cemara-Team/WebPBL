@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Beranda &bull; AntiBurnout Web Clean Architecture{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Platform Pengumpulan Data & Evaluasi Burnout</h1>
+    <p>Dibangun dengan prinsip <strong>Clean Architecture</strong> untuk memisahkan logika bisnis kuesioner primer dari infrastruktur database dan model Machine Learning.</p>
+</div>
+
+<div class="info-banner">
+    <span>💎</span>
+    <div>
+        <strong>Pola Clean Architecture:</strong> Request ditangani oleh <em>Presentation Layer</em>, divalidasi oleh <em>Domain Entity</em>, dieksekusi oleh <em>Use Cases</em>, dan persistensinya dialihkan ke <em>Infrastructure (SQLite & ML Service)</em>.
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+    <div class="card">
+        <h3 style="margin-bottom: 0.75rem;">📝 Formulir Kuesioner Primer</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
+            Formulir pengisian data responden untuk mencatat durasi kerja, jam istirahat, tingkat stres harian, dan kelelahan fisik.
+        </p>
+        <a href="{{ url_for('assessment.form') }}" class="btn btn-primary">
+            Mulai Input Kuesioner &rarr;
+        </a>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 0.75rem;">📊 Dataset Primer & Export CSV</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
+            Melihat seluruh riwayat responden yang telah mengisi kuesioner dan mengunduh filenya dalam format <code>.csv</code> untuk tim <strong>MachineLearningPBL</strong>.
+        </p>
+        <a href="{{ url_for('assessment.dataset_view') }}" class="btn btn-secondary">
+            Lihat Dataset Terkumpul &rarr;
+        </a>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 0.75rem;">🤖 Integrasi MachineLearningPBL</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
+            Menggunakan <code>HttpMLPredictorService</code> untuk memanggil endpoint model ML melalui HTTP, dilengkapi fallback pintar saat server ML offline.
+        </p>
+        <a href="{{ url_for('main.health_check') }}" target="_blank" class="badge badge-success">
+            Periksa Health Status (/healthz)
+        </a>
+    </div>
+</div>
+{% endblock %}

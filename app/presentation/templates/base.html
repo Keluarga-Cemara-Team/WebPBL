@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AntiBurnout Web &bull; Clean Architecture{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('main.index') }}" class="brand">
+                <div class="brand-icon">🔥</div>
+                <span>AntiBurnout<span style="color: #6366f1;">.web</span></span>
+            </a>
+            <nav class="nav-links">
+                <a href="{{ url_for('main.index') }}" class="nav-link">Beranda</a>
+                <a href="{{ url_for('assessment.form') }}" class="nav-link">Input Data Primer</a>
+                <a href="{{ url_for('assessment.dataset_view') }}" class="nav-link" style="color: #a5b4fc; font-weight: 600;">
+                    📊 Dataset Responden
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Flash Message Notification -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="info-banner" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; margin-bottom: 1.5rem;">
+                <span>⚠️</span>
+                <div>{{ message }}</div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 AntiBurnout WebPBL &bull; Clean Architecture Pattern (Domain - UseCases - Infrastructure - Presentation)</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

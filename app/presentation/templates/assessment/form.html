@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Input Data Primer &bull; AntiBurnout Web{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Input Data Primer Responden</h1>
+    <p>Silakan isi parameter di bawah ini. Data akan divalidasi oleh Domain Entity dan disimpan ke database secara otomatis.</p>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <form action="{{ url_for('assessment.submit') }}" method="POST">
+        <div class="form-grid">
+            <!-- Nama / ID Responden -->
+            <div class="form-group">
+                <label for="full_name">Nama / Kode Responden</label>
+                <input type="text" id="full_name" name="full_name" class="form-control" placeholder="Contoh: Responden-01 atau Nama Lengkap" required>
+            </div>
+
+            <!-- Peran / Jabatan -->
+            <div class="form-group">
+                <label for="role">Divisi / Bidang Pekerjaan</label>
+                <select id="role" name="role" class="form-control">
+                    <option value="Teknologi / IT">Teknologi / IT / Developer</option>
+                    <option value="Kesehatan / Medis">Kesehatan / Medis</option>
+                    <option value="Pendidikan / Pengajar">Pendidikan / Akademisi</option>
+                    <option value="Keuangan / Finansial">Keuangan / Akuntansi</option>
+                    <option value="Layanan Publik / Admin">Administrasi / Operasional</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+            </div>
+
+            <!-- Jam Kerja Harian -->
+            <div class="form-group">
+                <label for="work_hours">Jam Kerja Rata-rata per Hari (Jam)</label>
+                <div class="range-container">
+                    <input type="range" id="work_hours" name="work_hours" class="range-input" min="4" max="16" step="0.5" value="8">
+                    <span id="work_hours_val" class="range-badge">8</span>
+                </div>
+            </div>
+
+            <!-- Jam Tidur Harian -->
+            <div class="form-group">
+                <label for="sleep_hours">Durasi Tidur per Hari (Jam)</label>
+                <div class="range-container">
+                    <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="7">
+                    <span id="sleep_hours_val" class="range-badge">7</span>
+                </div>
+            </div>
+
+            <!-- Tingkat Stres Mental (1-5) -->
+            <div class="form-group">
+                <label for="stress_level">Tingkat Stres Mental (1: Sangat Rendah - 5: Sangat Tinggi)</label>
+                <div class="range-container">
+                    <input type="range" id="stress_level" name="stress_level" class="range-input" min="1" max="5" step="1" value="3">
+                    <span id="stress_level_val" class="range-badge">3</span>
+                </div>
+            </div>
+
+            <!-- Perasaan Terhadap Beban Kerja (1-5) -->
+            <div class="form-group">
+                <label for="workload_feeling">Beban Kerja yang Dirasakan (1: Ringan - 5: Berlebihan)</label>
+                <div class="range-container">
+                    <input type="range" id="workload_feeling" name="workload_feeling" class="range-input" min="1" max="5" step="1" value="3">
+                    <span id="workload_feeling_val" class="range-badge">3</span>
+                </div>
+            </div>
+
+            <!-- Kelelahan Fisik (1-5) -->
+            <div class="form-group">
+                <label for="physical_fatigue">Tingkat Kelelahan Fisik (1: Bugar - 5: Sangat Lelah)</label>
+                <div class="range-container">
+                    <input type="range" id="physical_fatigue" name="physical_fatigue" class="range-input" min="1" max="5" step="1" value="3">
+                    <span id="physical_fatigue_val" class="range-badge">3</span>
+                </div>
+            </div>
+
+            <!-- Catatan Tambahan -->
+            <div class="form-group full-width">
+                <label for="notes">Keluhan / Catatan Keseharian (Opsional)</label>
+                <textarea id="notes" name="notes" rows="3" class="form-control" placeholder="Tuliskan keluhan atau gejala kelelahan yang dirasakan..."></textarea>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Batal</a>
+            <button type="submit" class="btn btn-primary">
+                Simpan & Analisis ke ML &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

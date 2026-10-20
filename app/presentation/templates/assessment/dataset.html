@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Primer Responden &bull; AntiBurnout Web{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Kumpulan Dataset Primer Responden</h1>
+    <p>Data hasil kuesioner yang telah divalidasi dan disimpan di database, siap diekspor untuk bahan pelatihan modul <strong>MachineLearningPBL</strong>.</p>
+</div>
+
+<!-- Kartu Ringkasan Metrik -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="padding: 1.25rem; text-align: center;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Total Responden</span>
+        <h2 style="font-size: 2rem; color: #6366f1; margin-top: 0.25rem;">{{ metrics.total_respondents }}</h2>
+    </div>
+    <div class="card" style="padding: 1.25rem; text-align: center;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Rata-rata Skor Burnout</span>
+        <h2 style="font-size: 2rem; color: #0ea5e9; margin-top: 0.25rem;">{{ metrics.avg_burnout_score }}%</h2>
+    </div>
+    <div class="card" style="padding: 1.25rem; text-align: center;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Indikasi Risiko Tinggi</span>
+        <h2 style="font-size: 2rem; color: #ef4444; margin-top: 0.25rem;">{{ metrics.high_risk_count }}</h2>
+    </div>
+</div>
+
+<!-- Aksi Tombol -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <a href="{{ url_for('assessment.form') }}" class="btn btn-primary">
+            + Tambah Input Responden
+        </a>
+    </div>
+    <div>
+        <a href="{{ url_for('assessment.export_csv') }}" class="btn btn-secondary" style="border-color: #10b981; color: #34d399;">
+            📥 Download Dataset Primer (.CSV)
+        </a>
+    </div>
+</div>
+
+<!-- Tabel Dataset -->
+<div class="card" style="padding: 1rem; overflow-x: auto;">
+    {% if records %}
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+        <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
+                <th style="padding: 0.75rem 1rem;">ID</th>
+                <th style="padding: 0.75rem 1rem;">Nama Responden</th>
+                <th style="padding: 0.75rem 1rem;">Bidang</th>
+                <th style="padding: 0.75rem 1rem;">Jam Kerja</th>
+                <th style="padding: 0.75rem 1rem;">Jam Tidur</th>
+                <th style="padding: 0.75rem 1rem;">Stres (1-5)</th>
+                <th style="padding: 0.75rem 1rem;">Beban (1-5)</th>
+                <th style="padding: 0.75rem 1rem;">Skor Burnout</th>
+                <th style="padding: 0.75rem 1rem;">Tingkat</th>
+                <th style="padding: 0.75rem 1rem;">Waktu</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in records %}
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04); transition: background 0.15s ease;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 0.75rem 1rem; color: var(--text-dim);">#{{ row.id }}</td>
+                <td style="padding: 0.75rem 1rem; font-weight: 600;">{{ row.full_name }}</td>
+                <td style="padding: 0.75rem 1rem; color: var(--text-muted);">{{ row.role }}</td>
+                <td style="padding: 0.75rem 1rem;">{{ row.work_hours }}h</td>
+                <td style="padding: 0.75rem 1rem;">{{ row.sleep_hours }}h</td>
+                <td style="padding: 0.75rem 1rem;">{{ row.stress_level }}/5</td>
+                <td style="padding: 0.75rem 1rem;">{{ row.workload_feeling }}/5</td>
+                <td style="padding: 0.75rem 1rem; font-weight: 600; color: #a5b4fc;">{{ row.burnout_score }}%</td>
+                <td style="padding: 0.75rem 1rem;">
+                    {% set b_class = 'success' if 'Rendah' in (row.burnout_level or '') else ('warning' if 'Sedang' in (row.burnout_level or '') else 'danger') %}
+                    <span class="badge badge-{{ b_class }}" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;">
+                        {{ row.burnout_level }}
+                    </span>
+                </td>
+                <td style="padding: 0.75rem 1rem; color: var(--text-dim); font-size: 0.8rem;">{{ row.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.75rem;">Belum ada data primer yang dimasukkan.</p>
+        <a href="{{ url_for('assessment.form') }}" class="btn btn-primary">
+            Input Responden Pertama Sekarang &rarr;
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
