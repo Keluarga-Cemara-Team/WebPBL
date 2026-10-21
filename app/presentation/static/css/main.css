@@ -1,43 +1,45 @@
 /* ==========================================================================
-   AntiBurnout Web - Clean Architecture Presentation Stylesheet (Vanilla CSS)
+   AntiBurnout Web - phpMyAdmin Classic Theme Design System
+   Exact visual replica of phpMyAdmin UI (Light theme, grey panels, classic tabs)
    ========================================================================== */
 
 :root {
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   
-  /* Color Palette */
-  --bg-dark: #090d16;
-  --bg-card: #131c2e;
-  --bg-card-hover: #1b263d;
-  --bg-glass: rgba(19, 28, 46, 0.75);
+  /* phpMyAdmin Signature Colors */
+  --pma-bg: #f3f3f3;
+  --pma-sidebar-bg: #fdfdfd;
+  --pma-sidebar-border: #dcdcdc;
+  --pma-header-bg: #ececec;
+  --pma-header-border: #cccccc;
+  --pma-card-header: linear-gradient(180deg, #f7f7f7 0%, #e6e6e6 100%);
+  --pma-card-border: #c8c8c8;
   
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: #6366f1;
+  --pma-text-main: #333333;
+  --pma-text-muted: #666666;
+  --pma-text-link: #235a81;
+  --pma-text-link-hover: #173b54;
   
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --pma-tab-active-bg: #ffffff;
+  --pma-tab-hover-bg: #dedede;
+  --pma-tab-border: #cccccc;
   
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-glow: rgba(99, 102, 241, 0.35);
+  --pma-sql-bg: #eaf2fa;
+  --pma-sql-border: #a4c2e0;
+  --pma-success-bg: #e2f0d9;
+  --pma-success-border: #70ad47;
+  --pma-warning-bg: #fff2cc;
+  --pma-warning-border: #ffc000;
+  --pma-danger-bg: #fce4d6;
+  --pma-danger-border: #c00000;
   
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #0ea5e9;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-full: 9999px;
-
-  --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px var(--primary-glow);
-  --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --pma-btn-bg: linear-gradient(180deg, #f9f9f9 0%, #e2e2e2 100%);
+  --pma-btn-border: #ababab;
+  --pma-btn-primary-bg: linear-gradient(180deg, #337ab7 0%, #265a88 100%);
+  --pma-btn-primary-border: #245580;
 }
 
-/* Reset & Base */
+/* Base Reset */
 * {
   margin: 0;
   padding: 0;
@@ -46,281 +48,493 @@
 
 body {
   font-family: var(--font-family);
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  line-height: 1.6;
+  background-color: var(--pma-bg);
+  color: var(--pma-text-main);
+  font-size: 13px;
+  line-height: 1.5;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%);
-  background-attachment: fixed;
 }
 
 a {
-  color: inherit;
+  color: var(--pma-text-link);
   text-decoration: none;
 }
-
-/* Navbar */
-.navbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(16px);
-  background: rgba(9, 13, 22, 0.85);
-  border-bottom: 1px solid var(--border-color);
-  padding: 1rem 2rem;
+a:hover {
+  text-decoration: underline;
+  color: var(--pma-text-link-hover);
 }
 
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
+/* Layout Wrapper */
+.pma-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: 100vh;
+}
+
+/* ==========================================================================
+   Left Sidebar (Database Tree Navigator)
+   ========================================================================== */
+.pma-sidebar {
+  width: 250px;
+  background-color: var(--pma-sidebar-bg);
+  border-right: 1px solid var(--pma-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.pma-sidebar-brand {
+  padding: 10px 14px;
+  background: #fbfbfb;
+  border-bottom: 1px solid var(--pma-sidebar-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.pma-logo {
+  font-size: 18px;
   font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
+  font-family: Tahoma, sans-serif;
+  letter-spacing: -0.5px;
+}
+.pma-logo-anti {
+  color: #2c4969;
+}
+.pma-logo-burnout {
+  color: #e27d14;
+}
+.pma-logo-admin {
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 400;
+  color: #555555;
+  margin-left: 2px;
 }
 
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #6366f1, #0ea5e9);
-  border-radius: var(--radius-sm);
+.pma-quick-actions {
   display: flex;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #d9d9d9;
+}
+.pma-quick-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 1.1rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #555;
+  font-size: 12px;
+}
+.pma-quick-btn:hover {
+  background: #e6e6e6;
+  text-decoration: none;
 }
 
-.nav-links {
+.pma-nav-tabs-mini {
+  display: flex;
+  border-bottom: 1px solid #d9d9d9;
+  background: #f8f8f8;
+  font-size: 11px;
+}
+.pma-nav-tab-mini {
+  padding: 5px 10px;
+  color: #666;
+  border-right: 1px solid #e0e0e0;
+}
+.pma-nav-tab-mini.active {
+  background: #fff;
+  color: #333;
+  font-weight: bold;
+  border-bottom: 1px solid #fff;
+  margin-bottom: -1px;
+}
+
+.pma-tree {
+  padding: 10px 8px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.pma-tree-item {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 2px;
+  color: #333;
 }
-
-.nav-link {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: var(--transition);
+.pma-tree-item:hover {
+  background-color: #e9f2f8;
+  text-decoration: none;
 }
-
-.nav-link:hover, .nav-link.active {
-  color: var(--text-main);
+.pma-tree-item.active {
+  background-color: #d8e9f5;
+  font-weight: 600;
 }
-
-/* Main Container */
-.main-content {
-  flex: 1;
-  max-width: 1100px;
-  width: 100%;
-  margin: 2.5rem auto;
-  padding: 0 1.5rem;
-}
-
-/* Typography & Headers */
-h1, h2, h3, h4 {
-  color: var(--text-main);
-  line-height: 1.25;
-  font-weight: 700;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-}
-
-.page-header h1 {
-  font-size: 2.3rem;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #ffffff 40%, #94a3b8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.page-header p {
-  color: var(--text-muted);
-  font-size: 1.05rem;
-  max-width: 680px;
-  margin: 0 auto;
-}
-
-/* Cards & Containers */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  box-shadow: var(--shadow-card);
-  backdrop-filter: blur(12px);
-  transition: var(--transition);
-}
-
-.card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-/* Form Styles */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.form-group {
+.pma-tree-sub {
+  padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 2px;
+  margin-top: 2px;
+}
+.pma-tree-icon {
+  font-size: 13px;
+  color: #555;
+  width: 16px;
+  text-align: center;
 }
 
-.form-group.full-width {
-  grid-column: 1 / -1;
+/* ==========================================================================
+   Main Content Area
+   ========================================================================== */
+.pma-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--pma-bg);
+  overflow-x: auto;
 }
 
-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.form-control {
-  background: rgba(9, 13, 22, 0.6);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  color: var(--text-main);
-  font-size: 0.95rem;
-  outline: none;
-  transition: var(--transition);
-}
-
-.form-control:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-}
-
-/* Range input with value display */
-.range-container {
+/* Server Context Bar (Breadcrumb) */
+.pma-server-bar {
+  background: #e2e2e2;
+  border-bottom: 1px solid #c0c0c0;
+  padding: 6px 14px;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+}
+.pma-server-icon {
+  font-size: 14px;
 }
 
-.range-input {
-  flex: 1;
-  accent-color: var(--primary);
-  cursor: pointer;
+/* Navigation Tabs (Databases, SQL, Status, Export...) */
+.pma-tabs-bar {
+  background: #f0f0f0;
+  border-bottom: 1px solid #cccccc;
+  padding: 8px 14px 0 14px;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
 }
 
-.range-badge {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: #a5b4fc;
-  padding: 0.25rem 0.6rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+.pma-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #444;
+  background: #e4e4e4;
+  border: 1px solid #cccccc;
+  border-bottom: none;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  transition: background 0.1s;
+}
+.pma-tab:hover {
+  background: var(--pma-tab-hover-bg);
+  text-decoration: none;
+}
+.pma-tab.active {
+  background: #ffffff;
+  color: #000000;
   font-weight: 600;
-  min-width: 40px;
+  border-bottom: 1px solid #ffffff;
+  margin-bottom: -1px;
+}
+
+/* Page Body Container */
+.pma-content {
+  padding: 16px 20px;
+  flex: 1;
+}
+
+/* ==========================================================================
+   SQL Query Box (Signature phpMyAdmin banner)
+   ========================================================================== */
+.pma-sql-box {
+  background-color: var(--pma-sql-bg);
+  border: 1px solid var(--pma-sql-border);
+  border-left: 5px solid #235a81;
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  color: #173b54;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pma-sql-meta {
+  color: #555;
+  font-size: 11px;
+  font-family: var(--font-family);
+  margin-top: 4px;
+}
+
+.pma-alert-success {
+  background: var(--pma-success-bg);
+  border: 1px solid var(--pma-success-border);
+  border-left: 5px solid #38761d;
+  color: #274e13;
+  padding: 8px 12px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+
+.pma-alert-warning {
+  background: var(--pma-warning-bg);
+  border: 1px solid var(--pma-warning-border);
+  border-left: 5px solid #e27d14;
+  color: #7f6000;
+  padding: 8px 12px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   phpMyAdmin Grid & Dashboard Cards
+   ========================================================================== */
+.pma-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pma-card {
+  background: #ffffff;
+  border: 1px solid var(--pma-card-border);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+}
+
+.pma-card-header {
+  background: var(--pma-card-header);
+  border-bottom: 1px solid var(--pma-card-border);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #444444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pma-card-body {
+  padding: 12px 14px;
+}
+
+.pma-list {
+  list-style: none;
+}
+.pma-list-item {
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pma-list-item:last-child {
+  border-bottom: none;
+}
+
+/* ==========================================================================
+   phpMyAdmin Table View (Browse View)
+   ========================================================================== */
+.pma-table-container {
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  border-radius: 3px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.pma-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.pma-table th {
+  background: linear-gradient(180deg, #f2f2f2 0%, #e1e1e1 100%);
+  border-bottom: 1px solid #bfbfbf;
+  border-right: 1px solid #dcdcdc;
+  padding: 7px 10px;
+  font-weight: 600;
+  color: #333333;
+  white-space: nowrap;
+}
+
+.pma-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #ebebeb;
+  border-right: 1px solid #f2f2f2;
+}
+
+.pma-table tr:nth-child(even) {
+  background-color: #fbfbfb;
+}
+
+.pma-table tr:hover {
+  background-color: #edf5fa;
+}
+
+/* Table Actions (Edit, Copy, Delete look-alike) */
+.pma-action-link {
+  font-size: 11px;
+  color: #235a81;
+  margin-right: 6px;
+}
+
+/* ==========================================================================
+   phpMyAdmin Forms & Inputs (Insert View)
+   ========================================================================== */
+.pma-form-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #ccc;
+  margin-bottom: 14px;
+}
+
+.pma-form-table th {
+  background: #f0f0f0;
+  border-bottom: 1px solid #ccc;
+  border-right: 1px solid #e0e0e0;
+  padding: 6px 10px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.pma-form-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e8e8e8;
+  border-right: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.pma-form-label {
+  font-weight: 600;
+  color: #333;
+}
+.pma-form-desc {
+  font-size: 11px;
+  color: #777;
+}
+
+.pma-input, .pma-select, .pma-textarea {
+  width: 100%;
+  max-width: 380px;
+  padding: 4px 8px;
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  font-size: 12px;
+  background: #fff;
+  color: #333;
+}
+.pma-input:focus, .pma-select:focus, .pma-textarea:focus {
+  border-color: #235a81;
+  outline: 1px solid #235a81;
+}
+
+.pma-range-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 380px;
+}
+
+.pma-range-badge {
+  background: #e6f0fa;
+  border: 1px solid #a8cce8;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 2px;
+  min-width: 36px;
   text-align: center;
 }
 
 /* Buttons */
-.btn {
+.pma-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 0.95rem;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--pma-btn-border);
+  background: var(--pma-btn-bg);
+  border-radius: 3px;
+  color: #333;
   cursor: pointer;
-  border: none;
-  transition: var(--transition);
+  text-decoration: none;
+}
+.pma-btn:hover {
+  background: #d8d8d8;
+  color: #000;
   text-decoration: none;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #4f46e5, #4338ca);
-  color: white;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+.pma-btn-primary {
+  background: var(--pma-btn-primary-bg);
+  border-color: var(--pma-btn-primary-border);
+  color: #ffffff;
 }
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+.pma-btn-primary:hover {
+  background: linear-gradient(180deg, #286090 0%, #1e476b 100%);
+  color: #ffffff;
 }
 
 /* Status Badges */
-.badge {
+.pma-badge {
   display: inline-block;
-  padding: 0.35rem 0.85rem;
-  border-radius: var(--radius-full);
-  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
   font-weight: 600;
+  border: 1px solid transparent;
 }
-
-.badge-success {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+.pma-badge-success {
+  background: #e2f0d9;
+  color: #38761d;
+  border-color: #b6d7a8;
 }
-
-.badge-warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+.pma-badge-warning {
+  background: #fff2cc;
+  color: #b45f06;
+  border-color: #ffe599;
 }
-
-.badge-danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Info Banner */
-.info-banner {
-  background: rgba(14, 165, 233, 0.1);
-  border: 1px solid rgba(14, 165, 233, 0.25);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  color: #7dd3fc;
+.pma-badge-danger {
+  background: #fce4d6;
+  color: #cc0000;
+  border-color: #f4cccc;
 }
 
 /* Footer */
-footer {
-  border-top: 1px solid var(--border-color);
-  padding: 1.5rem 2rem;
+.pma-footer {
+  background: #ececec;
+  border-top: 1px solid #dcdcdc;
+  padding: 8px 20px;
+  font-size: 11px;
+  color: #666;
   text-align: center;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  background: rgba(9, 13, 22, 0.6);
 }

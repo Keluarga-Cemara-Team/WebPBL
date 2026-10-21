@@ -1,93 +1,181 @@
 {% extends "base.html" %}
 
-{% block title %}Input Data Primer &bull; AntiBurnout Web{% endblock %}
+{% block title %}Insert &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span>Table: <strong>assessments</strong></span>
+<span style="color: #888;">&raquo;</span>
+<span><strong>Insert</strong></span>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Input Data Primer Responden</h1>
-    <p>Silakan isi parameter di bawah ini. Data akan divalidasi oleh Domain Entity dan disimpan ke database secara otomatis.</p>
+<!-- phpMyAdmin SQL Execution Preview Box -->
+<div class="pma-sql-box">
+    <div>
+        <code>INSERT INTO `assessments` (`full_name`, `role`, `work_hours`, `sleep_hours`, `stress_level`, `workload_feeling`, `physical_fatigue`, `notes`) VALUES (...);</code>
+        <div class="pma-sql-meta">
+            Mode: Insert Data Primer Responden &bull; Terhubung ke SQLite Engine &bull; Validasi Domain Aktif
+        </div>
+    </div>
 </div>
 
-<div class="card" style="max-width: 800px; margin: 0 auto;">
-    <form action="{{ url_for('assessment.submit') }}" method="POST">
-        <div class="form-grid">
-            <!-- Nama / ID Responden -->
-            <div class="form-group">
-                <label for="full_name">Nama / Kode Responden</label>
-                <input type="text" id="full_name" name="full_name" class="form-control" placeholder="Contoh: Responden-01 atau Nama Lengkap" required>
-            </div>
+<form action="{{ url_for('assessment.submit') }}" method="POST">
+    <!-- phpMyAdmin Insert Form Table -->
+    <table class="pma-form-table">
+        <thead>
+            <tr>
+                <th style="width: 180px;">Column</th>
+                <th style="width: 120px;">Type</th>
+                <th style="width: 100px;">Null</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- full_name -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">full_name</span>
+                    <div class="pma-form-desc">Nama / ID Responden</div>
+                </td>
+                <td><code style="color: #888;">VARCHAR(100)</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <input type="text" id="full_name" name="full_name" class="pma-input" placeholder="Contoh: Responden-01 atau Budi Santoso" required>
+                </td>
+            </tr>
 
-            <!-- Peran / Jabatan -->
-            <div class="form-group">
-                <label for="role">Divisi / Bidang Pekerjaan</label>
-                <select id="role" name="role" class="form-control">
-                    <option value="Teknologi / IT">Teknologi / IT / Developer</option>
-                    <option value="Kesehatan / Medis">Kesehatan / Medis</option>
-                    <option value="Pendidikan / Pengajar">Pendidikan / Akademisi</option>
-                    <option value="Keuangan / Finansial">Keuangan / Akuntansi</option>
-                    <option value="Layanan Publik / Admin">Administrasi / Operasional</option>
-                    <option value="Lainnya">Lainnya</option>
-                </select>
-            </div>
+            <!-- role -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">role</span>
+                    <div class="pma-form-desc">Divisi / Bidang Pekerjaan</div>
+                </td>
+                <td><code style="color: #888;">VARCHAR(50)</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <select id="role" name="role" class="pma-select">
+                        <option value="Teknologi / IT">Teknologi / IT / Developer</option>
+                        <option value="Kesehatan / Medis">Kesehatan / Medis</option>
+                        <option value="Pendidikan / Pengajar">Pendidikan / Akademisi</option>
+                        <option value="Keuangan / Finansial">Keuangan / Akuntansi</option>
+                        <option value="Layanan Publik / Admin">Administrasi / Operasional</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </td>
+            </tr>
 
-            <!-- Jam Kerja Harian -->
-            <div class="form-group">
-                <label for="work_hours">Jam Kerja Rata-rata per Hari (Jam)</label>
-                <div class="range-container">
-                    <input type="range" id="work_hours" name="work_hours" class="range-input" min="4" max="16" step="0.5" value="8">
-                    <span id="work_hours_val" class="range-badge">8</span>
-                </div>
-            </div>
+            <!-- work_hours -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">work_hours</span>
+                    <div class="pma-form-desc">Durasi kerja harian (Jam)</div>
+                </td>
+                <td><code style="color: #888;">FLOAT</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <div class="pma-range-wrapper">
+                        <input type="range" id="work_hours" name="work_hours" class="range-input" min="4" max="16" step="0.5" value="8" style="flex: 1;">
+                        <span id="work_hours_val" class="pma-range-badge">8</span>
+                        <span style="font-size: 11px; color: #777;">jam/hari</span>
+                    </div>
+                </td>
+            </tr>
 
-            <!-- Jam Tidur Harian -->
-            <div class="form-group">
-                <label for="sleep_hours">Durasi Tidur per Hari (Jam)</label>
-                <div class="range-container">
-                    <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="7">
-                    <span id="sleep_hours_val" class="range-badge">7</span>
-                </div>
-            </div>
+            <!-- sleep_hours -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">sleep_hours</span>
+                    <div class="pma-form-desc">Durasi istirahat tidur (Jam)</div>
+                </td>
+                <td><code style="color: #888;">FLOAT</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <div class="pma-range-wrapper">
+                        <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="7" style="flex: 1;">
+                        <span id="sleep_hours_val" class="pma-range-badge">7</span>
+                        <span style="font-size: 11px; color: #777;">jam/hari</span>
+                    </div>
+                </td>
+            </tr>
 
-            <!-- Tingkat Stres Mental (1-5) -->
-            <div class="form-group">
-                <label for="stress_level">Tingkat Stres Mental (1: Sangat Rendah - 5: Sangat Tinggi)</label>
-                <div class="range-container">
-                    <input type="range" id="stress_level" name="stress_level" class="range-input" min="1" max="5" step="1" value="3">
-                    <span id="stress_level_val" class="range-badge">3</span>
-                </div>
-            </div>
+            <!-- stress_level -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">stress_level</span>
+                    <div class="pma-form-desc">Tingkat Stres Mental (1-5)</div>
+                </td>
+                <td><code style="color: #888;">TINYINT(1..5)</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <div class="pma-range-wrapper">
+                        <input type="range" id="stress_level" name="stress_level" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
+                        <span id="stress_level_val" class="pma-range-badge">3</span>
+                        <span style="font-size: 11px; color: #777;">(1: Rendah - 5: Sangat Tinggi)</span>
+                    </div>
+                </td>
+            </tr>
 
-            <!-- Perasaan Terhadap Beban Kerja (1-5) -->
-            <div class="form-group">
-                <label for="workload_feeling">Beban Kerja yang Dirasakan (1: Ringan - 5: Berlebihan)</label>
-                <div class="range-container">
-                    <input type="range" id="workload_feeling" name="workload_feeling" class="range-input" min="1" max="5" step="1" value="3">
-                    <span id="workload_feeling_val" class="range-badge">3</span>
-                </div>
-            </div>
+            <!-- workload_feeling -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">workload_feeling</span>
+                    <div class="pma-form-desc">Beban Kerja Dirasakan (1-5)</div>
+                </td>
+                <td><code style="color: #888;">TINYINT(1..5)</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <div class="pma-range-wrapper">
+                        <input type="range" id="workload_feeling" name="workload_feeling" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
+                        <span id="workload_feeling_val" class="pma-range-badge">3</span>
+                        <span style="font-size: 11px; color: #777;">(1: Ringan - 5: Berlebihan)</span>
+                    </div>
+                </td>
+            </tr>
 
-            <!-- Kelelahan Fisik (1-5) -->
-            <div class="form-group">
-                <label for="physical_fatigue">Tingkat Kelelahan Fisik (1: Bugar - 5: Sangat Lelah)</label>
-                <div class="range-container">
-                    <input type="range" id="physical_fatigue" name="physical_fatigue" class="range-input" min="1" max="5" step="1" value="3">
-                    <span id="physical_fatigue_val" class="range-badge">3</span>
-                </div>
-            </div>
+            <!-- physical_fatigue -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">physical_fatigue</span>
+                    <div class="pma-form-desc">Kelelahan Fisik Tubuh (1-5)</div>
+                </td>
+                <td><code style="color: #888;">TINYINT(1..5)</code></td>
+                <td><input type="checkbox" disabled></td>
+                <td>
+                    <div class="pma-range-wrapper">
+                        <input type="range" id="physical_fatigue" name="physical_fatigue" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
+                        <span id="physical_fatigue_val" class="pma-range-badge">3</span>
+                        <span style="font-size: 11px; color: #777;">(1: Bugar - 5: Sangat Lelah)</span>
+                    </div>
+                </td>
+            </tr>
 
-            <!-- Catatan Tambahan -->
-            <div class="form-group full-width">
-                <label for="notes">Keluhan / Catatan Keseharian (Opsional)</label>
-                <textarea id="notes" name="notes" rows="3" class="form-control" placeholder="Tuliskan keluhan atau gejala kelelahan yang dirasakan..."></textarea>
-            </div>
+            <!-- notes -->
+            <tr>
+                <td>
+                    <span class="pma-form-label">notes</span>
+                    <div class="pma-form-desc">Catatan keluhan / gejala</div>
+                </td>
+                <td><code style="color: #888;">TEXT</code></td>
+                <td><input type="checkbox" checked title="Null allowed"></td>
+                <td>
+                    <textarea id="notes" name="notes" rows="2" class="pma-textarea" placeholder="Tuliskan keluhan yang dialami responden..."></textarea>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- phpMyAdmin Bottom Action Bar -->
+    <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 10px 14px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 11px; color: #555;">
+            Data akan divalidasi oleh Clean Architecture Domain Entity dan diproses oleh ML Service.
         </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
-            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Batal</a>
-            <button type="submit" class="btn btn-primary">
-                Simpan & Analisis ke ML &rarr;
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal</a>
+            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 5px 18px;">
+                Go / Simpan Record &rarr;
             </button>
         </div>
-    </form>
-</div>
+    </div>
+</form>
 {% endblock %}

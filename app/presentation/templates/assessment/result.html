@@ -1,72 +1,131 @@
 {% extends "base.html" %}
 
-{% block title %}Hasil Evaluasi Burnout &bull; AntiBurnout Web{% endblock %}
+{% block title %}Result &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span>Table: <strong>assessments</strong></span>
+<span style="color: #888;">&raquo;</span>
+<span><strong>Execution Result</strong></span>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Hasil Analisis Risiko Burnout</h1>
-    <p>Data berhasil divalidasi oleh <strong>Domain Entity</strong> dan disimpan secara permanen di database.</p>
+<!-- phpMyAdmin Success Query Banner -->
+<div class="pma-alert-success">
+    <div style="font-weight: bold; margin-bottom: 2px;">
+        ✅ 1 row inserted. Inserted row id: #{{ user.id }}
+    </div>
+    <div style="font-family: monospace; font-size: 11px; color: #2e5917;">
+        INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_level`) VALUES ({{ user.id }}, '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_level }}');
+    </div>
 </div>
 
-<div class="card" style="max-width: 750px; margin: 0 auto;">
-    {% if result.is_simulation %}
-    <div class="info-banner" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #fcd34d;">
-        <span>ℹ️</span>
-        <div>
-            <strong>Mode Simulasi Aktif:</strong> Backend <code>MachineLearningPBL</code> belum aktif. Hasil menggunakan kalkulasi fallback heuristik domain.
-        </div>
-    </div>
-    {% endif %}
+{% if result.is_simulation %}
+<div class="pma-alert-warning">
+    <span>⚠️</span>
+    <strong>Notice:</strong> Endpoint <code>MachineLearningPBL</code> belum aktif di port target. Evaluasi menggunakan kalkulasi fallback heuristik domain.
+</div>
+{% endif %}
 
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
-        <div>
-            <span style="font-size: 0.9rem; color: var(--text-muted);">Responden ID #{{ user.id }}:</span>
-            <h2 style="font-size: 1.5rem;">{{ user.full_name }}</h2>
-            <span style="font-size: 0.85rem; color: var(--text-dim);">Bidang: {{ user.role }}</span>
+<!-- Result Details in phpMyAdmin Cards -->
+<div class="pma-grid-2col">
+    <!-- Panel 1: Hasil Evaluasi Machine Learning -->
+    <div class="pma-card">
+        <div class="pma-card-header">
+            <span>🤖</span>
+            <span>Machine Learning Inference Status</span>
         </div>
-        <div style="text-align: right;">
-            {% set badge_type = 'success' if 'Rendah' in (user.burnout_level or '') else ('warning' if 'Sedang' in (user.burnout_level or '') else 'danger') %}
-            <span class="badge badge-{{ badge_type }}" style="font-size: 1rem; padding: 0.5rem 1rem;">
-                {{ user.burnout_level }}
-            </span>
-            <div style="margin-top: 0.4rem; font-size: 0.9rem; color: var(--text-muted);">
-                Skor Burnout: <strong>{{ user.burnout_score }}%</strong>
+        <div class="pma-card-body">
+            <ul class="pma-list">
+                <li class="pma-list-item">
+                    <span>Nama Responden:</span>
+                    <strong>{{ user.full_name }}</strong>
+                </li>
+                <li class="pma-list-item">
+                    <span>Divisi / Bidang:</span>
+                    <span>{{ user.role }}</span>
+                </li>
+                <li class="pma-list-item">
+                    <span>Skor Risiko Burnout:</span>
+                    <strong style="font-size: 14px; font-family: monospace; color: #235a81;">{{ user.burnout_score }}%</strong>
+                </li>
+                <li class="pma-list-item">
+                    <span>Tingkat Kategori:</span>
+                    {% if 'Rendah' in (user.burnout_level or '') %}
+                    <span class="pma-badge pma-badge-success">{{ user.burnout_level }}</span>
+                    {% elif 'Sedang' in (user.burnout_level or '') %}
+                    <span class="pma-badge pma-badge-warning">{{ user.burnout_level }}</span>
+                    {% else %}
+                    <span class="pma-badge pma-badge-danger">{{ user.burnout_level }}</span>
+                    {% endif %}
+                </li>
+            </ul>
+
+            <div style="margin-top: 14px; background: #fdfaf3; border: 1px solid #f0e2be; padding: 10px; border-radius: 3px;">
+                <div style="font-weight: 600; color: #7f6000; font-size: 12px; margin-bottom: 4px;">💡 Rekomendasi Pemulihan:</div>
+                <div style="font-size: 12px; color: #444;">{{ user.recommendation }}</div>
             </div>
         </div>
     </div>
 
-    <div style="margin-bottom: 2rem;">
-        <h4 style="margin-bottom: 0.5rem; color: #a5b4fc;">Saran & Rekomendasi:</h4>
-        <p style="color: var(--text-main); font-size: 1rem; background: rgba(9, 13, 22, 0.5); padding: 1rem; border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
-            {{ user.recommendation }}
-        </p>
-    </div>
-
-    <!-- Ringkasan Data yang Tersimpan -->
-    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 2rem;">
-        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-muted);">Data Primer Tersimpan ke SQLite:</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; font-size: 0.9rem;">
-            <div>🕒 Jam Kerja: <strong>{{ user.work_hours }} jam/hari</strong></div>
-            <div>💤 Jam Tidur: <strong>{{ user.sleep_hours }} jam/hari</strong></div>
-            <div>🧠 Stres Mental: <strong>{{ user.stress_level }} / 5</strong></div>
-            <div>⚖️ Beban Kerja: <strong>{{ user.workload_feeling }} / 5</strong></div>
-            <div>⚡ Kelelahan Fisik: <strong>{{ user.physical_fatigue }} / 5</strong></div>
-            <div>📅 Waktu: <strong>{{ user.created_at }}</strong></div>
+    <!-- Panel 2: Parameter Input yang Tersimpan ke Database -->
+    <div class="pma-card">
+        <div class="pma-card-header">
+            <span>🗄️</span>
+            <span>Recorded Primary Attributes (Row #{{ user.id }})</span>
         </div>
-        {% if user.notes %}
-        <div style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-dim); border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">
-            Catatan: <em>"{{ user.notes }}"</em>
-        </div>
-        {% endif %}
-    </div>
+        <div class="pma-card-body">
+            <table class="pma-table" style="margin-bottom: 10px;">
+                <tbody>
+                    <tr>
+                        <td style="width: 140px; font-weight: 600;">work_hours</td>
+                        <td>{{ user.work_hours }} jam/hari</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">sleep_hours</td>
+                        <td>{{ user.sleep_hours }} jam/hari</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">stress_level</td>
+                        <td>{{ user.stress_level }} / 5</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">workload_feeling</td>
+                        <td>{{ user.workload_feeling }} / 5</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">physical_fatigue</td>
+                        <td>{{ user.physical_fatigue }} / 5</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">created_at</td>
+                        <td style="font-size: 11px; font-family: monospace;">{{ user.created_at }}</td>
+                    </tr>
+                </tbody>
+            </table>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: gap; gap: 1rem;">
-        <a href="{{ url_for('assessment.form') }}" class="btn btn-primary">
-            &larr; Input Data Responden Lain
-        </a>
-        <a href="{{ url_for('assessment.dataset_view') }}" class="btn btn-secondary">
-            Lihat Seluruh Dataset &rarr;
-        </a>
+            {% if user.notes %}
+            <div style="font-size: 11px; color: #666; font-style: italic;">
+                Catatan responden: "{{ user.notes }}"
+            </div>
+            {% endif %}
+        </div>
     </div>
+</div>
+
+<!-- phpMyAdmin Navigation Actions -->
+<div style="display: flex; gap: 8px; margin-top: 10px;">
+    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn pma-btn-primary">
+        📋 Browse Table (Lihat Seluruh Dataset)
+    </a>
+    <a href="{{ url_for('assessment.form') }}" class="pma-btn">
+        ➕ Insert Row Baru
+    </a>
+    <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn">
+        💾 Export (.csv)
+    </a>
+    <a href="{{ url_for('main.index') }}" class="pma-btn">
+        🏠 Server Dashboard
+    </a>
 </div>
 {% endblock %}

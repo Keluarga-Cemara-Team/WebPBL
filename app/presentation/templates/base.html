@@ -3,51 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AntiBurnout Web &bull; Clean Architecture{% endblock %}</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Main Style -->
+    <title>{% block title %}AntiBurnout &bull; phpMyAdmin{% endblock %}</title>
+    <!-- phpMyAdmin Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <header class="navbar">
-        <div class="nav-container">
-            <a href="{{ url_for('main.index') }}" class="brand">
-                <div class="brand-icon">🔥</div>
-                <span>AntiBurnout<span style="color: #6366f1;">.web</span></span>
-            </a>
-            <nav class="nav-links">
-                <a href="{{ url_for('main.index') }}" class="nav-link">Beranda</a>
-                <a href="{{ url_for('assessment.form') }}" class="nav-link">Input Data Primer</a>
-                <a href="{{ url_for('assessment.dataset_view') }}" class="nav-link" style="color: #a5b4fc; font-weight: 600;">
-                    📊 Dataset Responden
+    <div class="pma-wrapper">
+        <!-- ============================================================
+             Left Sidebar: Database Tree Navigation (phpMyAdmin style)
+             ============================================================ -->
+        <aside class="pma-sidebar">
+            <div class="pma-sidebar-brand">
+                <a href="{{ url_for('main.index') }}" class="pma-logo" title="phpMyAdmin AntiBurnout">
+                    <span class="pma-logo-anti">Anti</span><span class="pma-logo-burnout">Burnout</span><span class="pma-logo-admin">MyAdmin</span>
+                </a>
+            </div>
+
+            <!-- Quick Action Icons (Home, Refresh, Docs, Settings) -->
+            <div class="pma-quick-actions">
+                <a href="{{ url_for('main.index') }}" class="pma-quick-btn" title="Home">🏠</a>
+                <a href="javascript:location.reload();" class="pma-quick-btn" title="Reload Navigation">🔄</a>
+                <a href="{{ url_for('assessment.form') }}" class="pma-quick-btn" title="Insert New Row">➕</a>
+                <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-quick-btn" title="Server Status">⚡</a>
+            </div>
+
+            <!-- Mini Navigation Tabs -->
+            <div class="pma-nav-tabs-mini">
+                <div class="pma-nav-tab-mini active">Databases</div>
+                <div class="pma-nav-tab-mini">Favorites</div>
+            </div>
+
+            <!-- Tree Structure -->
+            <div class="pma-tree">
+                <div class="pma-tree-item">
+                    <span class="pma-tree-icon">➕</span>
+                    <a href="{{ url_for('assessment.form') }}" style="color: #235a81; font-weight: 500;">New (Insert Record)</a>
+                </div>
+
+                <!-- Database: antiburnout_db -->
+                <div style="margin-top: 6px;">
+                    <div class="pma-tree-item">
+                        <span class="pma-tree-icon">🗄️</span>
+                        <strong>antiburnout_db</strong>
+                    </div>
+                    <div class="pma-tree-sub">
+                        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-tree-item {% if request.path == '/assessment/dataset' %}active{% endif %}">
+                            <span class="pma-tree-icon">▦</span>
+                            <span>assessments</span>
+                        </a>
+                        <a href="{{ url_for('assessment.form') }}" class="pma-tree-item {% if request.path == '/assessment/' %}active{% endif %}">
+                            <span class="pma-tree-icon">📝</span>
+                            <span>primary_input</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Database: machine_learning_pbl -->
+                <div style="margin-top: 10px;">
+                    <div class="pma-tree-item">
+                        <span class="pma-tree-icon">🤖</span>
+                        <strong>machine_learning_pbl</strong>
+                    </div>
+                    <div class="pma-tree-sub">
+                        <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-tree-item">
+                            <span class="pma-tree-icon">⚡</span>
+                            <span>ml_service_api</span>
+                        </a>
+                        <div class="pma-tree-item" style="color: #777;">
+                            <span class="pma-tree-icon">📦</span>
+                            <span>burnout_model.pkl</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ============================================================
+             Main Content Area
+             ============================================================ -->
+        <div class="pma-main">
+            <!-- Server Context Bar -->
+            <div class="pma-server-bar">
+                <span class="pma-server-icon">🖥️</span>
+                <span>Server: <strong>127.0.0.1:5000</strong></span>
+                <span style="color: #888;">&raquo;</span>
+                <span>Database: <strong>antiburnout_db</strong></span>
+                {% block breadcrumb_extra %}{% endblock %}
+            </div>
+
+            <!-- phpMyAdmin Top Navigation Tabs -->
+            <nav class="pma-tabs-bar">
+                <a href="{{ url_for('main.index') }}" class="pma-tab {% if request.path == '/' %}active{% endif %}">
+                    <span>🏠</span>
+                    <span>Server Dashboard</span>
+                </a>
+                <a href="{{ url_for('assessment.dataset_view') }}" class="pma-tab {% if request.path == '/assessment/dataset' %}active{% endif %}">
+                    <span>📋</span>
+                    <span>Browse (Dataset)</span>
+                </a>
+                <a href="{{ url_for('assessment.form') }}" class="pma-tab {% if request.path == '/assessment/' %}active{% endif %}">
+                    <span>➕</span>
+                    <span>Insert (Data Primer)</span>
+                </a>
+                <a href="{{ url_for('assessment.export_csv') }}" class="pma-tab">
+                    <span>💾</span>
+                    <span>Export (.CSV)</span>
+                </a>
+                <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-tab">
+                    <span>⚡</span>
+                    <span>ML Server Status</span>
                 </a>
             </nav>
+
+            <!-- Page Body Content -->
+            <main class="pma-content">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="pma-alert-warning">
+                        <strong>Perhatian:</strong> {{ message }}
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- phpMyAdmin Footer -->
+            <footer class="pma-footer">
+                <span>phpMyAdmin AntiBurnout &bull; Flask Clean Architecture &bull; SQLite Engine &bull; MachineLearningPBL Interface</span>
+            </footer>
         </div>
-    </header>
-
-    <main class="main-content">
-        <!-- Flash Message Notification -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="info-banner" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; margin-bottom: 1.5rem;">
-                <span>⚠️</span>
-                <div>{{ message }}</div>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer>
-        <p>&copy; 2024 AntiBurnout WebPBL &bull; Clean Architecture Pattern (Domain - UseCases - Infrastructure - Presentation)</p>
-    </footer>
+    </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_scripts %}{% endblock %}
