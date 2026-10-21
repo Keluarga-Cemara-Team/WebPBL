@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AntiBurnout &bull; phpMyAdmin{% endblock %}</title>
+    <title>{% block title %}AntiBurnout &bull; Admin Portal phpMyAdmin{% endblock %}</title>
     <!-- phpMyAdmin Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     {% block extra_head %}{% endblock %}
@@ -15,30 +15,32 @@
              ============================================================ -->
         <aside class="pma-sidebar">
             <div class="pma-sidebar-brand">
-                <a href="{{ url_for('main.index') }}" class="pma-logo" title="phpMyAdmin AntiBurnout">
-                    <span class="pma-logo-anti">Anti</span><span class="pma-logo-burnout">Burnout</span><span class="pma-logo-admin">MyAdmin</span>
+                <a href="{{ url_for('main.index') }}" class="pma-logo" title="phpMyAdmin AntiBurnout Admin">
+                    <span class="pma-logo-anti">Anti</span><span class="pma-logo-burnout">Burnout</span><span class="pma-logo-admin">Admin</span>
                 </a>
             </div>
 
-            <!-- Quick Action Icons (Home, Refresh, Docs, Settings) -->
+            <!-- Quick Action Icons (Home, Refresh, Admin Insert, Status) -->
             <div class="pma-quick-actions">
-                <a href="{{ url_for('main.index') }}" class="pma-quick-btn" title="Home">🏠</a>
+                <a href="{{ url_for('main.index') }}" class="pma-quick-btn" title="Admin Dashboard">🏠</a>
                 <a href="javascript:location.reload();" class="pma-quick-btn" title="Reload Navigation">🔄</a>
-                <a href="{{ url_for('assessment.form') }}" class="pma-quick-btn" title="Insert New Row">➕</a>
-                <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-quick-btn" title="Server Status">⚡</a>
+                <a href="{{ url_for('assessment.form') }}" class="pma-quick-btn" title="Admin Data Entry">➕</a>
+                <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-quick-btn" title="ML Server Health">⚡</a>
             </div>
 
             <!-- Mini Navigation Tabs -->
             <div class="pma-nav-tabs-mini">
-                <div class="pma-nav-tab-mini active">Databases</div>
-                <div class="pma-nav-tab-mini">Favorites</div>
+                <div class="pma-nav-tab-mini active">Admin Console</div>
+                <div class="pma-nav-tab-mini">Dataset Tables</div>
             </div>
 
             <!-- Tree Structure -->
             <div class="pma-tree">
-                <div class="pma-tree-item">
+                <div class="pma-tree-item" style="background: #eef5fa; border: 1px solid #d0e3f2; margin-bottom: 6px;">
                     <span class="pma-tree-icon">➕</span>
-                    <a href="{{ url_for('assessment.form') }}" style="color: #235a81; font-weight: 500;">New (Insert Record)</a>
+                    <a href="{{ url_for('assessment.form') }}" style="color: #235a81; font-weight: bold;">
+                        Admin Data Entry (Baru)
+                    </a>
                 </div>
 
                 <!-- Database: antiburnout_db -->
@@ -50,11 +52,11 @@
                     <div class="pma-tree-sub">
                         <a href="{{ url_for('assessment.dataset_view') }}" class="pma-tree-item {% if request.path == '/assessment/dataset' %}active{% endif %}">
                             <span class="pma-tree-icon">▦</span>
-                            <span>assessments</span>
+                            <span>assessments (data primer)</span>
                         </a>
                         <a href="{{ url_for('assessment.form') }}" class="pma-tree-item {% if request.path == '/assessment/' %}active{% endif %}">
                             <span class="pma-tree-icon">📝</span>
-                            <span>primary_input</span>
+                            <span>admin_data_entry</span>
                         </a>
                     </div>
                 </div>
@@ -68,7 +70,7 @@
                     <div class="pma-tree-sub">
                         <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-tree-item">
                             <span class="pma-tree-icon">⚡</span>
-                            <span>ml_service_api</span>
+                            <span>ml_prediction_api</span>
                         </a>
                         <div class="pma-tree-item" style="color: #777;">
                             <span class="pma-tree-icon">📦</span>
@@ -88,7 +90,9 @@
                 <span class="pma-server-icon">🖥️</span>
                 <span>Server: <strong>127.0.0.1:5000</strong></span>
                 <span style="color: #888;">&raquo;</span>
-                <span>Database: <strong>antiburnout_db</strong></span>
+                <span>User: <strong style="color: #235a81;">admin@localhost</strong></span>
+                <span style="color: #888;">&raquo;</span>
+                <span>Role: <strong style="color: #c00000;">Administrator (Data Entry & Curation)</strong></span>
                 {% block breadcrumb_extra %}{% endblock %}
             </div>
 
@@ -96,23 +100,23 @@
             <nav class="pma-tabs-bar">
                 <a href="{{ url_for('main.index') }}" class="pma-tab {% if request.path == '/' %}active{% endif %}">
                     <span>🏠</span>
-                    <span>Server Dashboard</span>
+                    <span>Admin Dashboard</span>
+                </a>
+                <a href="{{ url_for('assessment.form') }}" class="pma-tab {% if request.path == '/assessment/' %}active{% endif %}" style="font-weight: bold; color: #235a81;">
+                    <span>➕</span>
+                    <span>Admin Input (Data Primer)</span>
                 </a>
                 <a href="{{ url_for('assessment.dataset_view') }}" class="pma-tab {% if request.path == '/assessment/dataset' %}active{% endif %}">
                     <span>📋</span>
-                    <span>Browse (Dataset)</span>
-                </a>
-                <a href="{{ url_for('assessment.form') }}" class="pma-tab {% if request.path == '/assessment/' %}active{% endif %}">
-                    <span>➕</span>
-                    <span>Insert (Data Primer)</span>
+                    <span>Browse Dataset (Kelola Tabel)</span>
                 </a>
                 <a href="{{ url_for('assessment.export_csv') }}" class="pma-tab">
                     <span>💾</span>
-                    <span>Export (.CSV)</span>
+                    <span>Export CSV (Bahan ML)</span>
                 </a>
                 <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-tab">
                     <span>⚡</span>
-                    <span>ML Server Status</span>
+                    <span>ML API Status</span>
                 </a>
             </nav>
 
@@ -134,7 +138,7 @@
 
             <!-- phpMyAdmin Footer -->
             <footer class="pma-footer">
-                <span>phpMyAdmin AntiBurnout &bull; Flask Clean Architecture &bull; SQLite Engine &bull; MachineLearningPBL Interface</span>
+                <span>AntiBurnout Admin Portal &bull; WebPBL Clean Architecture &bull; Khusus Input & Kurasi Dataset Primer untuk MachineLearningPBL</span>
             </footer>
         </div>
     </div>

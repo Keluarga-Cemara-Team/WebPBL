@@ -13,10 +13,10 @@
 <!-- phpMyAdmin Success Query Banner -->
 <div class="pma-alert-success">
     <div style="font-weight: bold; margin-bottom: 2px;">
-        ✅ 1 row inserted. Inserted row id: #{{ user.id }}
+        ✅ 1 row inserted. Admin berhasil menginput data responden (Record ID: #{{ user.id }})
     </div>
     <div style="font-family: monospace; font-size: 11px; color: #2e5917;">
-        INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_level`) VALUES ({{ user.id }}, '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_level }}');
+        INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_level`, `operator`) VALUES ({{ user.id }}, '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_level }}', 'admin@localhost');
     </div>
 </div>
 
@@ -114,18 +114,18 @@
 </div>
 
 <!-- phpMyAdmin Navigation Actions -->
-<div style="display: flex; gap: 8px; margin-top: 10px;">
-    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn pma-btn-primary">
-        📋 Browse Table (Lihat Seluruh Dataset)
+<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+    <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
+        ➕ Lanjut Input Data Responden Lain (Admin Entry)
     </a>
-    <a href="{{ url_for('assessment.form') }}" class="pma-btn">
-        ➕ Insert Row Baru
+    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
+        📋 Browse Dataset (Kelola Tabel)
     </a>
     <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn">
-        💾 Export (.csv)
+        💾 Export Dataset (.csv)
     </a>
     <a href="{{ url_for('main.index') }}" class="pma-btn">
-        🏠 Server Dashboard
+        🏠 Admin Dashboard
     </a>
 </div>
 {% endblock %}

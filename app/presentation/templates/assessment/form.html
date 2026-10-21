@@ -1,21 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %}Insert &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
+{% block title %}Admin Data Entry &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
 
 {% block breadcrumb_extra %}
 <span style="color: #888;">&raquo;</span>
 <span>Table: <strong>assessments</strong></span>
 <span style="color: #888;">&raquo;</span>
-<span><strong>Insert</strong></span>
+<span><strong>Admin Data Entry</strong></span>
 {% endblock %}
 
 {% block content %}
 <!-- phpMyAdmin SQL Execution Preview Box -->
 <div class="pma-sql-box">
     <div>
-        <code>INSERT INTO `assessments` (`full_name`, `role`, `work_hours`, `sleep_hours`, `stress_level`, `workload_feeling`, `physical_fatigue`, `notes`) VALUES (...);</code>
+        <code>INSERT INTO `assessments` (`full_name`, `role`, `work_hours`, `sleep_hours`, `stress_level`, `workload_feeling`, `physical_fatigue`, `notes`, `created_at`) VALUES (...);</code>
         <div class="pma-sql-meta">
-            Mode: Insert Data Primer Responden &bull; Terhubung ke SQLite Engine &bull; Validasi Domain Aktif
+            Panel Admin Input Data Primer &bull; Petugas: admin@localhost &bull; Validasi Otomatis Domain Entity
+        </div>
+    </div>
+</div>
+
+<!-- Admin Instruction Card -->
+<div class="pma-card" style="margin-bottom: 12px; border-left: 4px solid #235a81;">
+    <div class="pma-card-body" style="padding: 10px 14px;">
+        <div style="font-weight: bold; color: #235a81; margin-bottom: 3px;">
+            📝 Formulir Penginputan Data Primer oleh Administrator
+        </div>
+        <div style="font-size: 12px; color: #555;">
+            Masukkan data kuesioner fisik, hasil wawancara, atau formulir survei kelelahan kerja yang telah terkumpul dari responden. Data akan tersimpan ke tabel <code>assessments</code> dan dikirim ke backend <code>MachineLearningPBL</code> untuk prediksi tingkat burnout.
         </div>
     </div>
 </div>
@@ -25,42 +37,42 @@
     <table class="pma-form-table">
         <thead>
             <tr>
-                <th style="width: 180px;">Column</th>
-                <th style="width: 120px;">Type</th>
-                <th style="width: 100px;">Null</th>
-                <th>Value</th>
+                <th style="width: 200px;">Atribut Kolom</th>
+                <th style="width: 120px;">Tipe Data</th>
+                <th style="width: 80px; text-align: center;">Null</th>
+                <th>Nilai Input (Value)</th>
             </tr>
         </thead>
         <tbody>
-            <!-- full_name -->
+            <!-- full_name / ID Dokumen Responden -->
             <tr>
                 <td>
                     <span class="pma-form-label">full_name</span>
-                    <div class="pma-form-desc">Nama / ID Responden</div>
+                    <div class="pma-form-desc">Nama Lengkap / Kode Kuesioner</div>
                 </td>
                 <td><code style="color: #888;">VARCHAR(100)</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
-                    <input type="text" id="full_name" name="full_name" class="pma-input" placeholder="Contoh: Responden-01 atau Budi Santoso" required>
+                    <input type="text" id="full_name" name="full_name" class="pma-input" placeholder="Contoh: Responden-01, Ahmad Fauzi, atau KODE-A12" required>
                 </td>
             </tr>
 
-            <!-- role -->
+            <!-- role / Bidang Pekerjaan -->
             <tr>
                 <td>
                     <span class="pma-form-label">role</span>
                     <div class="pma-form-desc">Divisi / Bidang Pekerjaan</div>
                 </td>
                 <td><code style="color: #888;">VARCHAR(50)</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
                     <select id="role" name="role" class="pma-select">
-                        <option value="Teknologi / IT">Teknologi / IT / Developer</option>
-                        <option value="Kesehatan / Medis">Kesehatan / Medis</option>
-                        <option value="Pendidikan / Pengajar">Pendidikan / Akademisi</option>
-                        <option value="Keuangan / Finansial">Keuangan / Akuntansi</option>
-                        <option value="Layanan Publik / Admin">Administrasi / Operasional</option>
-                        <option value="Lainnya">Lainnya</option>
+                        <option value="Teknologi / IT">Teknologi / IT / Software Engineering</option>
+                        <option value="Kesehatan / Medis">Kesehatan / Medis / Keperawatan</option>
+                        <option value="Pendidikan / Pengajar">Pendidikan / Akademisi / Guru</option>
+                        <option value="Keuangan / Finansial">Keuangan / Perbankan / Akuntansi</option>
+                        <option value="Layanan Publik / Admin">Administrasi / Operasional / Layanan</option>
+                        <option value="Lainnya">Lainnya / Manufaktur / Lapangan</option>
                     </select>
                 </td>
             </tr>
@@ -69,10 +81,10 @@
             <tr>
                 <td>
                     <span class="pma-form-label">work_hours</span>
-                    <div class="pma-form-desc">Durasi kerja harian (Jam)</div>
+                    <div class="pma-form-desc">Jam Kerja Rata-rata per Hari</div>
                 </td>
                 <td><code style="color: #888;">FLOAT</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
                     <div class="pma-range-wrapper">
                         <input type="range" id="work_hours" name="work_hours" class="range-input" min="4" max="16" step="0.5" value="8" style="flex: 1;">
@@ -86,10 +98,10 @@
             <tr>
                 <td>
                     <span class="pma-form-label">sleep_hours</span>
-                    <div class="pma-form-desc">Durasi istirahat tidur (Jam)</div>
+                    <div class="pma-form-desc">Durasi Tidur / Istirahat per Hari</div>
                 </td>
                 <td><code style="color: #888;">FLOAT</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
                     <div class="pma-range-wrapper">
                         <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="7" style="flex: 1;">
@@ -106,12 +118,12 @@
                     <div class="pma-form-desc">Tingkat Stres Mental (1-5)</div>
                 </td>
                 <td><code style="color: #888;">TINYINT(1..5)</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
                     <div class="pma-range-wrapper">
                         <input type="range" id="stress_level" name="stress_level" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
                         <span id="stress_level_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Rendah - 5: Sangat Tinggi)</span>
+                        <span style="font-size: 11px; color: #777;">(1: Sangat Rendah - 5: Sangat Tinggi)</span>
                     </div>
                 </td>
             </tr>
@@ -120,15 +132,15 @@
             <tr>
                 <td>
                     <span class="pma-form-label">workload_feeling</span>
-                    <div class="pma-form-desc">Beban Kerja Dirasakan (1-5)</div>
+                    <div class="pma-form-desc">Beban Kerja yang Dirasakan (1-5)</div>
                 </td>
                 <td><code style="color: #888;">TINYINT(1..5)</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
                     <div class="pma-range-wrapper">
                         <input type="range" id="workload_feeling" name="workload_feeling" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
                         <span id="workload_feeling_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Ringan - 5: Berlebihan)</span>
+                        <span style="font-size: 11px; color: #777;">(1: Sangat Ringan - 5: Berlebihan)</span>
                     </div>
                 </td>
             </tr>
@@ -140,26 +152,26 @@
                     <div class="pma-form-desc">Kelelahan Fisik Tubuh (1-5)</div>
                 </td>
                 <td><code style="color: #888;">TINYINT(1..5)</code></td>
-                <td><input type="checkbox" disabled></td>
+                <td style="text-align: center;"><input type="checkbox" disabled></td>
                 <td>
                     <div class="pma-range-wrapper">
                         <input type="range" id="physical_fatigue" name="physical_fatigue" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
                         <span id="physical_fatigue_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Bugar - 5: Sangat Lelah)</span>
+                        <span style="font-size: 11px; color: #777;">(1: Bugar / Segar - 5: Sangat Lelah)</span>
                     </div>
                 </td>
             </tr>
 
-            <!-- notes -->
+            <!-- notes / Catatan Observasi Admin -->
             <tr>
                 <td>
                     <span class="pma-form-label">notes</span>
-                    <div class="pma-form-desc">Catatan keluhan / gejala</div>
+                    <div class="pma-form-desc">Catatan Tambahan / Observasi Admin</div>
                 </td>
                 <td><code style="color: #888;">TEXT</code></td>
-                <td><input type="checkbox" checked title="Null allowed"></td>
+                <td style="text-align: center;"><input type="checkbox" checked title="Null allowed"></td>
                 <td>
-                    <textarea id="notes" name="notes" rows="2" class="pma-textarea" placeholder="Tuliskan keluhan yang dialami responden..."></textarea>
+                    <textarea id="notes" name="notes" rows="2" class="pma-textarea" placeholder="Tuliskan keluhan atau catatan hasil observasi wawancara responden..."></textarea>
                 </td>
             </tr>
         </tbody>
@@ -168,12 +180,12 @@
     <!-- phpMyAdmin Bottom Action Bar -->
     <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 10px 14px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
         <div style="font-size: 11px; color: #555;">
-            Data akan divalidasi oleh Clean Architecture Domain Entity dan diproses oleh ML Service.
+            Operator: <strong style="color: #235a81;">admin@localhost</strong> &bull; Aksi: Simpan ke tabel <code>assessments</code> & minta evaluasi ML.
         </div>
         <div style="display: flex; gap: 8px;">
-            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal</a>
-            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 5px 18px;">
-                Go / Simpan Record &rarr;
+            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal & Kembali ke Tabel</a>
+            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 5px 20px;">
+                Go / Simpan Record Data Primer &rarr;
             </button>
         </div>
     </div>

@@ -1,146 +1,141 @@
 {% extends "base.html" %}
 
-{% block title %}Server Dashboard &bull; AntiBurnout phpMyAdmin{% endblock %}
+{% block title %}Admin Console &bull; AntiBurnout phpMyAdmin{% endblock %}
 
 {% block content %}
 <!-- phpMyAdmin SQL Execution Banner -->
 <div class="pma-sql-box">
     <div>
-        <code>SELECT @@hostname, CURRENT_TIMESTAMP, COUNT(*) AS total_respondents FROM `assessments`;</code>
+        <code>SELECT 'ADMIN_INPUT_PORTAL' AS role, 'antiburnout_db' AS database, COUNT(*) AS total_records FROM `assessments`;</code>
         <div class="pma-sql-meta">
-            Status: Database server SQLite &bull; Service WebPBL aktif &bull; Waktu server: 2024-10-21
+            Portal Khusus Administrator &bull; Penginputan & Kurasi Dataset Primer &bull; Status: Terhubung ke SQLite Engine
         </div>
     </div>
-    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
-        🔍 Browse Table
+    <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
+        ➕ Input Data Primer Baru
     </a>
 </div>
 
-<!-- phpMyAdmin 4-Panel Grid (Exact layout from screenshot) -->
+<!-- phpMyAdmin 4-Panel Grid Khusus Admin Input -->
 <div class="pma-grid-2col">
-    <!-- Panel 1: General settings -->
+    <!-- Panel 1: Peran & Fungsi Admin Input -->
     <div class="pma-card">
         <div class="pma-card-header">
-            <span>⚙️</span>
-            <span>General settings</span>
+            <span>🛡️</span>
+            <span>Peran Administrator (Admin Data Entry)</span>
         </div>
         <div class="pma-card-body">
+            <p style="margin-bottom: 10px; color: #444; font-size: 12px; line-height: 1.6;">
+                Website <strong>WebPBL</strong> ini berfungsi sebagai <strong>Panel Admin Penginput Data Primer</strong>. Petugas admin/peneliti memasukkan lembar survei, hasil wawancara kerja, dan observasi burnout karyawan ke dalam sistem terpusat.
+            </p>
             <ul class="pma-list">
                 <li class="pma-list-item">
-                    <span>📌 Proyek PBL</span>
-                    <strong>AntiBurnout Multi-Repository</strong>
+                    <span>Tugas Utama:</span>
+                    <strong>Entri Data Lapangan & Kurasi Dataset</strong>
                 </li>
                 <li class="pma-list-item">
-                    <span>🗂️ Sub-Repository</span>
-                    <span style="font-family: monospace; color: #235a81;">WebPBL (Frontend & Data Collection)</span>
+                    <span>Akses Hak:</span>
+                    <span class="pma-badge pma-badge-success">Full Admin (Insert, View, Export)</span>
                 </li>
                 <li class="pma-list-item">
-                    <span>🏛️ Pola Arsitektur</span>
-                    <span class="pma-badge pma-badge-success">Clean Architecture (Uncle Bob)</span>
-                </li>
-                <li class="pma-list-item">
-                    <span>📥 Mode Pengumpulan</span>
-                    <span>Dataset Primer (Kuesioner Responden)</span>
+                    <span>Tujuan Akhir:</span>
+                    <span>Menyuplai Dataset ke <strong>MachineLearningPBL</strong></span>
                 </li>
             </ul>
             <div style="margin-top: 12px; display: flex; gap: 8px;">
                 <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
-                    ➕ Insert Responden Baru
+                    ➕ Mulai Input Data Primer
                 </a>
-                <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn">
-                    💾 Export Dataset CSV
+                <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
+                    📋 Buka Tabel Dataset
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Panel 2: Database server -->
+    <!-- Panel 2: Alur Integrasi Admin ke Machine Learning -->
+    <div class="pma-card">
+        <div class="pma-card-header">
+            <span>🔄</span>
+            <span>Alur Kerja Admin Input & Integrasi ML</span>
+        </div>
+        <div class="pma-card-body">
+            <div style="font-size: 12px; color: #444; margin-bottom: 8px;">
+                Setiap kali Admin menginput data primer:
+            </div>
+            <ol style="margin-left: 20px; font-size: 12px; color: #555; line-height: 1.7; margin-bottom: 12px;">
+                <li><strong>Admin Entry:</strong> Petugas mengisi formulir sesuai data kuesioner responden.</li>
+                <li><strong>Validasi Domain:</strong> Sistem memvalidasi rentang jam kerja dan skala stres.</li>
+                <li><strong>Evaluasi ML:</strong> Data dikirim otomatis ke API <code>MachineLearningPBL</code>.</li>
+                <li><strong>Persistensi SQLite:</strong> Data dan hasil burnout disimpan ke <code>antiburnout.db</code>.</li>
+                <li><strong>Export CSV:</strong> Admin dapat mengunduh seluruh dataset untuk retrain model ML.</li>
+            </ol>
+            <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn" style="width: 100%; justify-content: center;">
+                📥 Download Primary Dataset (.CSV) Siap Pakai
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel 3: Status Operator & Database Server -->
     <div class="pma-card">
         <div class="pma-card-header">
             <span>🗄️</span>
-            <span>Database server</span>
+            <span>Informasi Database & Operator</span>
         </div>
         <div class="pma-card-body">
             <ul class="pma-list">
                 <li class="pma-list-item">
-                    <span>Server:</span>
-                    <span>Localhost via SQLite Engine</span>
+                    <span>Petugas Aktif:</span>
+                    <span style="font-weight: bold; color: #235a81;">admin@localhost (Operator)</span>
                 </li>
                 <li class="pma-list-item">
-                    <span>Database Name:</span>
-                    <span style="font-family: monospace; font-weight: bold;">antiburnout_db</span>
+                    <span>Database Engine:</span>
+                    <span>SQLite 3.x (Local High-Performance)</span>
                 </li>
                 <li class="pma-list-item">
-                    <span>Storage Path:</span>
-                    <span style="font-family: monospace; font-size: 11px; color: #555;">data/antiburnout.db</span>
+                    <span>Nama Database:</span>
+                    <code>antiburnout_db</code>
                 </li>
                 <li class="pma-list-item">
-                    <span>Tabel Utama:</span>
-                    <a href="{{ url_for('assessment.dataset_view') }}"><code>assessments</code> (Primary Data)</a>
+                    <span>File Fisik DB:</span>
+                    <span style="font-family: monospace; font-size: 11px;">WebPBL/data/antiburnout.db</span>
                 </li>
                 <li class="pma-list-item">
-                    <span>Server Status:</span>
-                    <span class="pma-badge pma-badge-success">● Connected & Ready</span>
+                    <span>Tabel Target Input:</span>
+                    <a href="{{ url_for('assessment.dataset_view') }}"><code>assessments</code> (Primary Data Records)</a>
                 </li>
             </ul>
         </div>
     </div>
 
-    <!-- Panel 3: Appearance & Interface Settings -->
-    <div class="pma-card">
-        <div class="pma-card-header">
-            <span>🎨</span>
-            <span>Appearance settings</span>
-        </div>
-        <div class="pma-card-body">
-            <ul class="pma-list">
-                <li class="pma-list-item">
-                    <span>Language / Bahasa:</span>
-                    <select class="pma-select" style="max-width: 160px;">
-                        <option selected>Bahasa Indonesia</option>
-                        <option>English</option>
-                    </select>
-                </li>
-                <li class="pma-list-item">
-                    <span>Theme Style:</span>
-                    <span style="font-weight: 600; color: #e27d14;">pmahomme (phpMyAdmin Classic)</span>
-                </li>
-                <li class="pma-list-item">
-                    <span>Design Target:</span>
-                    <span>Tampilan Persis phpMyAdmin Database Manager</span>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Panel 4: Web Server & Machine Learning Service -->
+    <!-- Panel 4: Machine Learning Endpoint Status -->
     <div class="pma-card">
         <div class="pma-card-header">
             <span>🤖</span>
-            <span>Web server & Machine Learning API</span>
+            <span>MachineLearningPBL API Status</span>
         </div>
         <div class="pma-card-body">
             <ul class="pma-list">
                 <li class="pma-list-item">
-                    <span>Web Framework:</span>
-                    <span>Python 3.13 &bull; Flask 3.1.x</span>
-                </li>
-                <li class="pma-list-item">
-                    <span>ML Target Subrepo:</span>
+                    <span>Target ML Repository:</span>
                     <span style="font-family: monospace; color: #235a81;">MachineLearningPBL</span>
                 </li>
                 <li class="pma-list-item">
-                    <span>ML Inference Endpoint:</span>
+                    <span>Endpoint Prediksi:</span>
                     <code>http://127.0.0.1:8000/predict</code>
                 </li>
                 <li class="pma-list-item">
-                    <span>Fallback Heuristic:</span>
-                    <span class="pma-badge pma-badge-warning">Enabled (Circuit Breaker Active)</span>
+                    <span>Resiliensi (Fallback):</span>
+                    <span class="pma-badge pma-badge-success">Circuit Breaker Siap (Tidak Crash)</span>
+                </li>
+                <li class="pma-list-item">
+                    <span>Status Endpoint:</span>
+                    <span class="pma-badge pma-badge-warning">Heuristic Fallback Active</span>
                 </li>
             </ul>
             <div style="margin-top: 10px;">
                 <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-btn" style="font-size: 11px;">
-                    ⚡ Periksa Status API (/healthz)
+                    ⚡ Periksa Health Check Endpoint (/healthz)
                 </a>
             </div>
         </div>

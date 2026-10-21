@@ -1,6 +1,6 @@
-# 🌐 AntiBurnout - WebPBL (Frontend & Data Collection)
+# 🌐 AntiBurnout - WebPBL (Admin Data Entry & Dataset Management Portal)
 
-> **Antarmuka Pengguna & Pengumpulan Dataset Primer** berbasis **Flask** yang menerapkan **Clean Architecture (Uncle Bob)**. Dirancang khusus untuk memisahkan aturan bisnis survei dari detail teknis database dan integrasi ke modul Machine Learning (**MachineLearningPBL**).
+> **Portal Administrator untuk Penginputan & Kurasi Dataset Primer** berbasis **Flask** dengan tampilan **phpMyAdmin Classic Theme** dan arsitektur **Clean Architecture (Uncle Bob)**. Dirancang khusus bagi Administrator / Petugas Peneliti untuk mencatat hasil kuesioner fisik dan wawancara lapangan, mengelola rekaman dataset di database SQLite, serta mengekspor data siap latih ke modul **MachineLearningPBL**.
 
 ---
 
