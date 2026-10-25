@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Management &bull; AntiBurnout MyAdmin{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dataset_management.css') }}">
+{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span><strong>Dataset Management</strong></span>
+{% endblock %}
+
+{% block content %}
+<section class="dataset-page" aria-labelledby="dataset-title">
+    <header class="dataset-page-heading">
+        <div>
+            <p class="dataset-kicker">machine_learning_pbl</p>
+            <h1 id="dataset-title">Dataset Management</h1>
+            <p class="dataset-intro">Pilih CSV untuk memeriksa struktur dan melihat pratinjau sebelum proses ML.</p>
+        </div>
+        <span class="pma-badge pma-badge-warning">Preview lokal</span>
+    </header>
+
+    <div class="pma-alert-warning dataset-local-notice" role="note">
+        File dibaca di browser untuk pratinjau. Belum ada endpoint backend untuk mengunggah atau menyimpan dataset.
+        Dataset rencana <code>burnout_dataset1.csv</code> belum ditemukan di proyek.
+    </div>
+
+    <section class="pma-card" aria-labelledby="upload-heading">
+        <h2 class="pma-card-header" id="upload-heading"><span>1.</span> Pilih dataset CSV</h2>
+        <div class="pma-card-body">
+            <label class="dataset-file-label" for="dataset-file">File CSV</label>
+            <div class="dataset-file-row">
+                <input id="dataset-file" class="pma-input dataset-file-input" type="file" accept=".csv,text/csv">
+                <span id="dataset-filename" class="dataset-filename" aria-live="polite">Belum ada file dipilih</span>
+            </div>
+            <p class="dataset-help">Pilih file .csv. Isi file tidak diunggah dan hanya digunakan untuk pratinjau di halaman ini.</p>
+        </div>
+    </section>
+
+    <div id="dataset-status" class="dataset-status" role="status" aria-live="polite">
+        Pilih file CSV untuk memulai pemeriksaan.
+    </div>
+
+    <section id="dataset-results" class="dataset-results" hidden aria-label="Hasil pemeriksaan dataset">
+        <section class="pma-card" aria-labelledby="summary-heading">
+            <h2 class="pma-card-header" id="summary-heading">2. Ringkasan dataset</h2>
+            <div class="pma-card-body">
+                <dl class="dataset-summary-grid">
+                    <div class="dataset-summary-item"><dt>Nama file</dt><dd id="summary-filename">—</dd></div>
+                    <div class="dataset-summary-item"><dt>Jumlah baris data</dt><dd id="summary-rows">—</dd></div>
+                    <div class="dataset-summary-item"><dt>Jumlah kolom</dt><dd id="summary-columns">—</dd></div>
+                    <div class="dataset-summary-item"><dt>Missing values</dt><dd id="summary-missing">—</dd></div>
+                    <div class="dataset-summary-item"><dt>Baris duplikat</dt><dd id="summary-duplicates">—</dd></div>
+                    <div class="dataset-summary-item"><dt>Target Burnout_Risk</dt><dd id="summary-target">—</dd></div>
+                </dl>
+            </div>
+        </section>
+
+        <section class="pma-card" aria-labelledby="preview-heading">
+            <h2 class="pma-card-header" id="preview-heading">3. Pratinjau data <span id="preview-count" class="dataset-heading-detail"></span></h2>
+            <div class="pma-table-container dataset-table-container">
+                <table class="pma-table dataset-preview-table">
+                    <thead><tr id="preview-head"></tr></thead>
+                    <tbody id="preview-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="pma-card" aria-labelledby="types-heading">
+            <h2 class="pma-card-header" id="types-heading">4. Tipe data kolom</h2>
+            <div class="pma-table-container dataset-table-container">
+                <table class="pma-table dataset-types-table">
+                    <thead><tr><th scope="col">Nama kolom</th><th scope="col">Tipe terdeteksi</th><th scope="col">Missing</th></tr></thead>
+                    <tbody id="types-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+
+    <section class="pma-card dataset-next-steps" aria-labelledby="next-steps-heading">
+        <h2 class="pma-card-header" id="next-steps-heading">Tahap berikutnya</h2>
+        <div class="pma-card-body dataset-action-row">
+            <button class="pma-btn" type="button" disabled aria-disabled="true">EDA (belum tersedia)</button>
+            <button class="pma-btn" type="button" disabled aria-disabled="true">Data Processing (belum tersedia)</button>
+            <span class="dataset-help">Aktif setelah route dan integrasi backend tersedia.</span>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dataset_management.js') }}" defer></script>
+{% endblock %}
