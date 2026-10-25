@@ -50,7 +50,7 @@ body {
   font-family: var(--font-family);
   background-color: var(--pma-bg);
   color: var(--pma-text-main);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
   display: flex;
@@ -142,7 +142,7 @@ a:hover {
   display: flex;
   border-bottom: 1px solid #d9d9d9;
   background: #f8f8f8;
-  font-size: 11px;
+  font-size: 12px;
 }
 .pma-nav-tab-mini {
   padding: 5px 10px;
@@ -160,7 +160,7 @@ a:hover {
 .pma-tree {
   padding: 10px 8px;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: 13px;
 }
 .pma-tree-item {
   display: flex;
@@ -197,6 +197,7 @@ a:hover {
    ========================================================================== */
 .pma-main {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: var(--pma-bg);
@@ -211,7 +212,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: #333;
 }
 .pma-server-icon {
@@ -232,8 +233,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 7px 12px;
+  font-size: 13px;
   font-weight: 500;
   color: #444;
   background: #e4e4e4;
@@ -257,7 +258,7 @@ a:hover {
 
 /* Page Body Container */
 .pma-content {
-  padding: 16px 20px;
+  padding: 18px 20px;
   flex: 1;
 }
 
@@ -269,9 +270,9 @@ a:hover {
   border: 1px solid var(--pma-sql-border);
   border-left: 5px solid #235a81;
   border-radius: 3px;
-  padding: 8px 14px;
+  padding: 9px 14px;
   font-family: Consolas, "Courier New", monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: #173b54;
   margin-bottom: 14px;
   display: flex;
@@ -280,7 +281,7 @@ a:hover {
 }
 .pma-sql-meta {
   color: #555;
-  font-size: 11px;
+  font-size: 12px;
   font-family: var(--font-family);
   margin-top: 4px;
 }
@@ -293,7 +294,7 @@ a:hover {
   padding: 8px 12px;
   border-radius: 3px;
   margin-bottom: 14px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .pma-alert-warning {
@@ -304,7 +305,7 @@ a:hover {
   padding: 8px 12px;
   border-radius: 3px;
   margin-bottom: 14px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* ==========================================================================
@@ -312,9 +313,9 @@ a:hover {
    ========================================================================== */
 .pma-grid-2col {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .pma-card {
@@ -328,8 +329,8 @@ a:hover {
 .pma-card-header {
   background: var(--pma-card-header);
   border-bottom: 1px solid var(--pma-card-border);
-  padding: 7px 12px;
-  font-size: 13px;
+  padding: 9px 12px;
+  font-size: 15px;
   font-weight: 700;
   color: #444444;
   display: flex;
@@ -338,7 +339,7 @@ a:hover {
 }
 
 .pma-card-body {
-  padding: 12px 14px;
+  padding: 13px 14px;
 }
 
 .pma-list {
@@ -355,6 +356,30 @@ a:hover {
   border-bottom: none;
 }
 
+.pma-action-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pma-form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pma-metrics-bar,
+.pma-operation-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
 /* ==========================================================================
    phpMyAdmin Table View (Browse View)
    ========================================================================== */
@@ -369,7 +394,7 @@ a:hover {
 .pma-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
 }
 
@@ -377,14 +402,14 @@ a:hover {
   background: linear-gradient(180deg, #f2f2f2 0%, #e1e1e1 100%);
   border-bottom: 1px solid #bfbfbf;
   border-right: 1px solid #dcdcdc;
-  padding: 7px 10px;
+  padding: 8px 10px;
   font-weight: 600;
   color: #333333;
   white-space: nowrap;
 }
 
 .pma-table td {
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-bottom: 1px solid #ebebeb;
   border-right: 1px solid #f2f2f2;
 }
@@ -399,7 +424,7 @@ a:hover {
 
 /* Table Actions (Edit, Copy, Delete look-alike) */
 .pma-action-link {
-  font-size: 11px;
+  font-size: 12px;
   color: #235a81;
   margin-right: 6px;
 }
@@ -419,8 +444,8 @@ a:hover {
   background: #f0f0f0;
   border-bottom: 1px solid #ccc;
   border-right: 1px solid #e0e0e0;
-  padding: 6px 10px;
-  font-size: 12px;
+  padding: 7px 10px;
+  font-size: 13px;
   text-align: left;
 }
 
@@ -436,17 +461,17 @@ a:hover {
   color: #333;
 }
 .pma-form-desc {
-  font-size: 11px;
-  color: #777;
+  font-size: 12px;
+  color: #666;
 }
 
 .pma-input, .pma-select, .pma-textarea {
   width: 100%;
   max-width: 380px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border: 1px solid #aaa;
   border-radius: 2px;
-  font-size: 12px;
+  font-size: 14px;
   background: #fff;
   color: #333;
 }
@@ -478,8 +503,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: 500;
   border: 1px solid var(--pma-btn-border);
   background: var(--pma-btn-bg);
@@ -509,7 +534,7 @@ a:hover {
   display: inline-block;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   border: 1px solid transparent;
 }
@@ -534,7 +559,53 @@ a:hover {
   background: #ececec;
   border-top: 1px solid #dcdcdc;
   padding: 8px 20px;
-  font-size: 11px;
-  color: #666;
+  font-size: 12px;
+  color: #555;
   text-align: center;
+}
+
+/* Responsive behavior while keeping the database-admin layout intact. */
+@media (max-width: 900px) {
+  .pma-sidebar { width: 215px; }
+  .pma-content { padding: 16px; }
+  .pma-list-item { align-items: flex-start; gap: 8px; }
+}
+
+@media (max-width: 700px) {
+  .pma-wrapper { flex-direction: column; min-width: 0; }
+  .pma-sidebar {
+    width: 100%; max-height: 230px; border-right: 0;
+    border-bottom: 1px solid var(--pma-sidebar-border);
+  }
+  .pma-tree { max-height: 100px; }
+  .pma-main { width: 100%; overflow-x: hidden; }
+  .pma-server-bar { flex-wrap: wrap; padding: 8px 12px; }
+  .pma-tabs-bar { padding: 8px 10px 0; }
+  .pma-tab { flex: 0 0 auto; }
+  .pma-content { padding: 12px; }
+  .pma-sql-box {
+    align-items: flex-start; flex-direction: column; gap: 10px;
+    overflow-wrap: anywhere;
+  }
+  .pma-grid-2col { grid-template-columns: minmax(0, 1fr); }
+  .pma-card, .pma-card-body, .pma-list, .pma-list-item { min-width: 0; }
+  .pma-list-item { flex-wrap: wrap; }
+  .pma-list-item > :last-child { overflow-wrap: anywhere; }
+  .pma-metrics-bar, .pma-operation-footer, .pma-form-actions {
+    align-items: flex-start; flex-direction: column;
+  }
+  .pma-metrics-bar > div { flex-wrap: wrap; gap: 6px; }
+  .pma-table-container { max-width: 100%; }
+  .pma-table { min-width: 900px; }
+  .pma-form-table { display: block; max-width: 100%; overflow-x: auto; }
+  .pma-form-table th, .pma-form-table td { min-width: 100px; }
+  .pma-range-wrapper { min-width: 240px; }
+  .pma-footer { padding: 10px 12px; }
+}
+
+@media (max-width: 420px) {
+  .pma-content { padding: 10px; }
+  .pma-card-body { padding: 11px; }
+  .pma-quick-actions { padding-inline: 12px; }
+  .pma-btn { min-height: 36px; }
 }

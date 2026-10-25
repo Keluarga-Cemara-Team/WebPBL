@@ -11,7 +11,7 @@
             Status: Database server SQLite &bull; Service WebPBL aktif &bull; Waktu server: 2024-10-21
         </div>
     </div>
-    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
+    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
         🔍 Browse Table
     </a>
 </div>
@@ -43,7 +43,7 @@
                     <span>Dataset Primer (Kuesioner Responden)</span>
                 </li>
             </ul>
-            <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <div class="pma-action-row" style="margin-top: 12px;">
                 <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
                     ➕ Insert Responden Baru
                 </a>
@@ -72,7 +72,7 @@
                 </li>
                 <li class="pma-list-item">
                     <span>Storage Path:</span>
-                    <span style="font-family: monospace; font-size: 11px; color: #555;">data/antiburnout.db</span>
+                    <span style="font-family: monospace; font-size: 12px; color: #555;">data/antiburnout.db</span>
                 </li>
                 <li class="pma-list-item">
                     <span>Tabel Utama:</span>
@@ -139,7 +139,7 @@
                 </li>
             </ul>
             <div style="margin-top: 10px;">
-                <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-btn" style="font-size: 11px;">
+                <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-btn">
                     ⚡ Periksa Status API (/healthz)
                 </a>
             </div>
