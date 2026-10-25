@@ -7,6 +7,11 @@ def index():
     """Halaman Utama / Landing Page"""
     return render_template("main/index.html")
 
+@main_bp.route("/dataset-management/")
+def dataset_management():
+    """Menampilkan halaman frontend Dataset Management."""
+    return render_template("dataset_management/index.html")
+
 @main_bp.route("/healthz")
 def health_check():
     """Endpoint Pemantauan Kesehatan Sistem (Standar Industri Uptime Monitor)"""

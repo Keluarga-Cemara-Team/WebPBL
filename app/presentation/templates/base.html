@@ -70,10 +70,10 @@
                             <span class="pma-tree-icon">⚡</span>
                             <span>ml_service_api</span>
                         </a>
-                        <span class="pma-tree-item" aria-disabled="true" title="Menunggu route Dataset Management disepakati">
-                            <span class="pma-tree-icon">CSV</span>
-                            <span>Dataset Management (belum aktif)</span>
-                        </span>
+                        <a href="{{ url_for('main.dataset_management') }}" class="pma-tree-item {% if request.path.startswith('/dataset-management') %}active{% endif %}">
+                            <span class="pma-tree-icon">🗃️</span>
+                            <span>Dataset Management</span>
+                        </a>
                         <div class="pma-tree-item" style="color: #777;">
                             <span class="pma-tree-icon">📦</span>
                             <span>burnout_model.pkl</span>
