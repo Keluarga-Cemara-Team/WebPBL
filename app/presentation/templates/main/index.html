@@ -11,8 +11,8 @@
             Portal Khusus Administrator &bull; Penginputan & Kurasi Dataset Primer &bull; Status: Terhubung ke SQLite Engine
         </div>
     </div>
-    <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
-        ➕ Input Data Primer Baru
+    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
+        🔍 Browse Table
     </a>
 </div>
 
@@ -42,7 +42,7 @@
                     <span>Menyuplai Dataset ke <strong>MachineLearningPBL</strong></span>
                 </li>
             </ul>
-            <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <div class="pma-action-row" style="margin-top: 12px;">
                 <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
                     ➕ Mulai Input Data Primer
                 </a>
@@ -60,19 +60,28 @@
             <span>Alur Kerja Admin Input & Integrasi ML</span>
         </div>
         <div class="pma-card-body">
-            <div style="font-size: 12px; color: #444; margin-bottom: 8px;">
-                Setiap kali Admin menginput data primer:
-            </div>
-            <ol style="margin-left: 20px; font-size: 12px; color: #555; line-height: 1.7; margin-bottom: 12px;">
-                <li><strong>Admin Entry:</strong> Petugas mengisi formulir sesuai data kuesioner responden.</li>
-                <li><strong>Validasi Domain:</strong> Sistem memvalidasi rentang jam kerja dan skala stres.</li>
-                <li><strong>Evaluasi ML:</strong> Data dikirim otomatis ke API <code>MachineLearningPBL</code>.</li>
-                <li><strong>Persistensi SQLite:</strong> Data dan hasil burnout disimpan ke <code>antiburnout.db</code>.</li>
-                <li><strong>Export CSV:</strong> Admin dapat mengunduh seluruh dataset untuk retrain model ML.</li>
-            </ol>
-            <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn" style="width: 100%; justify-content: center;">
-                📥 Download Primary Dataset (.CSV) Siap Pakai
-            </a>
+            <ul class="pma-list">
+                <li class="pma-list-item">
+                    <span>Server:</span>
+                    <span>Localhost via SQLite Engine</span>
+                </li>
+                <li class="pma-list-item">
+                    <span>Database Name:</span>
+                    <span style="font-family: monospace; font-weight: bold;">antiburnout_db</span>
+                </li>
+                <li class="pma-list-item">
+                    <span>Storage Path:</span>
+                    <span style="font-family: monospace; font-size: 11px; color: #555;">data/antiburnout.db</span>
+                </li>
+                <li class="pma-list-item">
+                    <span>Tabel Utama:</span>
+                    <a href="{{ url_for('assessment.dataset_view') }}"><code>assessments</code> (Primary Data)</a>
+                </li>
+                <li class="pma-list-item">
+                    <span>Server Status:</span>
+                    <span class="pma-badge pma-badge-success">● Connected & Ready</span>
+                </li>
+            </ul>
         </div>
     </div>
 
@@ -135,7 +144,7 @@
             </ul>
             <div style="margin-top: 10px;">
                 <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-btn" style="font-size: 11px;">
-                    ⚡ Periksa Health Check Endpoint (/healthz)
+                    ⚡ Periksa Status API (/healthz)
                 </a>
             </div>
         </div>

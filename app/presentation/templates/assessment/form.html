@@ -89,7 +89,7 @@
                     <div class="pma-range-wrapper">
                         <input type="range" id="work_hours" name="work_hours" class="range-input" min="4" max="16" step="0.5" value="8" style="flex: 1;">
                         <span id="work_hours_val" class="pma-range-badge">8</span>
-                        <span style="font-size: 11px; color: #777;">jam/hari</span>
+                        <span style="font-size: 12px; color: #777;">jam/hari</span>
                     </div>
                 </td>
             </tr>
@@ -106,7 +106,7 @@
                     <div class="pma-range-wrapper">
                         <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="7" style="flex: 1;">
                         <span id="sleep_hours_val" class="pma-range-badge">7</span>
-                        <span style="font-size: 11px; color: #777;">jam/hari</span>
+                        <span style="font-size: 12px; color: #777;">jam/hari</span>
                     </div>
                 </td>
             </tr>
@@ -123,7 +123,7 @@
                     <div class="pma-range-wrapper">
                         <input type="range" id="stress_level" name="stress_level" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
                         <span id="stress_level_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Sangat Rendah - 5: Sangat Tinggi)</span>
+                        <span style="font-size: 12px; color: #777;">(1: Sangat Rendah - 5: Sangat Tinggi)</span>
                     </div>
                 </td>
             </tr>
@@ -140,7 +140,7 @@
                     <div class="pma-range-wrapper">
                         <input type="range" id="workload_feeling" name="workload_feeling" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
                         <span id="workload_feeling_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Sangat Ringan - 5: Berlebihan)</span>
+                        <span style="font-size: 11px; color: #777;">(1: Ringan - 5: Berlebihan)</span>
                     </div>
                 </td>
             </tr>
@@ -157,7 +157,7 @@
                     <div class="pma-range-wrapper">
                         <input type="range" id="physical_fatigue" name="physical_fatigue" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
                         <span id="physical_fatigue_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Bugar / Segar - 5: Sangat Lelah)</span>
+                        <span style="font-size: 11px; color: #777;">(1: Bugar - 5: Sangat Lelah)</span>
                     </div>
                 </td>
             </tr>
@@ -180,12 +180,12 @@
     <!-- phpMyAdmin Bottom Action Bar -->
     <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 10px 14px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
         <div style="font-size: 11px; color: #555;">
-            Operator: <strong style="color: #235a81;">admin@localhost</strong> &bull; Aksi: Simpan ke tabel <code>assessments</code> & minta evaluasi ML.
+            Data akan divalidasi oleh Clean Architecture Domain Entity dan diproses oleh ML Service.
         </div>
         <div style="display: flex; gap: 8px;">
-            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal & Kembali ke Tabel</a>
-            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 5px 20px;">
-                Go / Simpan Record Data Primer &rarr;
+            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal</a>
+            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 5px 18px;">
+                Go / Simpan Record &rarr;
             </button>
         </div>
     </div>
