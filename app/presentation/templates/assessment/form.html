@@ -6,186 +6,588 @@
 <span style="color: #888;">&raquo;</span>
 <span>Table: <strong>assessments</strong></span>
 <span style="color: #888;">&raquo;</span>
-<span><strong>Admin Data Entry</strong></span>
+<span><strong>Admin Data Entry (40 Dataset Features)</strong></span>
 {% endblock %}
 
 {% block content %}
 <!-- phpMyAdmin SQL Execution Preview Box -->
 <div class="pma-sql-box">
     <div>
-        <code>INSERT INTO `assessments` (`full_name`, `role`, `work_hours`, `sleep_hours`, `stress_level`, `workload_feeling`, `physical_fatigue`, `notes`, `created_at`) VALUES (...);</code>
+        <code>INSERT INTO `assessments` (`Person_ID`, `Age`, `Gender`, `Occupation`, `Work_Hours_Per_Week`, `Sleep_Hours`, `Stress_Level`, `Anxiety_Score`, `Depression_Score`, ...) VALUES (...);</code>
         <div class="pma-sql-meta">
-            Panel Admin Input Data Primer &bull; Petugas: admin@localhost &bull; Validasi Otomatis Domain Entity
+            Panel Admin Input Data Primer &bull; Skema Standar: <code>mental_health_burnout_prediction_dataset.csv</code> &bull; Terhubung ke Cloud Firestore
         </div>
     </div>
 </div>
 
-<!-- Admin Instruction Card -->
-<div class="pma-card" style="margin-bottom: 12px; border-left: 4px solid #235a81;">
+<div class="pma-card" style="margin-bottom: 14px; border-left: 4px solid #235a81;">
     <div class="pma-card-body" style="padding: 10px 14px;">
         <div style="font-weight: bold; color: #235a81; margin-bottom: 3px;">
-            📝 Formulir Penginputan Data Primer oleh Administrator
+            📋 Formulir Entri Data Primer Terpadu (40 Kolom Standar Machine Learning)
         </div>
         <div style="font-size: 12px; color: #555;">
-            Masukkan data kuesioner fisik, hasil wawancara, atau formulir survei kelelahan kerja yang telah terkumpul dari responden. Data akan tersimpan ke tabel <code>assessments</code> dan dikirim ke backend <code>MachineLearningPBL</code> untuk prediksi tingkat burnout.
+            Input survei ini telah diselaraskan 100% dengan dataset pelatihan Machine Learning. Data yang disimpan akan langsung diteruskan ke Cloud Firestore dan siap dievaluasi oleh model ML.
         </div>
     </div>
 </div>
 
 <form action="{{ url_for('assessment.submit') }}" method="POST">
-    <!-- phpMyAdmin Insert Form Table -->
-    <table class="pma-form-table">
-        <thead>
-            <tr>
-                <th style="width: 200px;">Atribut Kolom</th>
-                <th style="width: 120px;">Tipe Data</th>
-                <th style="width: 80px; text-align: center;">Null</th>
-                <th>Nilai Input (Value)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- full_name / ID Dokumen Responden -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">full_name</span>
-                    <div class="pma-form-desc">Nama Lengkap / Kode Kuesioner</div>
-                </td>
-                <td><code style="color: #888;">VARCHAR(100)</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <input type="text" id="full_name" name="full_name" class="pma-input" placeholder="Contoh: Responden-01, Ahmad Fauzi, atau KODE-A12" required>
-                </td>
-            </tr>
-
-            <!-- role / Bidang Pekerjaan -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">role</span>
-                    <div class="pma-form-desc">Divisi / Bidang Pekerjaan</div>
-                </td>
-                <td><code style="color: #888;">VARCHAR(50)</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <select id="role" name="role" class="pma-select">
-                        <option value="Teknologi / IT">Teknologi / IT / Software Engineering</option>
-                        <option value="Kesehatan / Medis">Kesehatan / Medis / Keperawatan</option>
-                        <option value="Pendidikan / Pengajar">Pendidikan / Akademisi / Guru</option>
-                        <option value="Keuangan / Finansial">Keuangan / Perbankan / Akuntansi</option>
-                        <option value="Layanan Publik / Admin">Administrasi / Operasional / Layanan</option>
-                        <option value="Lainnya">Lainnya / Manufaktur / Lapangan</option>
-                    </select>
-                </td>
-            </tr>
-
-            <!-- work_hours -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">work_hours</span>
-                    <div class="pma-form-desc">Jam Kerja Rata-rata per Hari</div>
-                </td>
-                <td><code style="color: #888;">FLOAT</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <div class="pma-range-wrapper">
-                        <input type="range" id="work_hours" name="work_hours" class="range-input" min="4" max="16" step="0.5" value="8" style="flex: 1;">
-                        <span id="work_hours_val" class="pma-range-badge">8</span>
-                        <span style="font-size: 12px; color: #777;">jam/hari</span>
-                    </div>
-                </td>
-            </tr>
-
-            <!-- sleep_hours -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">sleep_hours</span>
-                    <div class="pma-form-desc">Durasi Tidur / Istirahat per Hari</div>
-                </td>
-                <td><code style="color: #888;">FLOAT</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <div class="pma-range-wrapper">
-                        <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="7" style="flex: 1;">
-                        <span id="sleep_hours_val" class="pma-range-badge">7</span>
-                        <span style="font-size: 12px; color: #777;">jam/hari</span>
-                    </div>
-                </td>
-            </tr>
-
-            <!-- stress_level -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">stress_level</span>
-                    <div class="pma-form-desc">Tingkat Stres Mental (1-5)</div>
-                </td>
-                <td><code style="color: #888;">TINYINT(1..5)</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <div class="pma-range-wrapper">
-                        <input type="range" id="stress_level" name="stress_level" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
-                        <span id="stress_level_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 12px; color: #777;">(1: Sangat Rendah - 5: Sangat Tinggi)</span>
-                    </div>
-                </td>
-            </tr>
-
-            <!-- workload_feeling -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">workload_feeling</span>
-                    <div class="pma-form-desc">Beban Kerja yang Dirasakan (1-5)</div>
-                </td>
-                <td><code style="color: #888;">TINYINT(1..5)</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <div class="pma-range-wrapper">
-                        <input type="range" id="workload_feeling" name="workload_feeling" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
-                        <span id="workload_feeling_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Ringan - 5: Berlebihan)</span>
-                    </div>
-                </td>
-            </tr>
-
-            <!-- physical_fatigue -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">physical_fatigue</span>
-                    <div class="pma-form-desc">Kelelahan Fisik Tubuh (1-5)</div>
-                </td>
-                <td><code style="color: #888;">TINYINT(1..5)</code></td>
-                <td style="text-align: center;"><input type="checkbox" disabled></td>
-                <td>
-                    <div class="pma-range-wrapper">
-                        <input type="range" id="physical_fatigue" name="physical_fatigue" class="range-input" min="1" max="5" step="1" value="3" style="flex: 1;">
-                        <span id="physical_fatigue_val" class="pma-range-badge">3</span>
-                        <span style="font-size: 11px; color: #777;">(1: Bugar - 5: Sangat Lelah)</span>
-                    </div>
-                </td>
-            </tr>
-
-            <!-- notes / Catatan Observasi Admin -->
-            <tr>
-                <td>
-                    <span class="pma-form-label">notes</span>
-                    <div class="pma-form-desc">Catatan Tambahan / Observasi Admin</div>
-                </td>
-                <td><code style="color: #888;">TEXT</code></td>
-                <td style="text-align: center;"><input type="checkbox" checked title="Null allowed"></td>
-                <td>
-                    <textarea id="notes" name="notes" rows="2" class="pma-textarea" placeholder="Tuliskan keluhan atau catatan hasil observasi wawancara responden..."></textarea>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- phpMyAdmin Bottom Action Bar -->
-    <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 10px 14px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 11px; color: #555;">
-            Data akan divalidasi oleh Clean Architecture Domain Entity dan diproses oleh ML Service.
+    <!-- SECTION 1: DEMOGRAFI & PROFIL PEKERJA -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>👤</span>
+            <span>1. Demografi & Status Pekerjaan (Demographics & Employment)</span>
         </div>
-        <div style="display: flex; gap: 8px;">
-            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal</a>
-            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 5px 18px;">
-                Go / Simpan Record &rarr;
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">full_name / Person_ID</span>
+                            <div class="pma-form-desc">Nama Lengkap / Kode Subjek</div>
+                        </td>
+                        <td><code>VARCHAR(100)</code></td>
+                        <td>
+                            <input type="text" name="full_name" class="pma-input" placeholder="Contoh: Responden-01 atau Budi Santoso" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Age</span>
+                            <div class="pma-form-desc">Usia Responden (Tahun)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="age" class="pma-input" min="15" max="90" step="1" value="28" style="max-width: 140px;" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Gender</span>
+                            <div class="pma-form-desc">Jenis Kelamin</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="gender" class="pma-select">
+                                <option value="Male">Male (Laki-laki)</option>
+                                <option value="Female">Female (Perempuan)</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Country</span>
+                            <div class="pma-form-desc">Negara Asal</div>
+                        </td>
+                        <td><code>VARCHAR(50)</code></td>
+                        <td>
+                            <input type="text" name="country" class="pma-input" value="Indonesia">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Occupation</span>
+                            <div class="pma-form-desc">Profesi / Pekerjaan</div>
+                        </td>
+                        <td><code>VARCHAR(80)</code></td>
+                        <td>
+                            <input type="text" name="occupation" class="pma-input" value="Software Engineer" placeholder="Contoh: Marketing Manager, Teacher, Nurse, Developer">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Education_Level</span>
+                            <div class="pma-form-desc">Jenjang Pendidikan Terakhir</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="education_level" class="pma-select">
+                                <option value="Bachelor">Bachelor (S1)</option>
+                                <option value="Diploma">Diploma (D3/D4)</option>
+                                <option value="Master">Master (S2)</option>
+                                <option value="PhD">PhD (S3)</option>
+                                <option value="High School">High School (SMA/SMK)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Employment_Status</span>
+                            <div class="pma-form-desc">Status Kepegawaian</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="employment_status" class="pma-select">
+                                <option value="Employed">Employed (Karyawan Tetap/Kontrak)</option>
+                                <option value="Self-Employed">Self-Employed (Wirausaha)</option>
+                                <option value="Freelancer">Freelancer</option>
+                                <option value="Student">Student (Mahasiswa/Pelajar)</option>
+                                <option value="Unemployed">Unemployed</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Monthly_Income_USD</span>
+                            <div class="pma-form-desc">Estimasi Penghasilan Bulanan (USD)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="monthly_income_usd" class="pma-input" step="50" value="1500" style="max-width: 180px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Remote_Work</span>
+                            <div class="pma-form-desc">Sistem Kerja Jarak Jauh</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="remote_work" class="pma-select">
+                                <option value="Hybrid">Hybrid (WFO & WFH)</option>
+                                <option value="Yes">Yes (Full Remote / WFH)</option>
+                                <option value="No">No (Full On-site / WFO)</option>
+                            </select>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 2: BEBAN KERJA & PRODUKTIVITAS -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>💼</span>
+            <span>2. Beban Kerja & Produktivitas (Workload & Productivity)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Work_Hours_Per_Week</span>
+                            <div class="pma-form-desc">Total Jam Kerja per Minggu</div>
+                        </td>
+                        <td><code>FLOAT (Jam/Minggu)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="work_hours_per_week" name="work_hours_per_week" class="range-input" min="10" max="90" step="1" value="45" style="flex: 1;">
+                                <span id="work_hours_per_week_val" class="pma-range-badge">45</span>
+                                <span style="font-size: 11px; color: #777;">jam/minggu</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Job_Satisfaction</span>
+                            <div class="pma-form-desc">Kepuasan Kerja (Skala 1.0 - 10.0)</div>
+                        </td>
+                        <td><code>FLOAT (1-10)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="job_satisfaction" name="job_satisfaction" class="range-input" min="1" max="10" step="0.5" value="6" style="flex: 1;">
+                                <span id="job_satisfaction_val" class="pma-range-badge">6</span>
+                                <span style="font-size: 11px; color: #777;">/ 10</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Work_Life_Balance</span>
+                            <div class="pma-form-desc">Keseimbangan Hidup & Kerja (1.0 - 10.0)</div>
+                        </td>
+                        <td><code>FLOAT (1-10)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="work_life_balance" name="work_life_balance" class="range-input" min="1" max="10" step="0.5" value="5" style="flex: 1;">
+                                <span id="work_life_balance_val" class="pma-range-badge">5</span>
+                                <span style="font-size: 11px; color: #777;">/ 10</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Productivity_Score</span>
+                            <div class="pma-form-desc">Skor Produktivitas (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="productivity_score" name="productivity_score" class="range-input" min="0" max="100" step="1" value="65" style="flex: 1;">
+                                <span id="productivity_score_val" class="pma-range-badge">65</span>
+                                <span style="font-size: 11px; color: #777;">%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Absenteeism_Days</span>
+                            <div class="pma-form-desc">Jumlah Hari Absen/Izin (Bulan ini)</div>
+                        </td>
+                        <td><code>INTEGER</code></td>
+                        <td>
+                            <input type="number" name="absenteeism_days" class="pma-input" min="0" max="30" value="2" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 3: KESEHATAN MENTAL & TINGKAT STRES -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>🧠</span>
+            <span>3. Kondisi Psikologis & Tingkat Stres (Mental Health & Stress)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Stress_Level</span>
+                            <div class="pma-form-desc">Tingkat Stres Saat Ini</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="stress_level" class="pma-select">
+                                <option value="Low">Low (Rendah)</option>
+                                <option value="Moderate" selected>Moderate (Sedang)</option>
+                                <option value="High">High (Tinggi)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Chronic_Stress</span>
+                            <div class="pma-form-desc">Mengalami Stres Kronis / Berkepanjangan?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="chronic_stress" class="pma-select">
+                                <option value="No" selected>No (Tidak)</option>
+                                <option value="Yes">Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Anxiety_Score</span>
+                            <div class="pma-form-desc">Skor Kecemasan (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="anxiety_score" name="anxiety_score" class="range-input" min="0" max="100" step="1" value="35" style="flex: 1;">
+                                <span id="anxiety_score_val" class="pma-range-badge">35</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Depression_Score</span>
+                            <div class="pma-form-desc">Skor Gejala Depresi (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="depression_score" name="depression_score" class="range-input" min="0" max="100" step="1" value="30" style="flex: 1;">
+                                <span id="depression_score_val" class="pma-range-badge">30</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Mood_Score</span>
+                            <div class="pma-form-desc">Skor Suasana Hati / Mood (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="mood_score" name="mood_score" class="range-input" min="0" max="100" step="1" value="60" style="flex: 1;">
+                                <span id="mood_score_val" class="pma-range-badge">60</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Emotional_Stability</span>
+                            <div class="pma-form-desc">Kestabilan Emosional (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="emotional_stability" name="emotional_stability" class="range-input" min="0" max="100" step="1" value="60" style="flex: 1;">
+                                <span id="emotional_stability_val" class="pma-range-badge">60</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Support_System</span>
+                            <div class="pma-form-desc">Dukungan Keluarga / Rekan Kerja</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="support_system" class="pma-select">
+                                <option value="Excellent">Excellent (Sangat Baik)</option>
+                                <option value="Good" selected>Good (Baik)</option>
+                                <option value="Average">Average (Cukup)</option>
+                                <option value="Poor">Poor (Kurang / Tidak Ada)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Family_History_Mental_Illness</span>
+                            <div class="pma-form-desc">Riwayat Keluarga dengan Gangguan Mental</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="family_history_mental_illness" class="pma-select">
+                                <option value="No" selected>No (Tidak)</option>
+                                <option value="Yes">Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Therapy_Attendance</span>
+                            <div class="pma-form-desc">Pernah / Sedang Mengikuti Terapi/Konseling</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="therapy_attendance" class="pma-select">
+                                <option value="No" selected>No (Tidak)</option>
+                                <option value="Yes">Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Life_Satisfaction</span>
+                            <div class="pma-form-desc">Kepuasan Hidup Keseluruhan (1.0 - 10.0)</div>
+                        </td>
+                        <td><code>FLOAT (1-10)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="life_satisfaction" name="life_satisfaction" class="range-input" min="1" max="10" step="0.5" value="6" style="flex: 1;">
+                                <span id="life_satisfaction_val" class="pma-range-badge">6</span>
+                                <span style="font-size: 11px; color: #777;">/ 10</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 4: POLA TIDUR & GAYA HIDUP -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>💤</span>
+            <span>4. Pola Tidur & Gaya Hidup Sehari-hari (Lifestyle & Habits)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Sleep_Hours</span>
+                            <div class="pma-form-desc">Durasi Tidur Rata-rata per Hari</div>
+                        </td>
+                        <td><code>FLOAT (Jam/Hari)</code></td>
+                        <td>
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="6.5" style="flex: 1;">
+                                <span id="sleep_hours_val" class="pma-range-badge">6.5</span>
+                                <span style="font-size: 11px; color: #777;">jam</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Sleep_Quality</span>
+                            <div class="pma-form-desc">Kualitas Tidur yang Dirasakan</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="sleep_quality" class="pma-select">
+                                <option value="Excellent">Excellent (Sangat Nyenyak)</option>
+                                <option value="Good">Good (Baik)</option>
+                                <option value="Average" selected>Average (Biasa/Cukup)</option>
+                                <option value="Poor">Poor (Buruk / Insomnia)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Exercise_Frequency</span>
+                            <div class="pma-form-desc">Frekuensi Berolahraga</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="exercise_frequency" class="pma-select">
+                                <option value="Daily">Daily (Setiap Hari)</option>
+                                <option value="Weekly" selected>Weekly (1-3x Seminggu)</option>
+                                <option value="Rarely">Rarely (Jarang)</option>
+                                <option value="Never">Never (Tidak Pernah)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Physical_Activity_Hours</span>
+                            <div class="pma-form-desc">Total Jam Aktivitas Fisik per Minggu</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="physical_activity_hours" class="pma-input" step="0.5" value="4.0" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Meditation_Minutes</span>
+                            <div class="pma-form-desc">Durasi Meditasi / Relaksasi (Menit/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="meditation_minutes" class="pma-input" step="5" value="10" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Screen_Time_Hours</span>
+                            <div class="pma-form-desc">Waktu di Depan Layar (Jam/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="screen_time_hours" class="pma-input" step="0.5" value="8.0" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Social_Media_Hours</span>
+                            <div class="pma-form-desc">Waktu Buka Media Sosial (Jam/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="social_media_hours" class="pma-input" step="0.5" value="2.5" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Gaming_Hours</span>
+                            <div class="pma-form-desc">Waktu Bermain Game (Jam/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="gaming_hours" class="pma-input" step="0.5" value="1.0" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Coffee_Cups_Per_Day</span>
+                            <div class="pma-form-desc">Konsumsi Kopi (Cangkir/Hari)</div>
+                        </td>
+                        <td><code>INTEGER</code></td>
+                        <td>
+                            <input type="number" name="coffee_cups_per_day" class="pma-input" min="0" max="10" value="2" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Alcohol_Consumption</span>
+                            <div class="pma-form-desc">Mengonsumsi Alkohol?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="alcohol_consumption" class="pma-select">
+                                <option value="No" selected>No (Tidak)</option>
+                                <option value="Yes">Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Smoking</span>
+                            <div class="pma-form-desc">Merokok?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="smoking" class="pma-select">
+                                <option value="No" selected>No (Tidak)</option>
+                                <option value="Yes">Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Healthy_Diet</span>
+                            <div class="pma-form-desc">Pola Makan Sehat & Teratur?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="healthy_diet" class="pma-select">
+                                <option value="Yes" selected>Yes (Ya)</option>
+                                <option value="No">No (Tidak)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Notes (Observasi Admin)</span>
+                            <div class="pma-form-desc">Catatan Tambahan Lapangan</div>
+                        </td>
+                        <td><code>TEXT</code></td>
+                        <td>
+                            <textarea name="notes" rows="2" class="pma-textarea" placeholder="Catatan hasil wawancara atau pengamatan petugas admin..."></textarea>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- phpMyAdmin Bottom Submit Bar -->
+    <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 12px 18px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div style="font-size: 11px; color: #555;">
+            Status: <strong>40 Atribut Sesuai Dataset ML</strong> &bull; Tersimpan ke: <code>Google Cloud Firestore (assessments)</code>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal & Lihat Tabel</a>
+            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 6px 24px; font-size: 13px;">
+                Go / Simpan & Prediksi ML &rarr;
             </button>
         </div>
     </div>

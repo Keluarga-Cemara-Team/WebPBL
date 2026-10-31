@@ -11,10 +11,16 @@ class GetAssessmentHistoryUseCase:
 
     def execute(self) -> Dict[str, Any]:
         assessments = self.repository.find_all()
-        
+
         total = len(assessments)
         avg_score = round(sum((a.burnout_score or 0) for a in assessments) / total, 1) if total > 0 else 0
-        high_risk_count = sum(1 for a in assessments if "Tinggi" in (a.burnout_level or ""))
+        
+        # Hitung jumlah risiko tinggi (mendukung 'High', 'Critical', atau 'Tinggi')
+        high_risk_count = 0
+        for a in assessments:
+            risk = str(getattr(a, "burnout_risk", "") or getattr(a, "burnout_level", "") or "")
+            if any(term in risk for term in ("High", "Critical", "Tinggi")):
+                high_risk_count += 1
 
         return {
             "assessments": [a.to_dict() for a in assessments],

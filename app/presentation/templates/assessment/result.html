@@ -6,7 +6,7 @@
 <span style="color: #888;">&raquo;</span>
 <span>Table: <strong>assessments</strong></span>
 <span style="color: #888;">&raquo;</span>
-<span><strong>Execution Result</strong></span>
+<span><strong>ML Evaluation Result</strong></span>
 {% endblock %}
 
 {% block content %}
@@ -15,15 +15,15 @@
     <div style="font-weight: bold; margin-bottom: 2px;">
         ✅ 1 row inserted. Admin berhasil menginput data responden (Record ID: #{{ user.id }})
     </div>
-    <div style="font-family: monospace; font-size: 12px; color: #2e5917;">
-        INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_level`) VALUES ({{ user.id }}, '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_level }}');
+    <div style="font-family: monospace; font-size: 11px; color: #2e5917;">
+        INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_risk`, `mental_health_status`) VALUES ('{{ user.id }}', '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_risk }}', '{{ user.mental_health_status }}');
     </div>
 </div>
 
 {% if result.is_simulation %}
 <div class="pma-alert-warning">
     <span>⚠️</span>
-    <strong>Notice:</strong> Endpoint <code>MachineLearningPBL</code> belum aktif di port target. Evaluasi menggunakan kalkulasi fallback heuristik domain.
+    <strong>Notice:</strong> Endpoint <code>MachineLearningPBL</code> belum aktif di port target. Evaluasi menggunakan formula dataset <code>mental_health_burnout_prediction_dataset.csv</code>.
 </div>
 {% endif %}
 
@@ -33,7 +33,7 @@
     <div class="pma-card">
         <div class="pma-card-header">
             <span>🤖</span>
-            <span>Machine Learning Inference Status</span>
+            <span>Machine Learning Target Predictions</span>
         </div>
         <div class="pma-card-body">
             <ul class="pma-list">
@@ -42,71 +42,77 @@
                     <strong>{{ user.full_name }}</strong>
                 </li>
                 <li class="pma-list-item">
-                    <span>Divisi / Bidang:</span>
-                    <span>{{ user.role }}</span>
+                    <span>Profesi & Usia:</span>
+                    <span>{{ user.occupation }} ({{ user.age }} thn &bull; {{ user.gender }})</span>
                 </li>
                 <li class="pma-list-item">
-                    <span>Skor Risiko Burnout:</span>
-                    <strong style="font-size: 14px; font-family: monospace; color: #235a81;">{{ user.burnout_score }}%</strong>
+                    <span>Burnout_Score:</span>
+                    <strong style="font-size: 15px; font-family: monospace; color: #235a81;">{{ user.burnout_score }} / 100</strong>
                 </li>
                 <li class="pma-list-item">
-                    <span>Tingkat Kategori:</span>
-                    {% if 'Rendah' in (user.burnout_level or '') %}
-                    <span class="pma-badge pma-badge-success">{{ user.burnout_level }}</span>
-                    {% elif 'Sedang' in (user.burnout_level or '') %}
-                    <span class="pma-badge pma-badge-warning">{{ user.burnout_level }}</span>
+                    <span>Burnout_Risk:</span>
+                    {% if user.burnout_risk == 'Low' %}
+                    <span class="pma-badge pma-badge-success">Low Risk</span>
+                    {% elif user.burnout_risk == 'Moderate' %}
+                    <span class="pma-badge pma-badge-warning">Moderate Risk</span>
                     {% else %}
-                    <span class="pma-badge pma-badge-danger">{{ user.burnout_level }}</span>
+                    <span class="pma-badge pma-badge-danger">High Risk</span>
                     {% endif %}
+                </li>
+                <li class="pma-list-item">
+                    <span>Mental_Health_Status:</span>
+                    <strong style="color: {% if user.mental_health_status == 'Healthy' %}#38761d{% elif user.mental_health_status == 'Needs Attention' %}#b45f06{% else %}#cc0000{% endif %};">
+                        {{ user.mental_health_status }}
+                    </strong>
                 </li>
             </ul>
 
-            <div style="margin-top: 14px; background: #fdfaf3; border: 1px solid #f0e2be; padding: 10px; border-radius: 3px;">
-                <div style="font-weight: 600; color: #7f6000; font-size: 13px; margin-bottom: 4px;">💡 Rekomendasi Pemulihan:</div>
-                <div style="font-size: 13px; color: #444;">{{ user.recommendation }}</div>
+            <div style="margin-top: 14px; background: #fdfaf3; border: 1px solid #f0e2be; padding: 12px; border-radius: 3px;">
+                <div style="font-weight: 600; color: #7f6000; font-size: 12px; margin-bottom: 4px;">💡 AI_Wellness_Recommendation:</div>
+                <div style="font-size: 13px; font-weight: bold; color: #235a81;">{{ user.ai_wellness_recommendation }}</div>
             </div>
         </div>
     </div>
 
-    <!-- Panel 2: Parameter Input yang Tersimpan ke Database -->
+    <!-- Panel 2: Parameter Input yang Tersimpan ke Cloud Firestore -->
     <div class="pma-card">
         <div class="pma-card-header">
             <span>🗄️</span>
-            <span>Recorded Primary Attributes (Row #{{ user.id }})</span>
+            <span>Recorded Primary Attributes (Firestore Doc #{{ user.id }})</span>
         </div>
         <div class="pma-card-body">
             <table class="pma-table" style="margin-bottom: 10px;">
                 <tbody>
                     <tr>
-                        <td style="width: 140px; font-weight: 600;">work_hours</td>
-                        <td>{{ user.work_hours }} jam/hari</td>
+                        <td style="width: 150px; font-weight: 600;">Work_Hours_Per_Week</td>
+                        <td>{{ user.work_hours_per_week }} jam/minggu</td>
                     </tr>
                     <tr>
-                        <td style="font-weight: 600;">sleep_hours</td>
-                        <td>{{ user.sleep_hours }} jam/hari</td>
+                        <td style="font-weight: 600;">Sleep_Hours & Quality</td>
+                        <td>{{ user.sleep_hours }} jam ({{ user.sleep_quality }})</td>
                     </tr>
                     <tr>
-                        <td style="font-weight: 600;">stress_level</td>
-                        <td>{{ user.stress_level }} / 5</td>
+                        <td style="font-weight: 600;">Stress_Level & Chronic</td>
+                        <td>{{ user.stress_level }} (Chronic: {{ user.chronic_stress }})</td>
                     </tr>
                     <tr>
-                        <td style="font-weight: 600;">workload_feeling</td>
-                        <td>{{ user.workload_feeling }} / 5</td>
+                        <td style="font-weight: 600;">Anxiety & Depression</td>
+                        <td>Anxiety: {{ user.anxiety_score }} &bull; Depression: {{ user.depression_score }}</td>
                     </tr>
                     <tr>
-                        <td style="font-weight: 600;">physical_fatigue</td>
-                        <td>{{ user.physical_fatigue }} / 5</td>
+                        <td style="font-weight: 600;">Job / Life Satisfaction</td>
+                        <td>Job: {{ user.job_satisfaction }}/10 &bull; Life: {{ user.life_satisfaction }}/10</td>
                     </tr>
                     <tr>
                         <td style="font-weight: 600;">created_at</td>
-                        <td style="font-size: 12px; font-family: monospace;">{{ user.created_at }}</td>
+                        <td style="font-size: 11px; font-family: monospace;">{{ user.created_at }}</td>
                     </tr>
                 </tbody>
             </table>
 
             {% if user.notes %}
-            <div style="font-size: 12px; color: #666; font-style: italic;">
-                Catatan responden: "{{ user.notes }}"
+            <div style="font-size: 11px; color: #666; font-style: italic;">
+                Catatan observasi: "{{ user.notes }}"
             </div>
             {% endif %}
         </div>
@@ -114,15 +120,15 @@
 </div>
 
 <!-- phpMyAdmin Navigation Actions -->
-<div style="display: flex; gap: 8px; margin-top: 10px;">
-    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn pma-btn-primary">
-        📋 Browse Table (Lihat Seluruh Dataset)
+<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+    <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
+        ➕ Lanjut Input Responden Lain (Admin Entry)
     </a>
     <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
         📋 Browse Dataset (Kelola Tabel)
     </a>
     <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn">
-        💾 Export Dataset (.csv)
+        💾 Export Dataset 40 Kolom (.csv)
     </a>
     <a href="{{ url_for('main.index') }}" class="pma-btn">
         🏠 Admin Dashboard

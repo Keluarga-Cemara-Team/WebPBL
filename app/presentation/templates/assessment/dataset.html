@@ -4,32 +4,32 @@
 
 {% block breadcrumb_extra %}
 <span style="color: #888;">&raquo;</span>
-<span>Table: <strong>assessments</strong></span>
+<span>Table: <strong>assessments (40 Attributes Dataset)</strong></span>
 {% endblock %}
 
 {% block content %}
 <!-- phpMyAdmin SQL Execution Box -->
 <div class="pma-sql-box">
     <div>
-        <code>SELECT * FROM `assessments` ORDER BY `id` DESC;</code>
+        <code>SELECT `Person_ID`, `Age`, `Gender`, `Occupation`, `Work_Hours_Per_Week`, `Sleep_Hours`, `Stress_Level`, `Burnout_Score`, `Burnout_Risk`, `Mental_Health_Status` FROM `assessments` ORDER BY `created_at` DESC;</code>
         <div class="pma-sql-meta">
-            Showing rows 0 - {{ records|length - 1 if records|length > 0 else 0 }} ({{ records|length }} total, Query took 0.0003 seconds.)
+            Showing {{ records|length }} rows &bull; Storage: Google Cloud Firestore &bull; Skema: <code>mental_health_burnout_prediction_dataset.csv</code>
         </div>
     </div>
-    <div class="pma-action-row">
-        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn pma-btn-primary">
-            📥 Export to CSV
+    <div style="display: flex; gap: 6px;">
+        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
+            📥 Download Dataset CSV (40 Kolom)
         </a>
-        <a href="{{ url_for('assessment.form') }}" class="pma-btn">
-            ➕ Insert
+        <a href="{{ url_for('assessment.form') }}" class="pma-btn" style="font-size: 11px;">
+            ➕ Insert Baru
         </a>
     </div>
 </div>
 
 <!-- phpMyAdmin Table Operations Bar -->
-<div class="pma-metrics-bar">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px;">
     <div style="display: flex; align-items: center; gap: 10px;">
-        <span><strong>Database:</strong> antiburnout_db</span>
+        <span><strong>Database:</strong> Google Cloud Firestore</span>
         <span>&bull;</span>
         <span><strong>Total Responden:</strong> {{ metrics.total_respondents }}</span>
         <span>&bull;</span>
@@ -46,18 +46,18 @@
         <thead>
             <tr>
                 <th style="width: 30px; text-align: center;"><input type="checkbox" title="Check all"></th>
-                <th style="width: 90px; text-align: center;">Action</th>
-                <th>id</th>
-                <th>full_name</th>
-                <th>role</th>
-                <th>work_hours</th>
-                <th>sleep_hours</th>
-                <th>stress_level</th>
-                <th>workload_feeling</th>
-                <th>physical_fatigue</th>
-                <th>burnout_score</th>
-                <th>burnout_level</th>
-                <th>created_at</th>
+                <th style="width: 70px; text-align: center;">Action</th>
+                <th>Person_ID</th>
+                <th>Nama Responden</th>
+                <th>Age / Gender</th>
+                <th>Occupation</th>
+                <th>Work_Hours/Wk</th>
+                <th>Sleep_Hours</th>
+                <th>Stress_Level</th>
+                <th>Burnout_Score</th>
+                <th>Burnout_Risk</th>
+                <th>Mental_Health_Status</th>
+                <th>AI_Recommendation</th>
             </tr>
         </thead>
         <tbody>
@@ -65,54 +65,57 @@
             <tr>
                 <td style="text-align: center;"><input type="checkbox" name="selected_id[]" value="{{ row.id }}"></td>
                 <td style="text-align: center; white-space: nowrap;">
-                    <a href="#" class="pma-action-link" title="Edit">✏️ Edit</a>
-                    <a href="#" class="pma-action-link" title="Copy">📋 Copy</a>
-                    <a href="#" class="pma-action-link" style="color: #cc0000;" title="Delete">❌ Delete</a>
+                    <a href="#" class="pma-action-link" title="Detail">🔍</a>
+                    <a href="#" class="pma-action-link" title="Copy">📋</a>
                 </td>
-                <td style="font-weight: bold; color: #555;">{{ row.id }}</td>
+                <td style="font-family: monospace; color: #777;">{{ row.person_id or row.id[:8] }}</td>
                 <td style="font-weight: 600; color: #235a81;">{{ row.full_name }}</td>
-                <td>{{ row.role }}</td>
-                <td style="text-align: right; font-family: monospace;">{{ row.work_hours }}h</td>
+                <td>{{ row.age|int }}thn &bull; {{ row.gender[:1] }}</td>
+                <td>{{ row.occupation }}</td>
+                <td style="text-align: right; font-family: monospace;">{{ row.work_hours_per_week }}h</td>
                 <td style="text-align: right; font-family: monospace;">{{ row.sleep_hours }}h</td>
-                <td style="text-align: center;">{{ row.stress_level }}/5</td>
-                <td style="text-align: center;">{{ row.workload_feeling }}/5</td>
-                <td style="text-align: center;">{{ row.physical_fatigue }}/5</td>
-                <td style="font-weight: bold; font-family: monospace;">{{ row.burnout_score }}%</td>
+                <td>{{ row.stress_level }}</td>
+                <td style="font-weight: bold; font-family: monospace; color: #235a81;">{{ row.burnout_score }}</td>
                 <td>
-                    {% if 'Rendah' in (row.burnout_level or '') %}
-                    <span class="pma-badge pma-badge-success">{{ row.burnout_level }}</span>
-                    {% elif 'Sedang' in (row.burnout_level or '') %}
-                    <span class="pma-badge pma-badge-warning">{{ row.burnout_level }}</span>
+                    {% if row.burnout_risk == 'Low' or 'Rendah' in (row.burnout_risk or '') %}
+                    <span class="pma-badge pma-badge-success">Low</span>
+                    {% elif row.burnout_risk == 'Moderate' or 'Sedang' in (row.burnout_risk or '') %}
+                    <span class="pma-badge pma-badge-warning">Moderate</span>
                     {% else %}
-                    <span class="pma-badge pma-badge-danger">{{ row.burnout_level }}</span>
+                    <span class="pma-badge pma-badge-danger">High</span>
                     {% endif %}
                 </td>
-                <td style="font-size: 12px; color: #666; font-family: monospace;">{{ row.created_at }}</td>
+                <td>
+                    <span style="font-weight: 500; font-size: 11px; color: {% if row.mental_health_status == 'Healthy' %}#38761d{% elif row.mental_health_status == 'Needs Attention' %}#b45f06{% else %}#cc0000{% endif %};">
+                        {{ row.mental_health_status or '-' }}
+                    </span>
+                </td>
+                <td style="font-size: 11px; color: #444;">{{ row.ai_wellness_recommendation or '-' }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
     <div style="padding: 30px; text-align: center; color: #666;">
-        <p style="font-size: 13px; margin-bottom: 10px;">MySQL/SQLite returned an empty result set (i.e. zero rows).</p>
+        <p style="font-size: 13px; margin-bottom: 10px;">Belum ada baris data primer di Firestore.</p>
         <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
-            ➕ Insert Row Pertama Sekarang
+            ➕ Input Responden Pertama
         </a>
     </div>
     {% endif %}
 </div>
 
 <!-- phpMyAdmin Table Operations Footer -->
-<div class="pma-operation-footer" style="background: #e8e8e8; border: 1px solid #ccc; padding: 6px 12px; border-radius: 3px;">
-    <div style="font-size: 12px; color: #555;">
-        With selected: 
-        <a href="#" class="pma-btn" style="padding: 2px 8px; font-size: 12px;">Change</a>
-        <a href="#" class="pma-btn" style="padding: 2px 8px; font-size: 12px;">Delete</a>
-        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn" style="padding: 2px 8px; font-size: 12px;">Export (.csv)</a>
+<div style="display: flex; justify-content: space-between; align-items: center; background: #e8e8e8; border: 1px solid #ccc; padding: 6px 12px; border-radius: 3px;">
+    <div style="font-size: 11px; color: #555;">
+        Export data primer: 
+        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn pma-btn-primary" style="padding: 3px 12px; font-size: 11px;">
+            📥 Download .CSV (Format Sama dengan Dataset ML)
+        </a>
     </div>
     <div>
-        <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary" style="font-size: 12px;">
-            ➕ Insert New Record
+        <a href="{{ url_for('assessment.form') }}" class="pma-btn" style="font-size: 11px;">
+            ➕ Insert Row Baru
         </a>
     </div>
 </div>

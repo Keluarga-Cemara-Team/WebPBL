@@ -15,7 +15,7 @@ def _get_use_cases():
 
 @assessment_bp.route("/", methods=["GET"])
 def form():
-    """Menampilkan form input kuesioner data primer"""
+    """Menampilkan form input kuesioner data primer lengkap (40 kolom dataset)"""
     return render_template("assessment/form.html")
 
 @assessment_bp.route("/submit", methods=["POST"])
@@ -23,16 +23,8 @@ def submit():
     """Memproses submission form data primer menggunakan Clean Architecture Use Case"""
     submit_uc, _, _ = _get_use_cases()
 
-    raw_data = {
-        "full_name": request.form.get("full_name"),
-        "role": request.form.get("role"),
-        "work_hours": request.form.get("work_hours"),
-        "sleep_hours": request.form.get("sleep_hours"),
-        "stress_level": request.form.get("stress_level"),
-        "workload_feeling": request.form.get("workload_feeling"),
-        "physical_fatigue": request.form.get("physical_fatigue"),
-        "notes": request.form.get("notes")
-    }
+    # Ambil seluruh atribut dari input form
+    raw_data = request.form.to_dict()
 
     try:
         saved_entity, ml_result = submit_uc.execute(raw_data)
@@ -58,14 +50,14 @@ def dataset_view():
 
 @assessment_bp.route("/export/csv", methods=["GET"])
 def export_csv():
-    """Download data primer dalam format CSV (dapat langsung diserahkan ke tim MachineLearningPBL)"""
+    """Download data primer dalam format CSV (persis format mental_health_burnout_prediction_dataset.csv)"""
     _, export_uc, _ = _get_use_cases()
     csv_content = export_uc.execute()
-    
+
     return Response(
         csv_content,
         mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=primary_burnout_dataset.csv"}
+        headers={"Content-Disposition": "attachment;filename=mental_health_burnout_primary_dataset.csv"}
     )
 
 @assessment_bp.route("/api/predict", methods=["POST"])
