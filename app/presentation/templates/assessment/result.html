@@ -15,7 +15,7 @@
     <div style="font-weight: bold; margin-bottom: 2px;">
         ✅ 1 row inserted. Inserted row id: #{{ user.id }}
     </div>
-    <div style="font-family: monospace; font-size: 11px; color: #2e5917;">
+    <div style="font-family: monospace; font-size: 12px; color: #2e5917;">
         INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_level`) VALUES ({{ user.id }}, '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_level }}');
     </div>
 </div>
@@ -62,8 +62,8 @@
             </ul>
 
             <div style="margin-top: 14px; background: #fdfaf3; border: 1px solid #f0e2be; padding: 10px; border-radius: 3px;">
-                <div style="font-weight: 600; color: #7f6000; font-size: 12px; margin-bottom: 4px;">💡 Rekomendasi Pemulihan:</div>
-                <div style="font-size: 12px; color: #444;">{{ user.recommendation }}</div>
+                <div style="font-weight: 600; color: #7f6000; font-size: 13px; margin-bottom: 4px;">💡 Rekomendasi Pemulihan:</div>
+                <div style="font-size: 13px; color: #444;">{{ user.recommendation }}</div>
             </div>
         </div>
     </div>
@@ -99,13 +99,13 @@
                     </tr>
                     <tr>
                         <td style="font-weight: 600;">created_at</td>
-                        <td style="font-size: 11px; font-family: monospace;">{{ user.created_at }}</td>
+                        <td style="font-size: 12px; font-family: monospace;">{{ user.created_at }}</td>
                     </tr>
                 </tbody>
             </table>
 
             {% if user.notes %}
-            <div style="font-size: 11px; color: #666; font-style: italic;">
+            <div style="font-size: 12px; color: #666; font-style: italic;">
                 Catatan responden: "{{ user.notes }}"
             </div>
             {% endif %}
@@ -114,7 +114,7 @@
 </div>
 
 <!-- phpMyAdmin Navigation Actions -->
-<div style="display: flex; gap: 8px; margin-top: 10px;">
+<div class="pma-action-row" style="margin-top: 10px;">
     <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn pma-btn-primary">
         📋 Browse Table (Lihat Seluruh Dataset)
     </a>
