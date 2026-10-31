@@ -14,6 +14,9 @@ class Config:
     DATA_DIR = BASE_DIR / "data"
     DB_PATH = DATA_DIR / "antiburnout.db"
 
+    # Firebase Cloud Firestore Credentials
+    FIREBASE_CREDENTIALS_PATH = BASE_DIR / "serviceAccountKey.json"
+
 class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False

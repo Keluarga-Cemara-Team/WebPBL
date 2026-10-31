@@ -5,7 +5,8 @@ main_bp = Blueprint("main", __name__)
 @main_bp.route("/")
 def index():
     """Halaman Utama / Landing Page"""
-    return render_template("main/index.html")
+    db_engine = getattr(current_app, "db_engine_name", "Google Cloud Firestore")
+    return render_template("main/index.html", db_engine=db_engine)
 
 @main_bp.route("/dataset-management/")
 def dataset_management():
@@ -18,5 +19,6 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "service": "AntiBurnout-WebPBL",
+        "database": getattr(current_app, "db_engine_name", "Google Cloud Firestore"),
         "ml_target": current_app.config.get("ML_API_URL")
     }), 200

@@ -1,16 +1,17 @@
 # 🌐 AntiBurnout - WebPBL (Admin Data Entry & Dataset Management Portal)
 
-> **Portal Administrator untuk Penginputan & Kurasi Dataset Primer** berbasis **Flask** dengan tampilan **phpMyAdmin Classic Theme** dan arsitektur **Clean Architecture (Uncle Bob)**. Dirancang khusus bagi Administrator / Petugas Peneliti untuk mencatat hasil kuesioner fisik dan wawancara lapangan, mengelola rekaman dataset di database SQLite, serta mengekspor data siap latih ke modul **MachineLearningPBL**.
+> **Portal Administrator untuk Penginputan & Kurasi Dataset Primer** berbasis **Flask** dengan tampilan **phpMyAdmin Classic Theme** dan arsitektur **Clean Architecture (Uncle Bob)**. Terhubung langsung dengan backend cloud **Google Cloud Firestore (Firebase)** untuk sinkronisasi multi-platform dengan aplikasi mobile (**MobilePBL**), dan terintegrasi dengan modul prediksi **MachineLearningPBL**.
 
 ---
 
 ## 📌 Daftar Isi
 - [Arsitektur Sistem & Alur Kerja](#-arsitektur-sistem--alur-kerja)
 - [Peta Struktur Folder](#-peta-struktur-folder)
+- [Integrasi Firebase Cloud Firestore](#-integrasi-firebase-cloud-firestore)
 - [Panduan Kustomisasi untuk Programmer](#-panduan-kustomisasi-untuk-programmer)
   - [1. Menambah / Mengubah Pertanyaan Kuesioner](#1-menambah--mengubah-pertanyaan-kuesioner)
   - [2. Menghubungkan ke API Asli MachineLearningPBL](#2-menghubungkan-ke-api-asli-machinelearningpbl)
-  - [3. Mengganti Database (SQLite ke MySQL / PostgreSQL)](#3-mengganti-database-sqlite-ke-mysql--postgresql)
+  - [3. Mengganti Database Engine (Firestore / SQLite / MySQL)](#3-mengganti-database-engine-firestore--sqlite--mysql)
   - [4. Mengubah Tampilan Desain / UI](#4-mengubah-tampilan-desain--ui)
 - [Kontrak Integrasi Data (API Contract)](#-kontrak-integrasi-data-api-contract)
 - [Cara Instalasi & Menjalankan](#-cara-instalasi--menjalankan)
@@ -20,13 +21,13 @@
 
 ## 🏛️ Arsitektur Sistem & Alur Kerja
 
-Aplikasi ini mematuhi prinsip **Dependency Rule**: *Lapisan dalam tidak boleh bergantung pada lapisan luar*.
+Aplikasi ini mematuhi prinsip **Dependency Rule**: *Lapisan dalam (Domain & Use Cases) tidak boleh bergantung pada lapisan luar (Database/Framework)*.
 
 ```text
                ┌────────────────────────────────────────────────────────┐
                │                  PRESENTATION LAYER                    │
                │   • Web Controllers: main_controller, assessment       │
-               │   • Views (Templates) & Assets (Vanilla CSS & JS)      │
+               │   • Views (Templates phpMyAdmin) & Assets (CSS & JS)   │
                └───────────────────────────┬────────────────────────────┘
                                            │
                                            ▼ (Memanggil)
@@ -47,7 +48,8 @@ Aplikasi ini mematuhi prinsip **Dependency Rule**: *Lapisan dalam tidak boleh be
                                            Implements     │
                ┌──────────────────────────────────────────┴─────────────┐
                │                 INFRASTRUCTURE LAYER                   │
-               │   • SQLiteAssessmentRepository (data/antiburnout.db)   │
+               │   • FirestoreAssessmentRepository (Firebase Cloud)     │
+               │   • SQLiteAssessmentRepository (Local SQLite Fallback) │
                │   • HttpMLPredictorService (Call MachineLearningPBL)   │
                └────────────────────────────────────────────────────────┘
 ```
@@ -56,24 +58,23 @@ Aplikasi ini mematuhi prinsip **Dependency Rule**: *Lapisan dalam tidak boleh be
 
 ## 📂 Peta Struktur Folder & Penjelasan Lengkap
 
-Berikut adalah peta struktur seluruh file dan direktori di dalam **WebPBL** beserta perannya masing-masing:
-
 ```text
 WebPBL/
 ├── run.py                               # 🚀 Entry point aplikasi (Jalankan: python run.py)
-├── requirements.txt                     # 📦 Daftar dependensi Python (Flask, python-dotenv)
+├── requirements.txt                     # 📦 Daftar dependensi Python (Flask, firebase-admin, requests)
+├── serviceAccountKey.json               # 🔑 Kunci privat Firebase Admin SDK (Dilindungi .gitignore)
 ├── .env.example                         # ⚙️ Template variabel lingkungan (PORT, ML_API_URL, dll.)
-├── .gitignore                           # 🙈 Konfigurasi file yang diabaikan Git
+├── .gitignore                           # 🙈 Mengabaikan file sensitif (*firebase*.json, .env, *.db)
 ├── README.md                            # 📖 Dokumentasi teknis & panduan pengembang
 │
 ├── data/
-│   └── antiburnout.db                   # 🗄️ File Database SQLite lokal (dibuat otomatis)
+│   └── antiburnout.db                   # 🗄️ File Database SQLite lokal (cadangan offline fallback)
 │
 └── app/
-    ├── __init__.py                      # 🏭 [APPLICATION FACTORY] Inisialisasi Flask & Dependency Injection
-    ├── config.py                        # ⚙️ [CONFIG] Konfigurasi environment (DB_PATH, ML_API_URL)
+    ├── __init__.py                      # 🏭 [APPLICATION FACTORY] DI Wiring & Smart Auto-Switch Database
+    ├── config.py                        # ⚙️ [CONFIG] Konfigurasi environment (FIREBASE_KEY, ML_API_URL)
     │
-    ├── core/                            # 🧠 [1. CORE DOMAIN LAYER] (Logika Murni - Tanpa dependensi Flask/DB)
+    ├── core/                            # 🧠 [1. CORE DOMAIN LAYER] (Logika Murni - Tanpa dependensi Framework)
     │   ├── entities/                    # -- Data Model Domain --
     │   │   ├── __init__.py
     │   │   └── assessment.py            # Objek RespondentAssessment & aturan validasi data primer
@@ -85,53 +86,53 @@ WebPBL/
     │   │
     │   └── use_cases/                   # -- Use Cases (Skenario Bisnis Aplikasi) --
     │       ├── __init__.py
-    │       ├── submit_assessment.py     # SubmitAssessmentUseCase: Orkestrasi Form -> Validasi -> ML -> Simpan DB
-    │       ├── export_dataset.py        # ExportDatasetUseCase: Ekstraksi seluruh responden ke format CSV
+    │       ├── submit_assessment.py     # SubmitAssessmentUseCase: Form -> Validasi -> ML -> Firestore
+    │       ├── export_dataset.py        # ExportDatasetUseCase: Ekstraksi seluruh responden ke CSV
     │       └── get_assessment_history.py# GetAssessmentHistoryUseCase: Riwayat data & ringkasan metrik
     │
     ├── infrastructure/                  # 🔌 [2. INFRASTRUCTURE LAYER] (Detail Teknis & External Service)
     │   ├── db/
     │   │   ├── __init__.py
-    │   │   └── sqlite_client.py         # Koneksi engine SQLite & inisialisasi tabel 'assessments'
+    │   │   ├── firebase_client.py       # 🔥 Inisialisasi Google Cloud Firestore via Firebase Admin SDK
+    │   │   └── sqlite_client.py         # 🗄️ Inisialisasi engine SQLite lokal (cadangan offline)
     │   │
     │   ├── repositories/
     │   │   ├── __init__.py
-    │   │   └── sqlite_assessment_repo.py# Implementasi konkrit IAssessmentRepository via SQLite
+    │   │   ├── firestore_assessment_repo.py # 🔥 Implementasi IAssessmentRepository via Cloud Firestore
+    │   │   └── sqlite_assessment_repo.py    # 🗄️ Implementasi IAssessmentRepository via SQLite
     │   │
     │   └── external/
     │       ├── __init__.py
-    │       └── http_ml_service.py       # Implementasi konkrit IMLPredictorService via HTTP ke MachineLearningPBL
+    │       └── http_ml_service.py       # Implementasi konkrit IMLPredictorService ke MachineLearningPBL
     │
-    └── presentation/                    # 🖥️ [3. PRESENTATION LAYER] (Tampilan Antarmuka & Routing Web)
+    └── presentation/                    # 🖥️ [3. PRESENTATION LAYER] (Tampilan phpMyAdmin UI & Routing)
         ├── web/                         # -- Controllers (Flask Blueprints) --
         │   ├── __init__.py
-        │   ├── main_controller.py       # Rute: / (Beranda) dan /healthz (Health Check)
-        │   └── assessment_controller.py # Rute: /assessment (Form, Submit, Dataset, Export CSV, API JSON)
+        │   ├── main_controller.py       # Rute: / (Admin Dashboard) dan /healthz (Health Check)
+        │   └── assessment_controller.py # Rute: /assessment (Admin Entry, Dataset Table, Export CSV)
         │
         ├── static/                      # -- Aset Tampilan Statis --
         │   ├── css/
-        │   │   └── main.css             # Desain antarmuka (Dark mode modern, card, grid form, badges)
+        │   │   └── main.css             # Tema phpMyAdmin Classic (Header abu-abu, sidebar pohon, form grid)
         │   └── js/
         │       └── main.js              # Interaktivitas slider kuesioner real-time
         │
         └── templates/                   # -- Jinja2 HTML Views --
-            ├── base.html                # Template kerangka induk (Navbar, Footer, Notifikasi)
+            ├── base.html                # Template kerangka induk phpMyAdmin (Sidebar + Top Tabs)
             ├── main/
-            │   └── index.html           # Halaman Beranda (Pengenalan Proyek AntiBurnout)
+            │   └── index.html           # Admin Server Dashboard (4 Panel phpMyAdmin)
             └── assessment/
-                ├── form.html            # Halaman Formulir Kuesioner Dataset Primer
-                ├── result.html          # Halaman Hasil Evaluasi Skor Burnout & Saran
-                └── dataset.html         # Halaman Tabel Kumpulan Dataset Primer + Tombol Download CSV
+                ├── form.html            # Halaman Admin Data Entry (Insert format SQL table)
+                ├── result.html          # Halaman Hasil Evaluasi Skor Burnout (SQL execution notice)
+                └── dataset.html         # Halaman Browse Table (Tabel rekaman dataset + Export CSV)
 ```
 
 ---
 
 ### 🔄 Alur Perjalanan Data (*End-to-End Data Flow*)
 
-Agar lebih mudah dibayangkan, berikut adalah alur ketika seorang responden mengisi formulir di web:
-
 ```text
-1. [User] Mengisi formulir kuesioner di browser
+1. [Admin] Mengisi formulir data kuesioner di browser
        │
        ▼ (HTTP POST /assessment/submit)
 2. [presentation/web/assessment_controller.py] 
@@ -140,87 +141,90 @@ Agar lebih mudah dibayangkan, berikut adalah alur ketika seorang responden mengi
        ▼ (execute raw_data)
 3. [core/use_cases/submit_assessment.py] 
        Orkestrator logika bisnis:
-       ├─► 4. [core/entities/assessment.py] Memvalidasi batas input (misal jam kerja 1-24h)
-       ├─► 5. [infrastructure/external/http_ml_service.py] Mengirim data ke MachineLearningPBL
-       └─► 6. [infrastructure/repositories/sqlite_assessment_repo.py] Menyimpan ke database SQLite
+       ├─► 4. [core/entities/assessment.py] Memvalidasi aturan domain (jam kerja 1-24h, skala stres 1-5)
+       ├─► 5. [infrastructure/external/http_ml_service.py] Meminta inferensi skor ke MachineLearningPBL
+       └─► 6. [infrastructure/repositories/firestore_assessment_repo.py] 
+              Menyimpan dokumen ke koleksi 'assessments' di Google Cloud Firestore
        │
-       ▼ (Mengembalikan objek Entity & Hasil Prediksi)
+       ▼ (Mengembalikan objek Entity & Skor Burnout)
 7. [presentation/templates/assessment/result.html]
-       Merender kartu hasil evaluasi tingkat risiko burnout ke layar pengguna
+       Merender status eksekusi berhasil dan detail inferensi ke layar Admin
 ```
+
+---
+
+## 🔥 Integrasi Firebase Cloud Firestore
+
+Proyek ini menggunakan **Google Cloud Firestore** sebagai database backend terpusat.
+
+### 1. Sinkronisasi Multi-Platform (PBL Ecosystem)
+* **WebPBL (Admin Portal):** Petugas admin menginput dan mengurasi dataset primer langsung ke koleksi cloud Firestore menggunakan `firebase-admin` (Python).
+* **MobilePBL (Flutter App):** Aplikasi mobile pengguna dapat langsung membaca (*real-time listener*) data profil dan riwayat skor burnout dari koleksi Firestore yang sama.
+
+### 2. Struktur Koleksi di Firestore
+
+#### A. Koleksi `assessments` (Data Primer Responden & Skor ML)
+```json
+// Path: /assessments/{autoDocumentId}
+{
+  "full_name": "Ahmad Fauzi",
+  "role": "Kesehatan / Medis",
+  "work_hours": 10.0,
+  "sleep_hours": 5.0,
+  "stress_level": 5,
+  "workload_feeling": 5,
+  "physical_fatigue": 5,
+  "notes": "Shift malam berturut-turut",
+  "burnout_score": 85.0,
+  "burnout_level": "Tinggi (High Risk / Burnout)",
+  "recommendation": "Tingkat stres tinggi terdeteksi...",
+  "operator": "admin@localhost",
+  "created_at": "2024-11-01 00:10:00"
+}
+```
+
+#### B. Koleksi `users` (Pengguna & Operator)
+```json
+// Path: /users/{userId}
+{
+  "full_name": "Administrator PBL",
+  "email": "admin@antiburnout.com",
+  "role": "admin",
+  "division": "Pusat Riset PBL",
+  "is_active": true,
+  "created_at": "2024-11-01 00:00:00"
+}
+```
+
+### 3. Smart Auto-Switching Database
+Di dalam `app/__init__.py`, sistem secara otomatis mendeteksi ketersediaan kunci:
+* **Ada file `serviceAccountKey.json` / `*firebase-adminsdk*.json`:** Aplikasi otomatis berjalan menggunakan **Google Cloud Firestore**.
+* **Tidak ada kunci Firebase:** Aplikasi otomatis *fallback* menggunakan **SQLite lokal** (`data/antiburnout.db`) sehingga tidak akan *crash* saat dijalankan di lingkungan pengujian tanpa internet.
 
 ---
 
 ## 🛠️ Panduan Kustomisasi untuk Programmer
 
-Clean Architecture dirancang agar **sangat mudah dikustomisasi** tanpa merusak bagian lain. Berikut panduan skenario umum:
-
 ### 1. Menambah / Mengubah Pertanyaan Kuesioner
-Jika Anda ingin menambahkan pertanyaan baru (misalnya: `umur` atau `gender`):
-
-1. **Tambahkan field di Domain Entity** (`app/core/entities/assessment.py`):
-   ```python
-   @dataclass
-   class RespondentAssessment:
-       full_name: str
-       age: int  # <-- Field baru
-       ...
-       def validate(self):
-           if self.age < 15:
-               raise ValueError("Usia minimal 15 tahun.")
-   ```
-2. **Perbarui Skema Tabel & Query Repository** (`app/infrastructure/repositories/sqlite_assessment_repo.py` dan `sqlite_client.py`):
-   * Tambahkan kolom `age INTEGER` pada query `CREATE TABLE` dan `INSERT INTO`.
-3. **Tambahkan Input pada Tampilan Form** (`app/presentation/templates/assessment/form.html`):
-   ```html
-   <div class="form-group">
-       <label for="age">Usia Responden</label>
-       <input type="number" id="age" name="age" class="form-control" required>
-   </div>
-   ```
-4. **Tangkap di Controller** (`app/presentation/web/assessment_controller.py`):
-   * Tambahkan `"age": request.form.get("age", type=int)` ke dalam dictionary `raw_data`.
-
----
+1. **Tambahkan atribut di Domain Entity** (`app/core/entities/assessment.py`).
+2. **Perbarui mapping di Repository** (`app/infrastructure/repositories/firestore_assessment_repo.py` pada method `save()` dan `_doc_to_entity()`).
+3. **Tambahkan baris kolom di Form HTML** (`app/presentation/templates/assessment/form.html`).
+4. **Tangkap parameter di Controller** (`app/presentation/web/assessment_controller.py`).
 
 ### 2. Menghubungkan ke API Asli MachineLearningPBL
-Secara *default*, sistem memiliki fitur **fallback simulation**. Jika server ML belum aktif, sistem tetap berjalan normal dengan kalkulasi perkiraan.
-
-Ketika tim **MachineLearningPBL** sudah siap dengan modelnya:
-1. Buka file `.env` (atau buat dari `.env.example`).
-2. Arahkan variabel `ML_API_URL` ke endpoint ML mereka:
+1. Buka file `.env`.
+2. Arahkan variabel `ML_API_URL` ke endpoint ML tim Anda:
    ```env
    ML_API_URL=http://127.0.0.1:8000/predict
    ```
-3. Jika tim ML memerlukan format JSON khusus, sesuaikan *payload mapping* di:
-   [app/infrastructure/external/http_ml_service.py](file:///c:/laragon/www/AntiBurnout/WebPBL/app/infrastructure/external/http_ml_service.py) pada method `predict_burnout()`.
+3. Jika modul ML belum siap, fitur *fallback simulation* otomatis aktif memberikan kalkulasi perkiraan.
 
----
-
-### 3. Mengganti Database (SQLite ke MySQL / PostgreSQL)
-Karena arsitektur ini menggunakan pola *Repository Pattern*:
-1. Buat file baru di `app/infrastructure/repositories/mysql_assessment_repo.py`.
-2. Implementasikan kelas yang mewarisi `IAssessmentRepository`:
-   ```python
-   from app.core.interfaces.repositories import IAssessmentRepository
-
-   class MySQLAssessmentRepository(IAssessmentRepository):
-       def save(self, assessment): ...
-       def find_all(self): ...
-       def find_by_id(self, id): ...
-   ```
-3. Ubah **1 baris saja** pada Dependency Injection di [app/\_\_init\_\_.py](file:///c:/laragon/www/AntiBurnout/WebPBL/app/__init__.py):
-   ```python
-   # Ganti SQLiteAssessmentRepository dengan MySQLAssessmentRepository:
-   assessment_repo = MySQLAssessmentRepository(...)
-   ```
-   *(Lapisan Controller, Use Case, dan Template tidak perlu diubah sama sekali!)*
-
----
+### 3. Mengganti Database Engine (Firestore / SQLite / MySQL)
+Karena arsitektur menggunakan *Repository Pattern*, Anda hanya perlu membuat satu adapter repository baru yang mengimplementasikan `IAssessmentRepository`, lalu menyuntikkannya (*Dependency Injection*) pada `app/__init__.py`. Lapisan Controller dan Template Jinja2 tidak perlu diubah sama sekali.
 
 ### 4. Mengubah Tampilan Desain / UI
-* **Styling Warna & Komponen:** Seluruh token warna, margin, dan komponen card diatur di satu file: [app/presentation/static/css/main.css](file:///c:/laragon/www/AntiBurnout/WebPBL/app/presentation/static/css/main.css).
-* **Navigasi & Header:** Dikelola di [app/presentation/templates/base.html](file:///c:/laragon/www/AntiBurnout/WebPBL/app/presentation/templates/base.html).
+* Desain tema phpMyAdmin (warna palet, panel card, tombol) diatur terpusat di [app/presentation/static/css/main.css](file:///c:/laragon/www/AntiBurnout/WebPBL/app/presentation/static/css/main.css).
+* Tata letak navigasi sidebar dan tab dikelola di [app/presentation/templates/base.html](file:///c:/laragon/www/AntiBurnout/WebPBL/app/presentation/templates/base.html).
 
 ---
 
@@ -253,9 +257,10 @@ Karena arsitektur ini menggunakan pola *Repository Pattern*:
 
 ### Prasyarat
 - Python 3.10+ terpasang di sistem.
+- File kredensial Firebase `serviceAccountKey.json` berada di folder root `WebPBL/`.
 
-### Langkah-langkah:
-1. **Masuk ke folder WebPBL:**
+### Langkah Menjalankan:
+1. **Masuk ke direktori WebPBL:**
    ```bash
    cd c:\laragon\www\AntiBurnout\WebPBL
    ```
@@ -267,18 +272,18 @@ Karena arsitektur ini menggunakan pola *Repository Pattern*:
    ```bash
    python run.py
    ```
-4. **Akses antarmuka web di peramban:**
-   - 🏠 **Beranda:** [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
-   - 📝 **Input Kuesioner:** [http://127.0.0.1:5000/assessment/](http://127.0.0.1:5000/assessment/)
-   - 📊 **Dataset & Unduh CSV:** [http://127.0.0.1:5000/assessment/dataset](http://127.0.0.1:5000/assessment/dataset)
+4. **Buka di peramban:**
+   - 🏠 **Admin Dashboard:** [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
+   - 📝 **Admin Data Entry Form:** [http://127.0.0.1:5000/assessment/](http://127.0.0.1:5000/assessment/)
+   - 📋 **Browse Dataset & Export CSV:** [http://127.0.0.1:5000/assessment/dataset](http://127.0.0.1:5000/assessment/dataset)
    - 💓 **Health Check API:** [http://127.0.0.1:5000/healthz](http://127.0.0.1:5000/healthz)
 
 ---
 
 ## 🧪 Pengujian Otomatis (Testing)
 
-Untuk memastikan seluruh use case, validasi domain, dan database berjalan normal, jalankan perintah uji cepat berikut:
+Jalankan perintah berikut untuk menguji koneksi Cloud Firestore dan seluruh use case:
 
 ```bash
-python -c "from app import create_app; app = create_app(); client = app.test_client(); r = client.get('/healthz'); assert r.status_code == 200; print('Semua Pengujian Sistem Sukses!')"
+python -c "from app import create_app; app = create_app(); client = app.test_client(); r = client.get('/healthz'); assert r.status_code == 200; print('Engine:', app.db_engine_name); print('Semua Pengujian Sistem Sukses!')"
 ```

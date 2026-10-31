@@ -1,4 +1,3 @@
-
 # Python cache files
 __pycache__/
 *.py[cod]
@@ -7,3 +6,9 @@ __pycache__/
 # Virtual environments
 .venv/
 venv/
+
+# Environment and sensitive keys
+.env
+*firebase-adminsdk*.json
+serviceAccountKey.json
+*.db

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 @dataclass
 class RespondentAssessment:
@@ -16,7 +16,7 @@ class RespondentAssessment:
     workload_feeling: int
     physical_fatigue: int
     notes: Optional[str] = ""
-    id: Optional[int] = None
+    id: Optional[Any] = None
     burnout_score: Optional[float] = None
     burnout_level: Optional[str] = None
     recommendation: Optional[str] = None
