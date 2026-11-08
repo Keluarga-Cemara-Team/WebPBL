@@ -48,6 +48,44 @@ def dataset_view():
         metrics=data["metrics"]
     )
 
+@assessment_bp.route("/detail/<assessment_id>", methods=["GET"])
+def detail(assessment_id):
+    """Menampilkan rincian lengkap 40 atribut responden beserta evaluasi burnout"""
+    repo = current_app.assessment_repository
+    entity = repo.find_by_id(assessment_id)
+    if not entity:
+        flash(f"Data responden #{assessment_id} tidak ditemukan.", "danger")
+        return redirect(url_for("assessment.dataset_view"))
+    return render_template("assessment/detail.html", item=entity.to_dict())
+
+@assessment_bp.route("/delete/<assessment_id>", methods=["POST"])
+def delete_item(assessment_id):
+    """Menghapus satu baris data responden berdasarkan ID"""
+    repo = current_app.assessment_repository
+    success = repo.delete(assessment_id)
+    if success:
+        flash(f"Data responden #{assessment_id} berhasil dihapus dari database.", "success")
+    else:
+        flash(f"Gagal menghapus data responden #{assessment_id}.", "danger")
+    return redirect(url_for("assessment.dataset_view"))
+
+@assessment_bp.route("/delete-batch", methods=["POST"])
+def delete_batch():
+    """Menghapus beberapa baris data sekaligus (Bulk Delete)"""
+    repo = current_app.assessment_repository
+    selected_ids = request.form.getlist("selected_id[]")
+    if not selected_ids:
+        flash("Tidak ada baris data yang dipilih untuk dihapus.", "warning")
+        return redirect(url_for("assessment.dataset_view"))
+
+    deleted_count = 0
+    for aid in selected_ids:
+        if repo.delete(aid):
+            deleted_count += 1
+
+    flash(f"Berhasil menghapus {deleted_count} baris data responden terpilih.", "success")
+    return redirect(url_for("assessment.dataset_view"))
+
 @assessment_bp.route("/export/csv", methods=["GET"])
 def export_csv():
     """Download data primer dalam format CSV (persis format mental_health_burnout_prediction_dataset.csv)"""

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Responden #{{ item.id }} &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span><a href="{{ url_for('assessment.dataset_view') }}">Table: <strong>assessments</strong></a></span>
+<span style="color: #888;">&raquo;</span>
+<span><strong>Detail Record #{{ item.id }} ({{ item.full_name }})</strong></span>
+{% endblock %}
+
+{% block content %}
+<!-- phpMyAdmin SQL Execution Banner -->
+<div class="pma-sql-box">
+    <div>
+        <code>SELECT * FROM `assessments` WHERE `id` = '{{ item.id }}' LIMIT 1;</code>
+        <div class="pma-sql-meta">
+            Record ID: #{{ item.id }} &bull; Person_ID: <strong>{{ item.person_id or item.id }}</strong> &bull; Waktu Input: {{ item.created_at }}
+        </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
+            ⬅️ Kembali ke Tabel
+        </a>
+        <form action="{{ url_for('assessment.delete_item', assessment_id=item.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data responden {{ item.full_name }} (#{{ item.id }}) secara permanen?');">
+            <button type="submit" class="pma-btn" style="color: #cc0000; font-size: 11px;">
+                🗑️ Hapus Record Ini
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="pma-grid-2col" style="margin-bottom: 16px;">
+    <!-- Panel 1: Hasil Prediksi Machine Learning -->
+    <div class="pma-card" style="margin-bottom: 0;">
+        <div class="pma-card-header">
+            <span>🤖</span>
+            <span>Hasil Evaluasi AI / Machine Learning Target</span>
+        </div>
+        <div class="pma-card-body">
+            <ul class="pma-list">
+                <li class="pma-list-item">
+                    <span>Nama Responden:</span>
+                    <strong style="color: #235a81; font-size: 15px;">{{ item.full_name }}</strong>
+                </li>
+                <li class="pma-list-item">
+                    <span>Person_ID:</span>
+                    <code style="font-weight: bold;">{{ item.person_id or item.id }}</code>
+                </li>
+                <li class="pma-list-item">
+                    <span>Burnout_Score:</span>
+                    <strong style="font-size: 18px; font-family: monospace; color: #235a81;">
+                        {{ item.burnout_score if item.burnout_score is not none else '-' }} / 100
+                    </strong>
+                </li>
+                <li class="pma-list-item">
+                    <span>Burnout_Risk:</span>
+                    {% if item.burnout_risk == 'Low' or 'Rendah' in (item.burnout_risk or '') %}
+                    <span class="pma-badge pma-badge-success" style="font-size: 13px; padding: 3px 8px;">Low Risk</span>
+                    {% elif item.burnout_risk == 'Moderate' or 'Sedang' in (item.burnout_risk or '') %}
+                    <span class="pma-badge pma-badge-warning" style="font-size: 13px; padding: 3px 8px;">Moderate Risk</span>
+                    {% else %}
+                    <span class="pma-badge pma-badge-danger" style="font-size: 13px; padding: 3px 8px;">High Risk</span>
+                    {% endif %}
+                </li>
+                <li class="pma-list-item">
+                    <span>Mental_Health_Status:</span>
+                    <strong style="font-size: 13px; color: {% if item.mental_health_status == 'Healthy' %}#38761d{% elif item.mental_health_status == 'Needs Attention' %}#b45f06{% else %}#cc0000{% endif %};">
+                        {{ item.mental_health_status or '-' }}
+                    </strong>
+                </li>
+            </ul>
+
+            <!-- AI Recommendation Box -->
+            <div style="margin-top: 14px; background: #fdfaf3; border: 1px solid #f0e2be; border-left: 4px solid #ffc000; padding: 12px; border-radius: 3px;">
+                <div style="font-weight: bold; color: #7f6000; font-size: 12px; margin-bottom: 4px;">
+                    💡 Rekomendasi Kesehatan Kerja (AI Wellness Recommendation):
+                </div>
+                <div style="font-size: 13px; font-weight: bold; color: #235a81; line-height: 1.4;">
+                    {{ item.ai_wellness_recommendation or item.recommendation or '-' }}
+                </div>
+            </div>
+
+            <!-- Catatan Admin -->
+            {% if item.notes %}
+            <div style="margin-top: 10px; background: #f8f8f8; border: 1px solid #ddd; padding: 10px; border-radius: 3px; font-size: 12px; color: #555;">
+                <strong>Catatan Petugas Admin:</strong>
+                <p style="margin: 4px 0 0 0;">{{ item.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Panel 2: Parameter Beban Kerja & Istirahat Inti -->
+    <div class="pma-card" style="margin-bottom: 0;">
+        <div class="pma-card-header">
+            <span>⏱️</span>
+            <span>Indikator Beban Kerja & Gaya Hidup</span>
+        </div>
+        <div class="pma-card-body">
+            <table class="pma-table" style="margin-bottom: 0;">
+                <tbody>
+                    <tr>
+                        <td style="width: 170px; font-weight: 600;">Work_Hours_Per_Week</td>
+                        <td style="font-family: monospace; font-size: 13px;">{{ item.work_hours_per_week }} jam/minggu</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Sleep_Hours & Quality</td>
+                        <td style="font-family: monospace;">{{ item.sleep_hours }} jam ({{ item.sleep_quality }})</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Stress_Level & Chronic</td>
+                        <td>{{ item.stress_level }} (Kronis: {{ item.chronic_stress }})</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Job Satisfaction (1-10)</td>
+                        <td>{{ item.job_satisfaction }} / 10.0</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Work-Life Balance (1-10)</td>
+                        <td>{{ item.work_life_balance }} / 10.0</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Productivity_Score</td>
+                        <td>{{ item.productivity_score }}%</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Anxiety & Depression</td>
+                        <td>Cemas: {{ item.anxiety_score }} &bull; Depresi: {{ item.depression_score }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Panel Rincian 40 Kolom Lengkap -->
+<div class="pma-card">
+    <div class="pma-card-header">
+        <span>📋</span>
+        <span>Seluruh Nilai 40 Kolom Dataset Primer Responden</span>
+    </div>
+    <div class="pma-card-body" style="padding: 0;">
+        <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+            <thead>
+                <tr>
+                    <th style="width: 260px;">Nama Atribut (Kolom Dataset)</th>
+                    <th style="width: 150px;">Kategori Fitur</th>
+                    <th>Nilai Tercatat (Recorded Value)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 1. Demografi & Profesi -->
+                <tr><td><code>Person_ID</code></td><td>Demografi</td><td><strong>{{ item.person_id or item.id }}</strong></td></tr>
+                <tr><td><code>Full_Name</code></td><td>Identitas</td><td><strong>{{ item.full_name }}</strong></td></tr>
+                <tr><td><code>Age</code> / <code>Gender</code></td><td>Demografi</td><td>{{ item.age|int }} tahun &bull; {{ item.gender }}</td></tr>
+                <tr><td><code>Country</code></td><td>Demografi</td><td>{{ item.country }}</td></tr>
+                <tr><td><code>Occupation</code></td><td>Pekerjaan</td><td>{{ item.occupation }}</td></tr>
+                <tr><td><code>Education_Level</code></td><td>Pekerjaan</td><td>{{ item.education_level }}</td></tr>
+                <tr><td><code>Employment_Status</code></td><td>Pekerjaan</td><td>{{ item.employment_status }}</td></tr>
+                <tr><td><code>Monthly_Income_USD</code></td><td>Ekonomi</td><td>${{ item.monthly_income_usd }}</td></tr>
+                <tr><td><code>Remote_Work</code></td><td>Pekerjaan</td><td>{{ item.remote_work }}</td></tr>
+
+                <!-- 2. Beban Kerja & Performa -->
+                <tr><td><code>Work_Hours_Per_Week</code></td><td>Beban Kerja</td><td>{{ item.work_hours_per_week }} jam/minggu</td></tr>
+                <tr><td><code>Job_Satisfaction</code></td><td>Beban Kerja</td><td>{{ item.job_satisfaction }} / 10.0</td></tr>
+                <tr><td><code>Work_Life_Balance</code></td><td>Beban Kerja</td><td>{{ item.work_life_balance }} / 10.0</td></tr>
+                <tr><td><code>Productivity_Score</code></td><td>Performa</td><td>{{ item.productivity_score }}%</td></tr>
+                <tr><td><code>Absenteeism_Days</code></td><td>Performa</td><td>{{ item.absenteeism_days }} hari</td></tr>
+
+                <!-- 3. Pola Hidup & Istirahat -->
+                <tr><td><code>Sleep_Hours</code> / <code>Quality</code></td><td>Gaya Hidup</td><td>{{ item.sleep_hours }} jam ({{ item.sleep_quality }})</td></tr>
+                <tr><td><code>Physical_Activity_Hours</code></td><td>Gaya Hidup</td><td>{{ item.physical_activity_hours }} jam</td></tr>
+                <tr><td><code>Exercise_Frequency</code></td><td>Gaya Hidup</td><td>{{ item.exercise_frequency }}</td></tr>
+                <tr><td><code>Meditation_Minutes</code></td><td>Gaya Hidup</td><td>{{ item.meditation_minutes }} menit</td></tr>
+                <tr><td><code>Screen_Time_Hours</code></td><td>Gaya Hidup</td><td>{{ item.screen_time_hours }} jam/hari</td></tr>
+                <tr><td><code>Social_Media_Hours</code></td><td>Gaya Hidup</td><td>{{ item.social_media_hours }} jam/hari</td></tr>
+                <tr><td><code>Gaming_Hours</code></td><td>Gaya Hidup</td><td>{{ item.gaming_hours }} jam/hari</td></tr>
+                <tr><td><code>Coffee_Cups_Per_Day</code></td><td>Gaya Hidup</td><td>{{ item.coffee_cups_per_day }} cangkir/hari</td></tr>
+                <tr><td><code>Alcohol_Consumption</code> / <code>Smoking</code></td><td>Gaya Hidup</td><td>Alkohol: {{ item.alcohol_consumption }} &bull; Rokok: {{ item.smoking }}</td></tr>
+                <tr><td><code>Healthy_Diet</code></td><td>Gaya Hidup</td><td>{{ item.healthy_diet }}</td></tr>
+
+                <!-- 4. Kondisi Mental -->
+                <tr><td><code>Stress_Level</code> / <code>Chronic</code></td><td>Kesehatan Mental</td><td>{{ item.stress_level }} (Kronis: {{ item.chronic_stress }})</td></tr>
+                <tr><td><code>Anxiety_Score</code> / <code>Depression_Score</code></td><td>Kesehatan Mental</td><td>Cemas: {{ item.anxiety_score }} &bull; Depresi: {{ item.depression_score }}</td></tr>
+                <tr><td><code>Mood_Score</code> / <code>Emotional_Stability</code></td><td>Kesehatan Mental</td><td>Mood: {{ item.mood_score }} &bull; Stabilitas: {{ item.emotional_stability }}</td></tr>
+                <tr><td><code>Family_History_Mental_Illness</code></td><td>Kesehatan Mental</td><td>{{ item.family_history_mental_illness }}</td></tr>
+                <tr><td><code>Therapy_Attendance</code></td><td>Kesehatan Mental</td><td>{{ item.therapy_attendance }}</td></tr>
+                <tr><td><code>Support_System</code></td><td>Kesehatan Mental</td><td>{{ item.support_system }}</td></tr>
+                <tr><td><code>Life_Satisfaction</code></td><td>Kesehatan Mental</td><td>{{ item.life_satisfaction }} / 10.0</td></tr>
+
+                <!-- 5. Target Output ML -->
+                <tr style="background: #f7fbfe;"><td><code>Burnout_Score</code></td><td>Target AI</td><td><strong style="color: #235a81;">{{ item.burnout_score }} / 100</strong></td></tr>
+                <tr style="background: #f7fbfe;"><td><code>Burnout_Risk</code></td><td>Target AI</td><td><strong>{{ item.burnout_risk }}</strong></td></tr>
+                <tr style="background: #f7fbfe;"><td><code>Mental_Health_Status</code></td><td>Target AI</td><td><strong>{{ item.mental_health_status }}</strong></td></tr>
+                <tr style="background: #f7fbfe;"><td><code>AI_Wellness_Recommendation</code></td><td>Target AI</td><td>{{ item.ai_wellness_recommendation or item.recommendation }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

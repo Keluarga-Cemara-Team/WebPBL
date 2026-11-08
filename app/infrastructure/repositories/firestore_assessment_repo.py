@@ -49,6 +49,11 @@ class FirestoreAssessmentRepository(IAssessmentRepository):
             return self._doc_to_entity(doc.id, doc.to_dict())
         return None
 
+    def delete(self, assessment_id: Any) -> bool:
+        doc_ref = self.db.collection(self.collection_name).document(str(assessment_id))
+        doc_ref.delete()
+        return True
+
     @staticmethod
     def _doc_to_entity(doc_id: str, data: dict) -> RespondentAssessment:
         raw_created_at = data.get("created_at")
