@@ -130,8 +130,8 @@
                 {% with messages = get_flashed_messages(with_categories=true) %}
                   {% if messages %}
                     {% for category, message in messages %}
-                      <div class="pma-alert-warning">
-                        <strong>Perhatian:</strong> {{ message }}
+                      <div class="{% if category == 'success' %}pma-alert-success{% else %}pma-alert-warning{% endif %}">
+                        <strong>{% if category == 'success' %}Sukses:{% elif category == 'danger' %}Galat:{% else %}Perhatian:{% endif %}</strong> {{ message }}
                       </div>
                     {% endfor %}
                   {% endif %}

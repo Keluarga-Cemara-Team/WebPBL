@@ -23,3 +23,8 @@ class IAssessmentRepository(ABC):
     def find_by_id(self, assessment_id: Any) -> Optional[RespondentAssessment]:
         """Mencari data responden berdasarkan ID"""
         pass
+
+    @abstractmethod
+    def delete(self, assessment_id: Any) -> bool:
+        """Menghapus data responden berdasarkan ID"""
+        pass
