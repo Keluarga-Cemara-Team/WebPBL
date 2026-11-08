@@ -6,6 +6,41 @@ document.addEventListener("DOMContentLoaded", () => {
     const previewHead = document.getElementById("preview-head");
     const previewBody = document.getElementById("preview-body");
     const typesBody = document.getElementById("types-body");
+    const btnLoadDb = document.getElementById("btn-load-db");
+
+    // EDA Elements
+    const btnEda = document.getElementById("btn-eda");
+    const sectionEda = document.getElementById("section-eda");
+    const edaTargetBars = document.getElementById("eda-target-bars");
+    const edaStatsBody = document.getElementById("eda-stats-body");
+    const edaInsightsGrid = document.getElementById("eda-insights-grid");
+
+    // Preprocessing Elements
+    const btnPrep = document.getElementById("btn-preprocessing");
+    const sectionPrep = document.getElementById("section-preprocessing");
+    const btnPrepResetDefault = document.getElementById("btn-prep-reset-default");
+    const prepColumnsGrid = document.getElementById("prep-columns-grid");
+    const btnColSelectAll = document.getElementById("btn-col-select-all");
+    const btnColDeselectAll = document.getElementById("btn-col-deselect-all");
+    const btnColRecommend = document.getElementById("btn-col-recommend");
+    const prepSelectedColsCount = document.getElementById("prep-selected-cols-count");
+    const prepTotalColsCount = document.getElementById("prep-total-cols-count");
+
+    const prepOptDedup = document.getElementById("prep-opt-dedup");
+    const prepDupsBadge = document.getElementById("prep-dups-badge");
+    const prepOptImputeNum = document.getElementById("prep-opt-impute-num");
+    const prepOptImputeCat = document.getElementById("prep-opt-impute-cat");
+    const prepOptOutlier = document.getElementById("prep-opt-outlier");
+    const prepOutliersBadge = document.getElementById("prep-outliers-badge");
+    const prepOptEncoding = document.getElementById("prep-opt-encoding");
+    const prepEncodingPreview = document.getElementById("prep-encoding-preview");
+    const prepOptScaling = document.getElementById("prep-opt-scaling");
+    const prepSummaryStatus = document.getElementById("prep-summary-status");
+    const btnDownloadCleaned = document.getElementById("btn-download-cleaned");
+
+    // State cache
+    let currentDataset = null;
+    let detectedOutliersInfo = { totalOutliers: 0, columnsWithOutliers: 0, columnBounds: {} };
 
     if (!fileInput || !status || !results) return;
 
@@ -15,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         else delete status.dataset.state;
     };
 
+    // Parser CSV standar
     const parseCsv = (text) => {
         const rows = [];
         let row = [];
@@ -63,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const detectType = (values) => {
-        const present = values.map((value) => value.trim()).filter(Boolean);
+        const present = values.map((value) => (value ?? "").trim()).filter(Boolean);
         if (!present.length) return "Kosong";
         if (present.every((value) => /^(true|false)$/i.test(value))) return "Boolean";
         if (present.every((value) => /^[-+]?\d+$/.test(value))) return "Integer";
@@ -72,7 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return "Teks";
     };
 
-    const renderDataset = (file, rows) => {
+    // Render Ringkasan & Pratinjau Dataset Awal
+    const renderDataset = (fileOrName, rows) => {
         if (!rows.length || !rows[0].some((value) => value.trim())) {
             throw new Error("CSV tidak memiliki header kolom.");
         }
@@ -84,23 +121,28 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const dataRows = rows.slice(1).map((values) => headers.map((_, index) => values[index] ?? ""));
         const missingByColumn = headers.map((_, column) => dataRows.reduce(
-            (count, values) => count + (values[column].trim() === "" ? 1 : 0), 0
+            (count, values) => count + ((values[column] ?? "").trim() === "" ? 1 : 0), 0
         ));
         const duplicateRows = new Set();
         const seenRows = new Set();
 
         dataRows.forEach((values, index) => {
-            const signature = JSON.stringify(values.map((value) => value.trim()));
+            const signature = JSON.stringify(values.map((value) => (value ?? "").trim()));
             if (seenRows.has(signature)) duplicateRows.add(index);
             else seenRows.add(signature);
         });
 
-        document.getElementById("summary-filename").textContent = file.name;
+        const fname = typeof fileOrName === "string" ? fileOrName : fileOrName.name;
+        filename.textContent = fname;
+        document.getElementById("summary-filename").textContent = fname;
         document.getElementById("summary-rows").textContent = String(dataRows.length);
         document.getElementById("summary-columns").textContent = String(headers.length);
-        document.getElementById("summary-missing").textContent = `${missingByColumn.reduce((a, b) => a + b, 0)} nilai kosong`;
+        const totalMissing = missingByColumn.reduce((a, b) => a + b, 0);
+        document.getElementById("summary-missing").textContent = `${totalMissing} nilai kosong`;
         document.getElementById("summary-duplicates").textContent = `${duplicateRows.size} baris`;
-        document.getElementById("summary-target").textContent = headers.includes("Burnout_Risk") ? "Tersedia" : "Tidak ditemukan";
+        
+        const hasTarget = headers.some(h => /burnout[_\s]?(risk|level|score)/i.test(h));
+        document.getElementById("summary-target").textContent = hasTarget ? "Tersedia" : "Tidak ditemukan";
 
         previewHead.replaceChildren(...headers.map((header) => makeCell("th", header, "col")));
         previewBody.replaceChildren(...dataRows.slice(0, 10).map((values) => {
@@ -110,26 +152,708 @@ document.addEventListener("DOMContentLoaded", () => {
         }));
         document.getElementById("preview-count").textContent = `(${Math.min(dataRows.length, 10)} dari ${dataRows.length} baris)`;
 
+        const columnTypes = headers.map((header, column) => detectType(dataRows.map((values) => values[column])));
+
         typesBody.replaceChildren(...headers.map((header, column) => {
             const tr = document.createElement("tr");
             tr.append(
                 makeCell("td", header),
-                makeCell("td", detectType(dataRows.map((values) => values[column]))),
+                makeCell("td", columnTypes[column]),
                 makeCell("td", String(missingByColumn[column]))
             );
             return tr;
         }));
 
+        // Simpan state aktif
+        currentDataset = {
+            filename: fname,
+            headers,
+            columnTypes,
+            dataRows,
+            missingByColumn,
+            duplicateRows,
+            totalMissing
+        };
+
+        // Aktifkan tombol
+        if (btnEda) btnEda.disabled = false;
+        if (btnPrep) btnPrep.disabled = false;
+
+        // Siapkan kontrol Preprocessing
+        initPreprocessingControls();
+
         results.hidden = false;
-        setStatus("CSV berhasil dibaca untuk pratinjau lokal.", "success");
+        setStatus("CSV berhasil dibaca. Anda dapat melihat ringkasan atau membuka tombol EDA & Preprocessing di bawah.", "success");
     };
 
+    // =========================================================================
+    // MODUL 1: EDA (Exploratory Data Analysis)
+    // =========================================================================
+    const runEda = () => {
+        if (!currentDataset) return;
+        const { headers, dataRows, columnTypes } = currentDataset;
+
+        // 1. Distribusi Target
+        const targetColIdx = headers.findIndex(h => /burnout[_\s]?(risk|level)/i.test(h));
+        edaTargetBars.innerHTML = "";
+
+        if (targetColIdx !== -1) {
+            const counts = { Low: 0, Moderate: 0, High: 0 };
+            dataRows.forEach(row => {
+                const val = (row[targetColIdx] || "").toLowerCase();
+                if (val.includes("high") || val.includes("tinggi") || val.includes("critical")) counts.High += 1;
+                else if (val.includes("low") || val.includes("rendah") || val.includes("healthy")) counts.Low += 1;
+                else counts.Moderate += 1;
+            });
+
+            const total = dataRows.length || 1;
+            const items = [
+                { label: "Low Risk (Rendah)", count: counts.Low, cls: "eda-bar-fill-low" },
+                { label: "Moderate Risk (Sedang)", count: counts.Moderate, cls: "eda-bar-fill-mod" },
+                { label: "High Risk (Tinggi)", count: counts.High, cls: "eda-bar-fill-high" }
+            ];
+
+            items.forEach(it => {
+                const pct = Math.round((it.count / total) * 100);
+                const rowDiv = document.createElement("div");
+                rowDiv.className = "eda-bar-row";
+                rowDiv.innerHTML = `
+                    <div class="eda-bar-label">${it.label}</div>
+                    <div class="eda-bar-track">
+                        <div class="eda-bar-fill ${it.cls}" style="width: ${pct}%;"></div>
+                    </div>
+                    <div class="eda-bar-meta">${it.count} (${pct}%)</div>
+                `;
+                edaTargetBars.appendChild(rowDiv);
+            });
+        } else {
+            edaTargetBars.innerHTML = `<div class="pma-badge pma-badge-warning">Kolom target Burnout_Risk tidak terdeteksi di dataset ini.</div>`;
+        }
+
+        // 2. Statistik Deskriptif Kolom Numerik
+        edaStatsBody.innerHTML = "";
+        let numCount = 0;
+
+        headers.forEach((header, colIdx) => {
+            const colType = columnTypes[colIdx];
+            if (colType === "Numerik" || colType === "Integer") {
+                numCount += 1;
+                const numbers = dataRows.map(r => parseFloat(r[colIdx])).filter(v => !isNaN(v)).sort((a, b) => a - b);
+                if (numbers.length > 0) {
+                    const min = numbers[0];
+                    const max = numbers[numbers.length - 1];
+                    const sum = numbers.reduce((a, b) => a + b, 0);
+                    const mean = (sum / numbers.length).toFixed(1);
+                    const mid = Math.floor(numbers.length / 2);
+                    const median = numbers.length % 2 !== 0 ? numbers[mid] : ((numbers[mid - 1] + numbers[mid]) / 2).toFixed(1);
+
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>${header}</strong></td>
+                        <td><span class="pma-badge ${colType === 'Integer' ? 'pma-badge-success' : 'pma-badge-warning'}">${colType}</span></td>
+                        <td style="text-align: right; font-family: monospace;">${min}</td>
+                        <td style="text-align: right; font-family: monospace; color: #235a81; font-weight: bold;">${mean}</td>
+                        <td style="text-align: right; font-family: monospace;">${median}</td>
+                        <td style="text-align: right; font-family: monospace;">${max}</td>
+                    `;
+                    edaStatsBody.appendChild(tr);
+                }
+            }
+        });
+
+        if (numCount === 0) {
+            edaStatsBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #777;">Tidak ada fitur numerik yang terdeteksi.</td></tr>`;
+        }
+
+        // 3. Wawasan Pola Responden
+        const workIdx = headers.findIndex(h => /work[_\s]?hours/i.test(h));
+        const sleepIdx = headers.findIndex(h => /sleep[_\s]?hours/i.test(h));
+        
+        let avgWorkHigh = "-", avgWorkLow = "-", avgSleepHigh = "-", avgSleepLow = "-";
+
+        if (targetColIdx !== -1 && workIdx !== -1) {
+            const workHigh = [], workLow = [];
+            dataRows.forEach(r => {
+                const w = parseFloat(r[workIdx]);
+                if (isNaN(w)) return;
+                const risk = (r[targetColIdx] || "").toLowerCase();
+                if (risk.includes("high") || risk.includes("tinggi")) workHigh.push(w);
+                else workLow.push(w);
+            });
+            if (workHigh.length) avgWorkHigh = (workHigh.reduce((a,b)=>a+b,0)/workHigh.length).toFixed(1) + " jam/mgg";
+            if (workLow.length) avgWorkLow = (workLow.reduce((a,b)=>a+b,0)/workLow.length).toFixed(1) + " jam/mgg";
+        }
+
+        if (targetColIdx !== -1 && sleepIdx !== -1) {
+            const sleepHigh = [], sleepLow = [];
+            dataRows.forEach(r => {
+                const s = parseFloat(r[sleepIdx]);
+                if (isNaN(s)) return;
+                const risk = (r[targetColIdx] || "").toLowerCase();
+                if (risk.includes("high") || risk.includes("tinggi")) sleepHigh.push(s);
+                else sleepLow.push(s);
+            });
+            if (sleepHigh.length) avgSleepHigh = (sleepHigh.reduce((a,b)=>a+b,0)/sleepHigh.length).toFixed(1) + " jam/hari";
+            if (sleepLow.length) avgSleepLow = (sleepLow.reduce((a,b)=>a+b,0)/sleepLow.length).toFixed(1) + " jam/hari";
+        }
+
+        edaInsightsGrid.innerHTML = `
+            <div class="pma-card" style="margin-bottom: 0;">
+                <div class="pma-card-header"><span>⏱️</span><span>Beban Jam Kerja vs Risiko</span></div>
+                <div class="pma-card-body">
+                    <ul class="pma-list">
+                        <li class="pma-list-item">
+                            <span>Rata-rata Jam Kerja (High Risk):</span>
+                            <strong style="color: #c00000;">${avgWorkHigh}</strong>
+                        </li>
+                        <li class="pma-list-item">
+                            <span>Rata-rata Jam Kerja (Low/Mod):</span>
+                            <strong style="color: #274e13;">${avgWorkLow}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pma-card" style="margin-bottom: 0;">
+                <div class="pma-card-header"><span>🌙</span><span>Durasi Tidur vs Risiko</span></div>
+                <div class="pma-card-body">
+                    <ul class="pma-list">
+                        <li class="pma-list-item">
+                            <span>Rata-rata Tidur (High Risk):</span>
+                            <strong style="color: #c00000;">${avgSleepHigh}</strong>
+                        </li>
+                        <li class="pma-list-item">
+                            <span>Rata-rata Tidur (Low/Mod):</span>
+                            <strong style="color: #274e13;">${avgSleepLow}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        `;
+
+        sectionEda.hidden = false;
+        sectionEda.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    // =========================================================================
+    // MODUL 2: PREPROCESSING PIPELINE INTERAKTIF
+    // =========================================================================
+
+    // Helper mengecek kolom yang di-drop secara default sesuai spesifikasi pipeline ML
+    const isDefaultDroppedColumn = (colName) => {
+        const norm = (colName || "").trim().toLowerCase().replace(/[\s-]/g, "_");
+        const droppedCols = new Set([
+            "burnout_score",
+            "gender",
+            "country",
+            "occupation",
+            "ai_wellness_recommendation",
+            "burnout_risk",
+            "education_level",
+            "employment_status",
+            "person_id",
+            "id",
+            "notes",
+            "catatan"
+        ]);
+        return droppedCols.has(norm);
+    };
+
+    // Inisialisasi kontrol dan deteksi outlier
+    const initPreprocessingControls = () => {
+        if (!currentDataset) return;
+        const { headers, dataRows, columnTypes, duplicateRows } = currentDataset;
+
+        // Update duplikat badge
+        prepDupsBadge.textContent = `${duplicateRows.size} baris`;
+
+        // 1. Render Checkbox Seleksi Kolom (Default mengecualikan kolom target, demografi, & ID)
+        prepColumnsGrid.innerHTML = "";
+        headers.forEach((h, idx) => {
+            const colType = columnTypes[idx];
+            const shouldDrop = isDefaultDroppedColumn(h);
+
+            const label = document.createElement("label");
+            label.className = "prep-col-item";
+            label.innerHTML = `
+                <input type="checkbox" class="prep-col-check" data-col-idx="${idx}" ${!shouldDrop ? 'checked' : ''}>
+                <span class="prep-col-name" title="${h}">${h}</span>
+                <span class="pma-badge ${colType.startsWith('Int') || colType.startsWith('Num') ? 'pma-badge-warning' : 'pma-badge-success'}" style="font-size: 10px; padding: 1px 4px;">
+                    ${colType}
+                </span>
+            `;
+            prepColumnsGrid.appendChild(label);
+        });
+
+        // Set default imputasi numerik ke Mean
+        if (prepOptImputeNum) prepOptImputeNum.value = "mean";
+
+        updateSelectedColsCount();
+
+        // 2. Deteksi Outlier dengan IQR Method
+        let totalOutliers = 0;
+        let columnsWithOutliers = 0;
+        const columnBounds = {};
+
+        headers.forEach((h, colIdx) => {
+            const colType = columnTypes[colIdx];
+            if (colType === "Numerik" || colType === "Integer") {
+                const numbers = dataRows.map(r => parseFloat(r[colIdx])).filter(v => !isNaN(v)).sort((a,b)=>a-b);
+                if (numbers.length >= 4) {
+                    const q1Idx = Math.floor(numbers.length * 0.25);
+                    const q3Idx = Math.floor(numbers.length * 0.75);
+                    const q1 = numbers[q1Idx];
+                    const q3 = numbers[q3Idx];
+                    const iqr = q3 - q1;
+                    const lower = q1 - 1.5 * iqr;
+                    const upper = q3 + 1.5 * iqr;
+
+                    let outCount = 0;
+                    numbers.forEach(v => {
+                        if (v < lower || v > upper) outCount += 1;
+                    });
+
+                    if (outCount > 0) {
+                        totalOutliers += outCount;
+                        columnsWithOutliers += 1;
+                        columnBounds[colIdx] = { lower, upper, outCount };
+                    }
+                }
+            }
+        });
+
+        detectedOutliersInfo = { totalOutliers, columnsWithOutliers, columnBounds };
+        if (totalOutliers > 0) {
+            prepOutliersBadge.textContent = `${totalOutliers} outlier terdeteksi di ${columnsWithOutliers} kolom`;
+            prepOutliersBadge.className = "pma-badge pma-badge-danger";
+        } else {
+            prepOutliersBadge.textContent = "0 outlier terdeteksi (Data Bersih)";
+            prepOutliersBadge.className = "pma-badge pma-badge-success";
+        }
+
+        // 3. Render Preview Encoding Kategorikal
+        renderEncodingPreview();
+    };
+
+    const updateSelectedColsCount = () => {
+        const checked = prepColumnsGrid.querySelectorAll(".prep-col-check:checked");
+        const total = prepColumnsGrid.querySelectorAll(".prep-col-check");
+        prepSelectedColsCount.textContent = String(checked.length);
+        prepTotalColsCount.textContent = String(total.length);
+    };
+
+    // Render Preview Mapping Encoding
+    const renderEncodingPreview = () => {
+        if (!currentDataset) return;
+        const { headers, dataRows, columnTypes } = currentDataset;
+        const mode = prepOptEncoding.value;
+
+        if (mode === "none") {
+            prepEncodingPreview.innerHTML = `<em>Teks fitur kategorikal akan dibiarkan dalam bentuk aslinya.</em>`;
+            return;
+        }
+
+        if (mode === "onehot") {
+            prepEncodingPreview.innerHTML = `<em>Setiap nilai kategori akan dimekarkan menjadi kolom biner baru (contoh: <code>Remote_Work_Hybrid</code>, <code>Remote_Work_Yes</code> bertipe 0 atau 1).</em>`;
+            return;
+        }
+
+        // Label encoding preview
+        const catCols = [];
+        headers.forEach((h, idx) => {
+            if ((columnTypes[idx] === "Teks" || /risk|level|status/i.test(h)) && !isDefaultDroppedColumn(h)) {
+                catCols.push({ name: h, idx });
+            }
+        });
+
+        if (!catCols.length) {
+            prepEncodingPreview.innerHTML = `<em>Fitur kategorikal terpilih siap di-encode.</em>`;
+            return;
+        }
+
+        let previewHtml = `<div style="font-weight: bold; margin-bottom: 4px; color: #235a81;">Rencana Label Encoding Fitur Terpilih:</div><ul style="padding-left: 18px; margin: 0;">`;
+        catCols.slice(0, 4).forEach(col => {
+            const uniques = Array.from(new Set(dataRows.map(r => (r[col.idx] ?? "").trim()).filter(Boolean))).slice(0, 4);
+            const mapping = uniques.map((u, i) => `<code>${u}</code>=${i}`).join(", ");
+            previewHtml += `<li><strong>${col.name}:</strong> ${mapping} ${uniques.length < 4 ? '' : '...'}</li>`;
+        });
+        previewHtml += `</ul>`;
+        prepEncodingPreview.innerHTML = previewHtml;
+    };
+
+    // Tombol Pilih Semua / Hilangkan Semua / Rekomendasi
+    if (btnColSelectAll) {
+        btnColSelectAll.addEventListener("click", () => {
+            prepColumnsGrid.querySelectorAll(".prep-col-check").forEach(cb => cb.checked = true);
+            updateSelectedColsCount();
+        });
+    }
+
+    if (btnColDeselectAll) {
+        btnColDeselectAll.addEventListener("click", () => {
+            prepColumnsGrid.querySelectorAll(".prep-col-check").forEach(cb => cb.checked = false);
+            updateSelectedColsCount();
+        });
+    }
+
+    if (btnColRecommend) {
+        btnColRecommend.addEventListener("click", () => {
+            if (!currentDataset) return;
+            const { headers } = currentDataset;
+            prepColumnsGrid.querySelectorAll(".prep-col-check").forEach((cb, idx) => {
+                const h = headers[idx];
+                cb.checked = !isDefaultDroppedColumn(h);
+            });
+            updateSelectedColsCount();
+        });
+    }
+
+    if (prepColumnsGrid) {
+        prepColumnsGrid.addEventListener("change", (e) => {
+            if (e.target.classList.contains("prep-col-check")) {
+                updateSelectedColsCount();
+            }
+        });
+    }
+
+    // Reset ke Settingan Default ML
+    if (btnPrepResetDefault) {
+        btnPrepResetDefault.addEventListener("click", () => {
+            prepOptDedup.checked = true;
+            prepOptImputeNum.value = "mean";
+            prepOptImputeCat.value = "mode";
+            prepOptOutlier.value = "iqr_cap";
+            prepOptEncoding.value = "label";
+            prepOptScaling.value = "none";
+            if (btnColRecommend) btnColRecommend.click();
+            renderEncodingPreview();
+            setStatus("Pengaturan pra-pemrosesan telah direset ke rekomendasi default ML (Mean Imputation & Feature Selection).", "success");
+        });
+    }
+
+    if (prepOptEncoding) {
+        prepOptEncoding.addEventListener("change", renderEncodingPreview);
+    }
+
+    // Buka Tampilan Preprocessing
+    if (btnPrep) {
+        btnPrep.addEventListener("click", () => {
+            sectionPrep.hidden = false;
+            sectionPrep.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+    }
+
+    // =========================================================================
+    // EKSEKUSI PIPELINE & DOWNLOAD CSV BERSIH
+    // =========================================================================
+    const executePreprocessingAndDownload = () => {
+        if (!currentDataset) return;
+        const { headers, dataRows, columnTypes, duplicateRows } = currentDataset;
+
+        // 1. Seleksi Kolom
+        const selectedCheckboxes = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check:checked"));
+        if (!selectedCheckboxes.length) {
+            alert("Harap pilih minimal 1 kolom untuk diikutsertakan dalam dataset.");
+            return;
+        }
+
+        const selectedColIndices = selectedCheckboxes.map(cb => parseInt(cb.dataset.colIdx, 10));
+        const selectedHeaders = selectedColIndices.map(idx => headers[idx]);
+
+        // 2. Baris Duplikat
+        let filteredRows = prepOptDedup.checked
+            ? dataRows.filter((_, idx) => !duplicateRows.has(idx))
+            : [...dataRows];
+
+        // 3. Imputasi Nilai Kosong
+        const imputeNumMode = prepOptImputeNum.value;
+        const imputeCatMode = prepOptImputeCat.value;
+
+        // Hitung statistik untuk imputasi
+        const colMedians = {};
+        const colMeans = {};
+        const colModes = {};
+
+        selectedColIndices.forEach(colIdx => {
+            const colType = columnTypes[colIdx];
+            const vals = filteredRows.map(r => r[colIdx]).filter(v => (v ?? "").trim() !== "");
+
+            if (colType === "Numerik" || colType === "Integer") {
+                const nums = vals.map(v => parseFloat(v)).filter(v => !isNaN(v)).sort((a,b)=>a-b);
+                if (nums.length) {
+                    const mid = Math.floor(nums.length / 2);
+                    colMedians[colIdx] = nums.length % 2 !== 0 ? nums[mid] : ((nums[mid-1]+nums[mid])/2);
+                    colMeans[colIdx] = (nums.reduce((a,b)=>a+b,0) / nums.length).toFixed(2);
+
+                    // Hitung modus untuk numerik
+                    const numFreq = {};
+                    let maxNumCount = 0;
+                    let numModeVal = nums[0];
+                    nums.forEach(n => {
+                        numFreq[n] = (numFreq[n] || 0) + 1;
+                        if (numFreq[n] > maxNumCount) {
+                            maxNumCount = numFreq[n];
+                            numModeVal = n;
+                        }
+                    });
+                    colModes[colIdx] = numModeVal;
+                } else {
+                    colMedians[colIdx] = 0;
+                    colMeans[colIdx] = 0;
+                    colModes[colIdx] = 0;
+                }
+            } else {
+                // Mode
+                const freq = {};
+                let maxCount = 0;
+                let modeVal = "Unknown";
+                vals.forEach(v => {
+                    freq[v] = (freq[v] || 0) + 1;
+                    if (freq[v] > maxCount) {
+                        maxCount = freq[v];
+                        modeVal = v;
+                    }
+                });
+                colModes[colIdx] = modeVal;
+            }
+        });
+
+        // Filter / Imputasi
+        let processedRows = [];
+        let imputedValuesCount = 0;
+
+        for (const row of filteredRows) {
+            let dropThisRow = false;
+            const newRow = [];
+
+            for (const colIdx of selectedColIndices) {
+                let cellVal = (row[colIdx] ?? "").trim();
+                const colType = columnTypes[colIdx];
+                const isNum = colType === "Numerik" || colType === "Integer";
+
+                if (cellVal === "") {
+                    imputedValuesCount += 1;
+                    if (isNum) {
+                        if (imputeNumMode === "drop") { dropThisRow = true; break; }
+                        else if (imputeNumMode === "mean") cellVal = String(colMeans[colIdx]);
+                        else if (imputeNumMode === "median") cellVal = String(colMedians[colIdx]);
+                        else if (imputeNumMode === "mode") cellVal = String(colModes[colIdx]);
+                        else if (imputeNumMode === "zero") cellVal = "0";
+                    } else {
+                        if (imputeCatMode === "drop") { dropThisRow = true; break; }
+                        else if (imputeCatMode === "mode") cellVal = String(colModes[colIdx]);
+                        else cellVal = "Unknown";
+                    }
+                }
+                newRow.push(cellVal);
+            }
+
+            if (!dropThisRow) {
+                processedRows.push(newRow);
+            }
+        }
+
+        // 4. Penanganan Outlier
+        const outlierMode = prepOptOptOutlier = prepOptOutlier.value;
+        if (outlierMode !== "none") {
+            const newProcessed = [];
+            processedRows.forEach(row => {
+                let hasOutlier = false;
+                const modifiedRow = [...row];
+
+                selectedColIndices.forEach((origColIdx, newColIdx) => {
+                    const bounds = detectedOutliersInfo.columnBounds[origColIdx];
+                    if (bounds) {
+                        const numVal = parseFloat(modifiedRow[newColIdx]);
+                        if (!isNaN(numVal)) {
+                            if (numVal < bounds.lower || numVal > bounds.upper) {
+                                hasOutlier = true;
+                                if (outlierMode === "iqr_cap") {
+                                    modifiedRow[newColIdx] = String(numVal < bounds.lower ? bounds.lower : bounds.upper);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (outlierMode === "drop" && hasOutlier) {
+                    // skip baris ini
+                } else {
+                    newProcessed.push(modifiedRow);
+                }
+            });
+            processedRows = newProcessed;
+        }
+
+        // 5. Penskalaan / Feature Scaling
+        const scalingMode = prepOptScaling.value;
+        if (scalingMode !== "none") {
+            selectedColIndices.forEach((origColIdx, newColIdx) => {
+                const colType = columnTypes[origColIdx];
+                if (colType === "Numerik" || colType === "Integer") {
+                    const nums = processedRows.map(r => parseFloat(r[newColIdx])).filter(v => !isNaN(v));
+                    if (nums.length) {
+                        const min = Math.min(...nums);
+                        const max = Math.max(...nums);
+                        const mean = nums.reduce((a,b)=>a+b,0) / nums.length;
+                        const variance = nums.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / nums.length;
+                        const std = Math.sqrt(variance) || 1;
+
+                        processedRows.forEach(r => {
+                            const v = parseFloat(r[newColIdx]);
+                            if (!isNaN(v)) {
+                                if (scalingMode === "minmax") {
+                                    r[newColIdx] = max === min ? "0.0" : ((v - min) / (max - min)).toFixed(4);
+                                } else if (scalingMode === "standard") {
+                                    r[newColIdx] = ((v - mean) / std).toFixed(4);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // 6. Encoding Kategorikal
+        const encodingMode = prepOptEncoding.value;
+        let finalHeaders = [...selectedHeaders];
+        let finalRows = processedRows;
+
+        if (encodingMode === "label") {
+            selectedColIndices.forEach((origColIdx, newColIdx) => {
+                const colType = columnTypes[origColIdx];
+                const headerName = headers[origColIdx];
+
+                if (colType === "Teks" || /risk|level/i.test(headerName)) {
+                    // Cek order khusus jika Burnout Risk / Stress Level
+                    const uniqueVals = Array.from(new Set(finalRows.map(r => r[newColIdx])));
+                    const valMap = {};
+
+                    if (/burnout[_\s]?(risk|level)/i.test(headerName) || /stress[_\s]?level/i.test(headerName)) {
+                        uniqueVals.forEach(v => {
+                            const low = v.toLowerCase();
+                            if (low.includes("high") || low.includes("tinggi")) valMap[v] = 2;
+                            else if (low.includes("low") || low.includes("rendah")) valMap[v] = 0;
+                            else valMap[v] = 1;
+                        });
+                    } else if (/gender/i.test(headerName)) {
+                        uniqueVals.forEach(v => {
+                            valMap[v] = v.toLowerCase().startsWith("m") ? 1 : 0;
+                        });
+                    } else {
+                        uniqueVals.sort().forEach((v, idx) => {
+                            valMap[v] = idx;
+                        });
+                    }
+
+                    finalRows.forEach(r => {
+                        r[newColIdx] = valMap[r[newColIdx]] !== undefined ? String(valMap[r[newColIdx]]) : "0";
+                    });
+                }
+            });
+        } else if (encodingMode === "onehot") {
+            // One hot encoding
+            const expandedHeaders = [];
+            const colTransformers = [];
+
+            selectedColIndices.forEach((origColIdx, newColIdx) => {
+                const colType = columnTypes[origColIdx];
+                const headerName = headers[origColIdx];
+
+                if (colType === "Teks") {
+                    const uniqueVals = Array.from(new Set(finalRows.map(r => r[newColIdx]))).sort();
+                    uniqueVals.forEach(uv => {
+                        expandedHeaders.push(`${headerName}_${uv.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                    });
+                    colTransformers.push({ isOneHot: true, uniqueVals, origIdx: newColIdx });
+                } else {
+                    expandedHeaders.push(headerName);
+                    colTransformers.push({ isOneHot: false, origIdx: newColIdx });
+                }
+            });
+
+            const oneHotRows = finalRows.map(row => {
+                const newRow = [];
+                colTransformers.forEach(tf => {
+                    if (tf.isOneHot) {
+                        const cellVal = row[tf.origIdx];
+                        tf.uniqueVals.forEach(uv => {
+                            newRow.push(cellVal === uv ? "1" : "0");
+                        });
+                    } else {
+                        newRow.push(row[tf.origIdx]);
+                    }
+                });
+                return newRow;
+            });
+
+            finalHeaders = expandedHeaders;
+            finalRows = oneHotRows;
+        }
+
+        // 7. Generate & Download CSV
+        const escapeCsv = (str) => {
+            const s = String(str ?? "");
+            if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+                return `"${s.replace(/"/g, '""')}"`;
+            }
+            return s;
+        };
+
+        const csvContent = [
+            finalHeaders.map(escapeCsv).join(","),
+            ...finalRows.map(r => r.map(escapeCsv).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `cleaned_preprocessed_${currentDataset.filename || "dataset.csv"}`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Update status info
+        prepSummaryStatus.innerHTML = `
+            <span style="color: #274e13; font-weight: bold;">
+                ✅ Ekspor Sukses! ${finalRows.length} baris & ${finalHeaders.length} kolom berhasil diproses dan diunduh.
+            </span>
+        `;
+    };
+
+    // Event listeners
+    if (btnDownloadCleaned) {
+        btnDownloadCleaned.addEventListener("click", executePreprocessingAndDownload);
+    }
+
+    if (btnEda) {
+        btnEda.addEventListener("click", runEda);
+    }
+
+    // Tombol Muat dari Database lokal antiburnout_db
+    if (btnLoadDb) {
+        btnLoadDb.addEventListener("click", async () => {
+            setStatus("Mengambil data responden dari database antiburnout_db...", "loading");
+            try {
+                const resp = await fetch("/assessment/export/csv");
+                if (!resp.ok) throw new Error(`Gagal mengambil data dari server (HTTP ${resp.status})`);
+                const csvText = await resp.text();
+                const rows = parseCsv(csvText);
+                renderDataset("antiburnout_db_assessments.csv", rows);
+            } catch (err) {
+                setStatus("Gagal memuat dari database: " + err.message, "error");
+            }
+        });
+    }
+
+    // Input File CSV dari laptop
     fileInput.addEventListener("change", async () => {
         const file = fileInput.files?.[0];
         results.hidden = true;
         if (!file) {
             filename.textContent = "Belum ada file dipilih";
-            setStatus("Pilih file CSV untuk memulai pemeriksaan.");
+            setStatus("Pilih file CSV atau klik 'Muat dari Database' untuk memulai.");
             return;
         }
 

@@ -17,33 +17,37 @@
         <div>
             <p class="dataset-kicker">machine_learning_pbl</p>
             <h1 id="dataset-title">Dataset Management</h1>
-            <p class="dataset-intro">Pilih CSV untuk memeriksa struktur dan melihat pratinjau sebelum proses ML.</p>
+            <p class="dataset-intro">Pilih CSV untuk memeriksa struktur, eksplorasi data (EDA), dan pra-pemrosesan sebelum pelatihan ML.</p>
         </div>
-        <span class="pma-badge pma-badge-warning">Preview lokal</span>
+        <span class="pma-badge pma-badge-warning">Analisis Interaktif</span>
     </header>
 
     <div class="pma-alert-warning dataset-local-notice" role="note">
-        File dibaca di browser untuk pratinjau. Belum ada endpoint backend untuk mengunggah atau menyimpan dataset.
-        Dataset rencana <code>burnout_dataset1.csv</code> belum ditemukan di proyek.
+        File dibaca langsung di browser untuk analisis cepat (EDA & Preprocessing). Anda dapat mengunggah file CSV lokal atau memuat data dari database lokal.
     </div>
 
+    <!-- 1. Pilihan Dataset -->
     <section class="pma-card" aria-labelledby="upload-heading">
-        <h2 class="pma-card-header" id="upload-heading"><span>1.</span> Pilih dataset CSV</h2>
+        <h2 class="pma-card-header" id="upload-heading"><span>1.</span> Sumber Dataset (Pilih CSV atau Muat Database)</h2>
         <div class="pma-card-body">
             <label class="dataset-file-label" for="dataset-file">File CSV</label>
             <div class="dataset-file-row">
                 <input id="dataset-file" class="pma-input dataset-file-input" type="file" accept=".csv,text/csv">
                 <span id="dataset-filename" class="dataset-filename" aria-live="polite">Belum ada file dipilih</span>
+                <button id="btn-load-db" type="button" class="pma-btn pma-btn-primary" style="margin-left: auto;">
+                    🗄️ Muat dari Database (antiburnout_db)
+                </button>
             </div>
-            <p class="dataset-help">Pilih file .csv. Isi file tidak diunggah dan hanya digunakan untuk pratinjau di halaman ini.</p>
+            <p class="dataset-help">Pilih file .csv dari laptop Anda atau klik tombol di atas untuk memuat dataset kuesioner yang tersimpan di sistem.</p>
         </div>
     </section>
 
     <div id="dataset-status" class="dataset-status" role="status" aria-live="polite">
-        Pilih file CSV untuk memulai pemeriksaan.
+        Pilih file CSV atau klik "Muat dari Database" untuk memulai pemeriksaan.
     </div>
 
     <section id="dataset-results" class="dataset-results" hidden aria-label="Hasil pemeriksaan dataset">
+        <!-- 2. Ringkasan Dataset -->
         <section class="pma-card" aria-labelledby="summary-heading">
             <h2 class="pma-card-header" id="summary-heading">2. Ringkasan dataset</h2>
             <div class="pma-card-body">
@@ -58,6 +62,7 @@
             </div>
         </section>
 
+        <!-- 3. Pratinjau Data -->
         <section class="pma-card" aria-labelledby="preview-heading">
             <h2 class="pma-card-header" id="preview-heading">3. Pratinjau data <span id="preview-count" class="dataset-heading-detail"></span></h2>
             <div class="pma-table-container dataset-table-container">
@@ -68,6 +73,7 @@
             </div>
         </section>
 
+        <!-- 4. Tipe Data Kolom -->
         <section class="pma-card" aria-labelledby="types-heading">
             <h2 class="pma-card-header" id="types-heading">4. Tipe data kolom</h2>
             <div class="pma-table-container dataset-table-container">
@@ -77,15 +83,249 @@
                 </table>
             </div>
         </section>
-    </section>
 
-    <section class="pma-card dataset-next-steps" aria-labelledby="next-steps-heading">
-        <h2 class="pma-card-header" id="next-steps-heading">Tahap berikutnya</h2>
-        <div class="pma-card-body dataset-action-row">
-            <button class="pma-btn" type="button" disabled aria-disabled="true">EDA (belum tersedia)</button>
-            <button class="pma-btn" type="button" disabled aria-disabled="true">Data Processing (belum tersedia)</button>
-            <span class="dataset-help">Aktif setelah route dan integrasi backend tersedia.</span>
-        </div>
+        <!-- Tahap Berikutnya: Tombol EDA & Preprocessing -->
+        <section class="pma-card dataset-next-steps" aria-labelledby="next-steps-heading">
+            <h2 class="pma-card-header" id="next-steps-heading">Tahap berikutnya</h2>
+            <div class="pma-card-body dataset-action-row">
+                <button id="btn-eda" class="pma-btn pma-btn-primary" type="button">
+                    📊 Buka EDA (Exploratory Data Analysis)
+                </button>
+                <button id="btn-preprocessing" class="pma-btn pma-btn-primary" type="button">
+                    ⚙️ Buka Data Preprocessing Pipeline
+                </button>
+                <span id="next-steps-hint" class="dataset-help">Klik tombol di atas untuk membuka analisis eksplorasi atau mengatur pra-pemrosesan data.</span>
+            </div>
+        </section>
+
+        <!-- 5. Modul EDA (Exploratory Data Analysis) -->
+        <section id="section-eda" class="pma-card" hidden aria-labelledby="eda-heading">
+            <h2 class="pma-card-header" id="eda-heading">
+                <span>📊</span>
+                <span>5. Eksplorasi Data (Exploratory Data Analysis - EDA)</span>
+            </h2>
+            <div class="pma-card-body">
+                <div class="pma-sql-box" style="margin-bottom: 14px;">
+                    <div>
+                        <code>EDA_REPORT: Target Distribution &bull; Numerical Summaries &bull; Workload Insights</code>
+                        <div class="pma-sql-meta">Ringkasan statistik deskriptif untuk persiapan pelatihan model MachineLearningPBL</div>
+                    </div>
+                </div>
+
+                <!-- Bagian A: Distribusi Target Burnout -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #235a81;">
+                        A. Distribusi Target Variabel (Burnout_Risk)
+                    </h3>
+                    <div id="eda-target-bars" style="display: flex; flex-direction: column; gap: 8px; max-width: 650px;">
+                        <!-- Di-render oleh JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Bagian B: Statistik Deskriptif Kolom Numerik -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #235a81;">
+                        B. Statistik Deskriptif Fitur Numerik (Min, Mean, Median, Max)
+                    </h3>
+                    <div class="pma-table-container">
+                        <table class="pma-table" id="eda-stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Fitur / Variabel</th>
+                                    <th>Tipe Terdeteksi</th>
+                                    <th style="text-align: right;">Nilai Min</th>
+                                    <th style="text-align: right;">Rata-rata (Mean)</th>
+                                    <th style="text-align: right;">Nilai Median</th>
+                                    <th style="text-align: right;">Nilai Max</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eda-stats-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Bagian C: Ringkasan Pola Responden -->
+                <div>
+                    <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #235a81;">
+                        C. Wawasan Utama Responden (Key Insights)
+                    </h3>
+                    <div class="pma-grid-2col" id="eda-insights-grid" style="margin-bottom: 0;">
+                        <!-- Di-render oleh JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Modul Data Preprocessing Interaktif -->
+        <section id="section-preprocessing" class="pma-card" hidden aria-labelledby="prep-heading">
+            <h2 class="pma-card-header" id="prep-heading">
+                <span>⚙️</span>
+                <span>6. Data Preprocessing Pipeline (Pra-pemrosesan Data Interaktif)</span>
+            </h2>
+            <div class="pma-card-body">
+                <div class="pma-sql-box" style="margin-bottom: 14px;">
+                    <div>
+                        <code>PREPROCESSING_PIPELINE: Column Selection &bull; Imputation &bull; Outlier Handling &bull; Encoding &bull; Scaling</code>
+                        <div class="pma-sql-meta">Sesuaikan konfigurasi di bawah ini atau gunakan pengaturan default yang direkomendasikan untuk Machine Learning.</div>
+                    </div>
+                    <button id="btn-prep-reset-default" type="button" class="pma-btn" style="font-size: 11px;">
+                        ⚡ Reset ke Settingan Default ML
+                    </button>
+                </div>
+
+                <!-- LANGKAH 1: SELEKSI KOLOM (DROP/KEEP COLUMNS) -->
+                <div class="pma-card" style="margin-bottom: 14px;">
+                    <div class="pma-card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <span>1️⃣</span>
+                            <span>Seleksi Kolom (Pilih kolom yang akan dipertahankan atau dibuang)</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" id="btn-col-select-all" class="pma-btn" style="font-size: 11px; padding: 2px 8px;">Pilih Semua</button>
+                            <button type="button" id="btn-col-deselect-all" class="pma-btn" style="font-size: 11px; padding: 2px 8px;">Hilangkan Semua</button>
+                            <button type="button" id="btn-col-recommend" class="pma-btn pma-btn-primary" style="font-size: 11px; padding: 2px 8px;">Rekomendasi (Drop Target, Demografi & ID)</button>
+                        </div>
+                    </div>
+                    <div class="pma-card-body" style="padding: 10px 14px;">
+                        <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
+                            Centang kolom yang ingin dimasukkan ke dalam dataset hasil pra-pemrosesan (otomatis mengecualikan Target, Demografi non-fitur, dan ID):
+                        </div>
+                        <div id="prep-columns-grid" class="prep-columns-container">
+                            <!-- Checkbox kolom akan di-generate via JavaScript -->
+                        </div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #235a81;">
+                            <strong id="prep-selected-cols-count">0</strong> kolom dipilih dari total <span id="prep-total-cols-count">0</span> kolom.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LANGKAH 2 & 3: MISSING VALUES & OUTLIER HANDLING -->
+                <div class="pma-grid-2col" style="margin-bottom: 14px;">
+                    <!-- Panel 2: Missing Values & Duplicates -->
+                    <div class="pma-card" style="margin-bottom: 0;">
+                        <div class="pma-card-header">
+                            <span>2️⃣</span>
+                            <span>Pembersihan Duplikat & Missing Values</span>
+                        </div>
+                        <div class="pma-card-body">
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                    <input type="checkbox" id="prep-opt-dedup" checked>
+                                    <span>Hapus Baris Duplikat Otomatis</span>
+                                    <span id="prep-dups-badge" class="pma-badge pma-badge-warning" style="margin-left: auto;">0 baris</span>
+                                </label>
+                            </div>
+
+                            <div style="margin-bottom: 12px;">
+                                <label class="pma-form-label" for="prep-opt-impute-num">Imputasi Fitur Numerik:</label>
+                                <select id="prep-opt-impute-num" class="pma-select" style="max-width: 100%; margin-top: 4px;">
+                                    <option value="mean" selected>Imputasi Nilai Rata-rata (Mean - Rekomendasi Default)</option>
+                                    <option value="median">Imputasi Nilai Median (Tahan Outlier)</option>
+                                    <option value="mode">Imputasi Nilai Modus (Mode / Paling Sering Muncul)</option>
+                                    <option value="zero">Isi dengan Angka 0</option>
+                                    <option value="drop">Hapus Baris (Drop Row jika Kosong)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="pma-form-label" for="prep-opt-impute-cat">Imputasi Fitur Kategorikal (Teks):</label>
+                                <select id="prep-opt-impute-cat" class="pma-select" style="max-width: 100%; margin-top: 4px;">
+                                    <option value="mode" selected>Imputasi Modus / Nilai Terbanyak (Mode - Rekomendasi)</option>
+                                    <option value="unknown">Isi dengan Label "Unknown"</option>
+                                    <option value="drop">Hapus Baris (Drop Row jika Kosong)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: Outlier Handling -->
+                    <div class="pma-card" style="margin-bottom: 0;">
+                        <div class="pma-card-header">
+                            <span>3️⃣</span>
+                            <span>Penanganan Outlier (Data Pencilan)</span>
+                        </div>
+                        <div class="pma-card-body">
+                            <div style="margin-bottom: 10px; font-size: 12px; color: #555; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Deteksi outlier rentang IQR:</span>
+                                <span id="prep-outliers-badge" class="pma-badge pma-badge-warning">0 outlier terdeteksi</span>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label class="pma-form-label" for="prep-opt-outlier">Metode Penanganan Outlier:</label>
+                                <select id="prep-opt-outlier" class="pma-select" style="max-width: 100%; margin-top: 4px;">
+                                    <option value="none" selected>Biarkan Nilai Outlier (Raw - Default)</option>
+                                    <option value="iqr_cap">IQR Winsorization / Capping (Potong ke Batas IQR - Rekomendasi)</option>
+                                    <option value="drop">Hapus Baris yang Memiliki Outlier</option>
+                                </select>
+                                <div class="pma-form-desc" style="margin-top: 6px;">
+                                    Metode Capping menjaga jumlah baris data tetap utuh dengan membatasi nilai ekstrim ke ambang batas [Q1 - 1.5×IQR, Q3 + 1.5×IQR].
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LANGKAH 4 & 5: ENCODING & STANDARISASI -->
+                <div class="pma-grid-2col" style="margin-bottom: 14px;">
+                    <!-- Panel 4: Encoding Fitur Kategorikal -->
+                    <div class="pma-card" style="margin-bottom: 0;">
+                        <div class="pma-card-header">
+                            <span>4️⃣</span>
+                            <span>Encoding Fitur Kategorikal</span>
+                        </div>
+                        <div class="pma-card-body">
+                            <div style="margin-bottom: 10px;">
+                                <label class="pma-form-label" for="prep-opt-encoding">Metode Encoding:</label>
+                                <select id="prep-opt-encoding" class="pma-select" style="max-width: 100%; margin-top: 4px;">
+                                    <option value="label" selected>Label Encoding (0, 1, 2... - Rekomendasi ML)</option>
+                                    <option value="onehot">One-Hot Encoding (Kolom Biner)</option>
+                                    <option value="none">Biarkan Teks Asli (Tanpa Encoding)</option>
+                                </select>
+                            </div>
+
+                            <div id="prep-encoding-preview" style="font-size: 12px; background: #fafafa; border: 1px solid #ddd; padding: 8px; border-radius: 2px;">
+                                <!-- Preview mapping encoding -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 5: Standarisasi / Scaling Fitur Numerik -->
+                    <div class="pma-card" style="margin-bottom: 0;">
+                        <div class="pma-card-header">
+                            <span>5️⃣</span>
+                            <span>Penskalaan Fitur Numerik (Feature Scaling)</span>
+                        </div>
+                        <div class="pma-card-body">
+                            <div style="margin-bottom: 10px;">
+                                <label class="pma-form-label" for="prep-opt-scaling">Metode Penskalaan:</label>
+                                <select id="prep-opt-scaling" class="pma-select" style="max-width: 100%; margin-top: 4px;">
+                                    <option value="none" selected>Tanpa Standarisasi (Nilai Asli - Default Random Forest / XGBoost)</option>
+                                    <option value="minmax">Min-Max Normalization (Rentang 0.0 - 1.0 - Rekomendasi Neural Net / KNN)</option>
+                                    <option value="standard">StandardScaler / Z-Score (Mean = 0, Std = 1 - Rekomendasi SVM / Regresi)</option>
+                                </select>
+                            </div>
+
+                            <div id="prep-scaling-desc" style="font-size: 12px; color: #555; background: #fdfdfd; border: 1px solid #e0e0e0; padding: 8px; border-radius: 2px;">
+                                Menyesuaikan skala kolom numerik agar fitur dengan rentang besar (misal jam kerja) seimbang dengan fitur lainnya.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LANGKAH 6: EKSEKUSI PIPELINE & DOWNLOAD DATASET BERSIH -->
+                <div style="background: #eaf2fa; border: 1px solid #a4c2e0; border-left: 5px solid #235a81; padding: 14px 18px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <strong style="color: #173b54; font-size: 14px;">⚡ Eksekusi Pipeline Pra-pemrosesan Data</strong>
+                        <div id="prep-summary-status" style="font-size: 12px; color: #555; margin-top: 3px;">
+                            Siap memproses sesuai konfigurasi di atas dan mengekspor hasilnya ke CSV.
+                        </div>
+                    </div>
+                    <button id="btn-download-cleaned" type="button" class="pma-btn pma-btn-primary" style="padding: 8px 16px; font-size: 13px; font-weight: bold;">
+                        📥 Proses & Unduh Dataset Bersih (.CSV)
+                    </button>
+                </div>
+            </div>
+        </section>
     </section>
 </section>
 {% endblock %}

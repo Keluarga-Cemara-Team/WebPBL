@@ -141,11 +141,94 @@
   opacity: 0.7;
 }
 
+/* EDA Custom Visual Progress Bars */
+.eda-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.eda-bar-label {
+  width: 140px;
+  font-weight: 600;
+  color: #333;
+}
+
+.eda-bar-track {
+  flex: 1;
+  height: 18px;
+  background: #ececec;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.eda-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.eda-bar-fill-low { background: #70ad47; }
+.eda-bar-fill-mod { background: #ffc000; }
+.eda-bar-fill-high { background: #c00000; }
+
+.eda-bar-meta {
+  width: 90px;
+  text-align: right;
+  font-family: Consolas, monospace;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Preprocessing Interactive Workbench Styles */
+.prep-columns-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 2px;
+}
+
+.prep-col-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 2px;
+  border: 1px solid #efefef;
+  background: #fbfbfb;
+}
+
+.prep-col-item:hover {
+  background: #edf5fa;
+  border-color: #c0d8ec;
+}
+
+.prep-col-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: #333;
+}
+
 @media (max-width: 700px) {
   .dataset-page-heading { flex-direction: column; gap: 8px; }
   .dataset-page-heading h1 { font-size: 20px; }
   .dataset-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dataset-file-input { max-width: 100%; }
+  .eda-bar-row { flex-wrap: wrap; gap: 6px; }
+  .eda-bar-track { min-width: 100%; order: 3; }
+  .eda-bar-meta { margin-left: auto; }
+  .prep-columns-container { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 420px) {
