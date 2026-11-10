@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Import Dataset &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span>Table: <strong>assessments</strong></span>
+<span style="color: #888;">&raquo;</span>
+<span><strong>Import Dataset (Excel / CSV)</strong></span>
+{% endblock %}
+
+{% block content %}
+<!-- phpMyAdmin SQL Execution Preview Box -->
+<div class="pma-sql-box">
+    <div>
+        <code>LOAD DATA INFILE 'dataset.xlsx' INTO TABLE `antiburnout_db`.`assessments` FORMAT EXCEL/CSV FIELDS TERMINATED BY ',' (40 Columns Schema);</code>
+        <div class="pma-sql-meta">
+            Import Batch Data Responden &bull; Format Didukung: <strong>.xlsx (Microsoft Excel)</strong>, <strong>.xls</strong>, dan <strong>.csv</strong> &bull; Terhubung ke Database Aktif
+        </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('assessment.download_template') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
+            📥 Download Template Excel (.xlsx)
+        </a>
+        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
+            📋 Lihat Data Saat Ini
+        </a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+    <!-- KOLOM KIRI: FORM IMPORT FILE EXCEL/CSV -->
+    <div>
+        <form action="{{ url_for('assessment.import_process') }}" method="POST" enctype="multipart/form-data">
+            <div class="pma-card" style="margin-bottom: 16px;">
+                <div class="pma-card-header">
+                    <span>📂</span>
+                    <span>1. File yang Akan Diimpor (File to Import)</span>
+                </div>
+                <div class="pma-card-body">
+                    <div style="margin-bottom: 14px;">
+                        <label for="dataset_file" style="display: block; font-weight: bold; margin-bottom: 6px; color: #235a81;">
+                            Pilih File Excel (.xlsx / .xls) atau CSV:
+                        </label>
+                        <input type="file" id="dataset_file" name="dataset_file" accept=".xlsx, .xls, .csv" required
+                               style="display: block; width: 100%; padding: 8px; border: 1px solid #c0d3e2; background: #fff; border-radius: 3px; font-size: 12px;">
+                        <small style="display: block; margin-top: 4px; color: #666;">
+                            Ukuran maksimum disarankan &le; 10 MB atau &le; 10.000 baris per unggahan.
+                        </small>
+                    </div>
+
+                    <div style="background: #f7fafc; border: 1px dashed #c0d3e2; border-radius: 4px; padding: 12px; margin-bottom: 10px;">
+                        <div style="font-weight: bold; font-size: 12px; color: #235a81; margin-bottom: 4px;">
+                            💡 Butuh Format Contoh?
+                        </div>
+                        <div style="font-size: 11px; color: #555; line-height: 1.5;">
+                            Gunakan template Excel standar yang sudah dilengkapi 40 nama kolom resmi serta sheet panduan pengisian nilai:
+                            <div style="margin-top: 6px;">
+                                <a href="{{ url_for('assessment.download_template') }}" style="font-weight: bold; color: #235a81; text-decoration: underline;">
+                                    👉 Klik di sini untuk mengunduh antiburnout_dataset_template.xlsx
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pma-card" style="margin-bottom: 16px;">
+                <div class="pma-card-header">
+                    <span>⚙️</span>
+                    <span>2. Opsi & Perilaku Import (Import Options)</span>
+                </div>
+                <div class="pma-card-body">
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; color: #235a81;">
+                            Mode Penyimpanan Data:
+                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+                            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="mode" value="append" checked style="margin-top: 2px;">
+                                <div>
+                                    <strong>Tambahkan Data (Append Mode) - Direkomendasikan</strong>
+                                    <div style="color: #666; font-size: 11px;">
+                                        Baris data dari file Excel akan ditambahkan ke database tanpa menghapus data responden yang sudah tersimpan saat ini.
+                                    </div>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="mode" value="replace" style="margin-top: 2px;">
+                                <div>
+                                    <strong style="color: #c00000;">Gantikan Semua (Replace Mode)</strong>
+                                    <div style="color: #666; font-size: 11px;">
+                                        Mengosongkan seluruh data responden yang ada saat ini terlebih dahulu, lalu mengisi ulang dengan data dari file yang diunggah.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid #e0eaf1; margin: 12px 0;">
+
+                    <div>
+                        <label style="display: block; font-weight: bold; margin-bottom: 6px; color: #235a81;">
+                            Inferensi Model Machine Learning:
+                        </label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12px;">
+                            <input type="checkbox" name="auto_predict" value="1" checked style="margin-top: 2px;">
+                            <div>
+                                <strong>Hitung Otomatis Target Burnout jika Kosong (Auto ML Inference)</strong>
+                                <div style="color: #666; font-size: 11px;">
+                                    Jika kolom <code>Burnout_Score</code> atau <code>Burnout_Risk</code> kosong/NaN pada file Excel, sistem akan secara otomatis menghitung prediksi dan rekomendasinya menggunakan algoritma Gaussian Naive Bayes / Rule Heuristic AntiBurnout.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button type="submit" class="pma-btn pma-btn-primary" style="padding: 8px 18px; font-size: 13px; font-weight: bold;">
+                    🚀 Mulai Import ke Database
+                </button>
+                <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="padding: 8px 14px; font-size: 12px;">
+                    Batal
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- KOLOM KANAN: PANDUAN STRUKTUR KOLOM DATASET -->
+    <div>
+        <div class="pma-card" style="margin-bottom: 16px;">
+            <div class="pma-card-header">
+                <span>📋</span>
+                <span>Standar 40 Kolom Dataset</span>
+            </div>
+            <div class="pma-card-body" style="font-size: 11px; line-height: 1.6; color: #444;">
+                <p style="margin-top: 0;">
+                    File Excel Anda dapat menyertakan seluruh 40 kolom atau sebagian besar kolom penting di bawah ini:
+                </p>
+                <ul style="padding-left: 18px; margin-bottom: 10px;">
+                    <li><strong>Identitas:</strong> <code>Person_ID</code>, <code>Full_Name</code>, <code>Age</code>, <code>Gender</code>, <code>Country</code></li>
+                    <li><strong>Pekerjaan:</strong> <code>Occupation</code>, <code>Education_Level</code>, <code>Employment_Status</code>, <code>Monthly_Income_USD</code>, <code>Work_Hours_Per_Week</code>, <code>Remote_Work</code></li>
+                    <li><strong>Kesejahteraan:</strong> <code>Job_Satisfaction</code>, <code>Work_Life_Balance</code>, <code>Sleep_Hours</code>, <code>Sleep_Quality</code></li>
+                    <li><strong>Kesehatan Mental:</strong> <code>Stress_Level</code>, <code>Anxiety_Score</code>, <code>Depression_Score</code>, <code>Mood_Score</code>, <code>Emotional_Stability</code></li>
+                    <li><strong>Gaya Hidup:</strong> <code>Physical_Activity_Hours</code>, <code>Exercise_Frequency</code>, <code>Meditation_Minutes</code>, <code>Screen_Time_Hours</code>, <code>Coffee_Cups_Per_Day</code>, <code>Smoking</code></li>
+                    <li><strong>Hasil ML:</strong> <code>Burnout_Score</code>, <code>Burnout_Risk</code>, <code>Mental_Health_Status</code>, <code>AI_Wellness_Recommendation</code></li>
+                </ul>
+                <div class="pma-badge pma-badge-success" style="display: inline-block; padding: 4px 8px; font-size: 10px;">
+                    ✅ Fleksibel: Huruf besar/kecil & nama alias Indonesia otomatis dikenali sistem.
+                </div>
+            </div>
+        </div>
+
+        <div class="pma-card">
+            <div class="pma-card-header">
+                <span>⚡</span>
+                <span>Alur Proses Import</span>
+            </div>
+            <div class="pma-card-body" style="font-size: 11px; line-height: 1.6; color: #555;">
+                <ol style="padding-left: 18px; margin: 0;">
+                    <li>File Excel/CSV dibaca dan divalidasi oleh Python &amp; Pandas.</li>
+                    <li>Kolom otomatis dipetakan ke <em>Domain Entity</em> (Clean Architecture).</li>
+                    <li>Jika ada nilai risiko burnout yang belum terisi, model ML menghitungnya otomatis.</li>
+                    <li>Setiap responden disimpan ke database aktif (Cloud Firestore / SQLite).</li>
+                    <li>Halaman tabel diperbarui secara instan.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

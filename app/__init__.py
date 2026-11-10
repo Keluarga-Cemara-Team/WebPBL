@@ -39,6 +39,23 @@ def create_app(config_name="development"):
             assessment_repo = FirestoreAssessmentRepository(firebase_client)
             user_repo = FirestoreUserRepository(firebase_client)
 
+            # Pastikan akun admin default tersedia di Firestore
+            try:
+                if not user_repo.find_by_identifier("admin"):
+                    from werkzeug.security import generate_password_hash
+                    from app.core.entities.user import User
+                    user_repo.save(User(
+                        username="admin",
+                        email="admin@antiburnout.com",
+                        password_hash=generate_password_hash("admin123"),
+                        full_name="Administrator PBL",
+                        role="admin",
+                        division="Pusat Riset PBL"
+                    ))
+                    print(">> [Database] Akun administrator default berhasil di-seed ke Cloud Firestore")
+            except Exception as e:
+                print(f">> [Database Notice] Pemeriksaan seed admin Firestore: {e}")
+
             app.db_engine_name = "Google Cloud Firestore (Firebase)"
             has_firebase = True
             print(">> [Database] Terhubung ke Google Cloud Firestore (Firebase)")
