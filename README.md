@@ -259,6 +259,13 @@ Karena arsitektur menggunakan *Repository Pattern*, Anda hanya perlu membuat sat
 - Python 3.10+ terpasang di sistem.
 - File kredensial Firebase `serviceAccountKey.json` berada di folder root `WebPBL/`.
 
+### 🔐 Akses Login Administrator
+Sebelum masuk ke Admin Dashboard dan fitur entri data, sistem mewajibkan autentikasi login terlebih dahulu. Akun administrator default otomatis diverifikasi dan di-seed ke database:
+* **URL Login:** [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login)
+* **Username:** `admin` (atau email `admin@antiburnout.com`)
+* **Kata Sandi (Password):** `admin123`
+* **Logout:** Melalui tombol `🚪 Log Out` di bilah server context atau rute `/logout`.
+
 ### Langkah Menjalankan:
 1. **Masuk ke direktori WebPBL:**
    ```bash
