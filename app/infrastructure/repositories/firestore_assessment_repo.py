@@ -54,6 +54,35 @@ class FirestoreAssessmentRepository(IAssessmentRepository):
         doc_ref.delete()
         return True
 
+    def bulk_save(self, assessments: List[RespondentAssessment]) -> int:
+        """Menyimpan banyak record responden sekaligus menggunakan batch Firestore (chunked 450)"""
+        if not assessments:
+            return 0
+
+        total_saved = 0
+        batch = self.db.batch()
+        count = 0
+        col_ref = self.db.collection(self.collection_name)
+
+        for a in assessments:
+            doc_ref = col_ref.document()
+            data = a.to_dict()
+            data["operator"] = "admin@localhost"
+            batch.set(doc_ref, data)
+            a.id = doc_ref.id
+            count += 1
+            if count >= 450:
+                batch.commit()
+                total_saved += count
+                batch = self.db.batch()
+                count = 0
+
+        if count > 0:
+            batch.commit()
+            total_saved += count
+
+        return total_saved
+
     @staticmethod
     def _doc_to_entity(doc_id: str, data: dict) -> RespondentAssessment:
         raw_created_at = data.get("created_at")
