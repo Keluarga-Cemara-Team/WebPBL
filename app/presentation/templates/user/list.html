@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Browse &bull; antiburnout_db.users &bull; phpMyAdmin{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span>Table: <strong>users (Akun Administrator & Operator)</strong></span>
+{% endblock %}
+
+{% block content %}
+<!-- phpMyAdmin SQL Execution Box -->
+<div class="pma-sql-box">
+    <div>
+        <code>SELECT `id`, `username`, `email`, `role`, `division`, `full_name`, `created_at` FROM `users` ORDER BY `id` ASC;</code>
+        <div class="pma-sql-meta">
+            Menampilkan {{ users|length }} akun &bull; Database: SQLite Engine (<code>data/antiburnout.db</code>)
+        </div>
+    </div>
+</div>
+
+<!-- phpMyAdmin Table Operations Bar -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span><strong>Database:</strong> antiburnout_db</span>
+        <span>&bull;</span>
+        <span><strong>Tabel:</strong> <code>users</code></span>
+        <span>&bull;</span>
+        <span><strong>Total Akun:</strong> {{ users|length }}</span>
+    </div>
+</div>
+
+<!-- phpMyAdmin Browse Data Table -->
+<div class="pma-table-container">
+    {% if users %}
+    <table class="pma-table">
+        <thead>
+            <tr>
+                <th style="width: 50px; text-align: center;">ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Nama Lengkap</th>
+                <th>Peran (Role)</th>
+                <th>Divisi</th>
+                <th>Dibuat Pada</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td style="text-align: center; font-weight: bold;">#{{ u.id }}</td>
+                <td><strong style="color: #235a81;">{{ u.username }}</strong></td>
+                <td><code>{{ u.email }}</code></td>
+                <td>{{ u.full_name }}</td>
+                <td>
+                    {% if u.role == 'admin' %}
+                    <span class="pma-badge pma-badge-success">Administrator</span>
+                    {% else %}
+                    <span class="pma-badge">{{ u.role }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ u.division }}</td>
+                <td style="font-size: 11px; color: #666;">{{ u.created_at or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 20px; text-align: center; color: #777;">
+        Tidak ada data akun di dalam tabel <code>users</code>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

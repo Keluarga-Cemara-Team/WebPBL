@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk &bull; AntiBurnout Admin Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body class="pma-login-page">
+
+    <div class="pma-login-container">
+        <!-- Logo & Brand Header -->
+        <div class="pma-login-brand">
+            <a href="#" class="pma-logo">
+                <span class="pma-logo-anti">Anti</span><span class="pma-logo-burnout">Burnout</span><span class="pma-logo-admin">Admin</span>
+            </a>
+            <div class="pma-subtitle">Portal Manajemen Dataset Primer & Prediksi Burnout (phpMyAdmin Style)</div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="{% if category == 'success' %}pma-alert-success{% elif category == 'danger' %}pma-alert-danger{% else %}pma-alert-warning{% endif %}">
+                <strong>{% if category == 'success' %}Sukses:{% elif category == 'danger' %}Galat Autentikasi:{% else %}Perhatian:{% endif %}</strong> {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Login Card -->
+        <div class="pma-login-card">
+            <div class="pma-login-card-header">
+                <span>Masuk Administrator</span>
+                <span style="font-size: 11px; font-weight: normal; color: #666;">WebPBL Clean Architecture</span>
+            </div>
+
+            <div class="pma-login-card-body">
+                <form action="{{ url_for('auth.login') }}" method="POST">
+                    <input type="hidden" name="next" value="{{ next or '' }}">
+
+                    <!-- Username / Email -->
+                    <div class="pma-login-field">
+                        <label for="identifier" class="pma-login-label">Nama Pengguna atau Email:</label>
+                        <div class="pma-input-wrapper">
+                            <span class="pma-input-icon"></span>
+                            <input 
+                                type="text" 
+                                id="identifier" 
+                                name="identifier" 
+                                class="pma-login-input" 
+                                placeholder="misal: admin atau admin@antiburnout.com" 
+                                value="{{ identifier or '' }}" 
+                                required 
+                                autofocus
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="pma-login-field">
+                        <label for="password" class="pma-login-label">Kata Sandi (Password):</label>
+                        <div class="pma-input-wrapper">
+                            <span class="pma-input-icon"></span>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                class="pma-login-input" 
+                                placeholder="Masukkan kata sandi administrator" 
+                                required
+                            >
+                            <button type="button" id="togglePasswordBtn" class="pma-password-toggle" title="Tampilkan kata sandi" aria-label="Tampilkan atau sembunyikan kata sandi">
+                                <!-- Icon Mata Terbuka (Gambar 1) -->
+                                <svg id="iconEyeOpen" class="pma-eye-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+                                    <circle cx="12" cy="12" r="3.2" />
+                                </svg>
+                                <!-- Icon Mata Dicoret (Gambar 2) -->
+                                <svg id="iconEyeSlash" class="pma-eye-svg" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+                                    <circle cx="12" cy="12" r="3.2" />
+                                    <line x1="4" y1="20" x2="20" y2="4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="pma-login-btn">
+                        <span>Masuk ke Portal Admin</span>
+                        <span>&raquo;</span>
+                    </button>
+                </form>
+
+                <!-- Box Informasi Database & Kredensial Default -->
+                <div class="pma-db-hint-box">
+                    <div class="pma-db-hint-title">
+                        <span>🗄️</span>
+                        <span>Informasi Database & Akun Awal:</span>
+                    </div>
+                    <table class="pma-credentials-table">
+                        <tr>
+                            <td style="color: #666; width: 35%;">Database Engine:</td>
+                            <td><strong style="color: #235a81;">{{ db_engine }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="color: #666;">Username:</td>
+                            <td><code>admin</code></td>
+                        </tr>
+                        <tr>
+                            <td style="color: #666;">Email:</td>
+                            <td><code>admin@antiburnout.com</code></td>
+                        </tr>
+                        <tr>
+                            <td style="color: #666;">Kata Sandi:</td>
+                            <td><code>admin123</code></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <script>
+        // Fitur Show/Hide Password dengan Icon Vektor SVG
+        const toggleBtn = document.getElementById('togglePasswordBtn');
+        const passwordInput = document.getElementById('password');
+        const iconEyeOpen = document.getElementById('iconEyeOpen');
+        const iconEyeSlash = document.getElementById('iconEyeSlash');
+
+        if (toggleBtn && passwordInput && iconEyeOpen && iconEyeSlash) {
+            toggleBtn.addEventListener('click', function() {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                if (isPassword) {
+                    // Tampilkan kata sandi (text) dan ubah icon menjadi Eye-Slash (Coret)
+                    passwordInput.setAttribute('type', 'text');
+                    iconEyeOpen.style.display = 'none';
+                    iconEyeSlash.style.display = 'block';
+                    toggleBtn.setAttribute('title', 'Sembunyikan kata sandi');
+                } else {
+                    // Sembunyikan kata sandi (password) dan kembalikan icon ke Eye (Terbuka)
+                    passwordInput.setAttribute('type', 'password');
+                    iconEyeOpen.style.display = 'block';
+                    iconEyeSlash.style.display = 'none';
+                    toggleBtn.setAttribute('title', 'Tampilkan kata sandi');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
