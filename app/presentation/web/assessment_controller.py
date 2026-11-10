@@ -1,5 +1,10 @@
 from flask import Blueprint, render_template, request, Response, redirect, url_for, flash, jsonify, current_app
-from app.core.use_cases import SubmitAssessmentUseCase, ExportDatasetUseCase, GetAssessmentHistoryUseCase
+from app.core.use_cases import (
+    SubmitAssessmentUseCase,
+    ExportDatasetUseCase,
+    GetAssessmentHistoryUseCase,
+    ImportDatasetUseCase
+)
 
 assessment_bp = Blueprint("assessment", __name__)
 
@@ -10,7 +15,8 @@ def _get_use_cases():
     return (
         SubmitAssessmentUseCase(repo, ml_svc),
         ExportDatasetUseCase(repo),
-        GetAssessmentHistoryUseCase(repo)
+        GetAssessmentHistoryUseCase(repo),
+        ImportDatasetUseCase(repo, ml_svc)
     )
 
 @assessment_bp.route("/", methods=["GET"])
@@ -21,7 +27,7 @@ def form():
 @assessment_bp.route("/submit", methods=["POST"])
 def submit():
     """Memproses submission form data primer menggunakan Clean Architecture Use Case"""
-    submit_uc, _, _ = _get_use_cases()
+    submit_uc, _, _, _ = _get_use_cases()
 
     # Ambil seluruh atribut dari input form
     raw_data = request.form.to_dict()
@@ -40,7 +46,7 @@ def submit():
 @assessment_bp.route("/dataset", methods=["GET"])
 def dataset_view():
     """Halaman tabel data primer yang terkumpul beserta metrik ringkas"""
-    _, _, history_uc = _get_use_cases()
+    _, _, history_uc, _ = _get_use_cases()
     data = history_uc.execute()
     return render_template(
         "assessment/dataset.html",
@@ -89,7 +95,7 @@ def delete_batch():
 @assessment_bp.route("/export/csv", methods=["GET"])
 def export_csv():
     """Download data primer dalam format CSV (persis format mental_health_burnout_prediction_dataset.csv)"""
-    _, export_uc, _ = _get_use_cases()
+    _, export_uc, _, _ = _get_use_cases()
     csv_content = export_uc.execute()
 
     return Response(
@@ -98,10 +104,72 @@ def export_csv():
         headers={"Content-Disposition": "attachment;filename=mental_health_burnout_primary_dataset.csv"}
     )
 
+@assessment_bp.route("/import", methods=["GET"])
+def import_view():
+    """Halaman Import Dataset dari file Excel (.xlsx / .xls) atau CSV (Tampilan Klasik phpMyAdmin)"""
+    return render_template("assessment/import.html")
+
+@assessment_bp.route("/import", methods=["POST"])
+def import_process():
+    """Memproses file Excel / CSV yang diunggah untuk disimpan ke database"""
+    _, _, _, import_uc = _get_use_cases()
+
+    uploaded_file = request.files.get("dataset_file")
+    if not uploaded_file or not uploaded_file.filename:
+        flash("Silakan pilih file Excel (.xlsx, .xls) atau CSV terlebih dahulu.", "warning")
+        return redirect(url_for("assessment.import_view"))
+
+    mode = request.form.get("mode", "append")
+    auto_predict = request.form.get("auto_predict", "1") == "1"
+
+    try:
+        file_bytes = uploaded_file.read()
+        filename = uploaded_file.filename
+
+        result = import_uc.execute(
+            file_content=file_bytes,
+            filename=filename,
+            mode=mode,
+            auto_predict=auto_predict
+        )
+
+        msg = (
+            f"Import Berhasil! Sebanyak {result['imported_count']} baris data responden "
+            f"dari file '{filename}' berhasil dimasukkan ke database "
+            f"(Mode: {'Tambah / Append' if mode == 'append' else 'Ganti / Replace'})."
+        )
+        flash(msg, "success")
+
+        if result["skipped_count"] > 0:
+            flash(
+                f"{result['skipped_count']} baris data dilewati karena format tidak sesuai: "
+                + "; ".join(result["errors"][:5]),
+                "warning"
+            )
+
+        return redirect(url_for("assessment.dataset_view"))
+
+    except ValueError as ve:
+        flash(f"Gagal memproses file: {str(ve)}", "danger")
+        return redirect(url_for("assessment.import_view"))
+    except Exception as e:
+        flash(f"Terjadi kesalahan saat import dataset: {str(e)}", "danger")
+        return redirect(url_for("assessment.import_view"))
+
+@assessment_bp.route("/import/template", methods=["GET"])
+def download_template():
+    """Download template file Excel (.xlsx) resmi dengan 40 kolom dan panduan pengisian"""
+    excel_bytes = ImportDatasetUseCase.generate_excel_template()
+    return Response(
+        excel_bytes,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment;filename=antiburnout_dataset_template.xlsx"}
+    )
+
 @assessment_bp.route("/api/predict", methods=["POST"])
 def api_predict():
     """API endpoint JSON jika dipanggil dari aplikasi luar atau AJAX"""
-    submit_uc, _, _ = _get_use_cases()
+    submit_uc, _, _, _ = _get_use_cases()
     payload = request.get_json(silent=True) or request.form.to_dict()
 
     try:

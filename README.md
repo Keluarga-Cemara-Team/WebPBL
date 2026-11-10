@@ -35,7 +35,9 @@ Aplikasi ini mematuhi prinsip **Dependency Rule**: *Lapisan dalam (Domain & Use 
                │                    USE CASES LAYER                     │
                │   • SubmitAssessmentUseCase                            │
                │   • ExportDatasetUseCase                               │
+               │   • ImportDatasetUseCase (Excel / CSV Batch Importer)  │
                │   • GetAssessmentHistoryUseCase                        │
+               │   • LoginAdminUseCase                                  │
                └─────────────┬────────────────────────────┬─────────────┘
                              │                            │
                              ▼ (Memakai)                  ▼ (Bergantung pada)
@@ -283,6 +285,8 @@ Sebelum masuk ke Admin Dashboard dan fitur entri data, sistem mewajibkan autenti
    - 🏠 **Admin Dashboard:** [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
    - 📝 **Admin Data Entry Form:** [http://127.0.0.1:5000/assessment/](http://127.0.0.1:5000/assessment/)
    - 📋 **Browse Dataset & Export CSV:** [http://127.0.0.1:5000/assessment/dataset](http://127.0.0.1:5000/assessment/dataset)
+   - 📥 **Import Dataset (Excel / CSV):** [http://127.0.0.1:5000/assessment/import](http://127.0.0.1:5000/assessment/import)
+   - 📥 **Download Template Excel (.xlsx):** [http://127.0.0.1:5000/assessment/import/template](http://127.0.0.1:5000/assessment/import/template)
    - 💓 **Health Check API:** [http://127.0.0.1:5000/healthz](http://127.0.0.1:5000/healthz)
 
 ---

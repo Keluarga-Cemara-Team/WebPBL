@@ -17,8 +17,11 @@
         </div>
     </div>
     <div style="display: flex; gap: 6px;">
-        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
-            📥 Download Dataset CSV (40 Kolom)
+        <a href="{{ url_for('assessment.import_view') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
+            📥 Import Excel / CSV
+        </a>
+        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn" style="font-size: 11px;">
+            💾 Download Dataset CSV (40 Kolom)
         </a>
         <a href="{{ url_for('assessment.form') }}" class="pma-btn" style="font-size: 11px;">
             ➕ Insert Baru

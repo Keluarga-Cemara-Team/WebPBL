@@ -1,234 +1,432 @@
-import csv
 import io
 import re
+import math
+import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
+import pandas as pd
 from app.core.entities.assessment import RespondentAssessment
 from app.core.interfaces.repositories import IAssessmentRepository
+from app.core.interfaces.ml_service import IMLPredictorService
 
-def _clean_str(val: Any, default: str = "") -> str:
-    if val is None:
-        return default
-    s = str(val).strip()
-    return s if s and s.lower() not in ("nan", "null", "none") else default
-
-def _clean_float(val: Any, default: float = 0.0) -> float:
-    if val is None:
-        return default
-    s = str(val).strip()
-    if not s or s.lower() in ("nan", "null", "none"):
-        return default
-    try:
-        return float(s)
-    except (ValueError, TypeError):
-        return default
-
-def _clean_int(val: Any, default: int = 0) -> int:
-    if val is None:
-        return default
-    s = str(val).strip()
-    if not s or s.lower() in ("nan", "null", "none"):
-        return default
-    try:
-        return int(float(s))
-    except (ValueError, TypeError):
-        return default
-
-def _normalize_key(key: str) -> str:
-    """Mengubah header kolom seperti 'Person_ID' atau 'Work Hours Per Week' menjadi 'person_id' atau 'work_hours_per_week'"""
-    if not key:
-        return ""
-    # Hapus BOM jika ada
-    clean = key.replace("\ufeff", "").strip()
-    clean = re.sub(r"[^a-zA-Z0-9_]", "_", clean).lower()
-    clean = re.sub(r"_+", "_", clean).strip("_")
-    return clean
+logger = logging.getLogger(__name__)
 
 class ImportDatasetUseCase:
     """
-    Use Case: Memproses dan menyimpan dataset CSV ke database.
-    Mendukung skema burnout_dataset1.csv (40 kolom) maupun CSV umum.
+    Use Case: Mengimpor dataset kuesioner dari file Excel (.xlsx, .xls) atau CSV
+    ke dalam repository (SQLite / Cloud Firestore).
+    Mendukung mapping kolom otomatis, validasi tipe data, inferensi ML jika target kosong,
+    serta opsi mode Append atau Replace.
     """
 
-    def __init__(self, repository: IAssessmentRepository):
-        self.repository = repository
+    # Kamus mapping nama kolom file Excel/CSV ke atribut RespondentAssessment
+    COLUMN_NORMALIZATION_MAP = {
+        "personid": "person_id",
+        "id": "person_id",
+        "idresponden": "person_id",
+        "respondentid": "person_id",
+        "fullname": "full_name",
+        "name": "full_name",
+        "nama": "full_name",
+        "namalengkap": "full_name",
+        "age": "age",
+        "usia": "age",
+        "umur": "age",
+        "gender": "gender",
+        "jeniskelamin": "gender",
+        "jk": "gender",
+        "sex": "gender",
+        "country": "country",
+        "negara": "country",
+        "domisili": "country",
+        "occupation": "occupation",
+        "pekerjaan": "occupation",
+        "profesi": "occupation",
+        "role": "occupation",
+        "jabatan": "occupation",
+        "educationlevel": "education_level",
+        "education": "education_level",
+        "pendidikan": "education_level",
+        "employmentstatus": "employment_status",
+        "employment": "employment_status",
+        "statuskerja": "employment_status",
+        "statuspekerjaan": "employment_status",
+        "monthlyincomeusd": "monthly_income_usd",
+        "income": "monthly_income_usd",
+        "pendapatan": "monthly_income_usd",
+        "gaji": "monthly_income_usd",
+        "workhoursperweek": "work_hours_per_week",
+        "workhours": "work_hours_per_week",
+        "jamkerja": "work_hours_per_week",
+        "jamkerjamingguan": "work_hours_per_week",
+        "remotework": "remote_work",
+        "remote": "remote_work",
+        "kerjaremote": "remote_work",
+        "tipekerja": "remote_work",
+        "wfh": "remote_work",
+        "jobsatisfaction": "job_satisfaction",
+        "kepuasankerja": "job_satisfaction",
+        "worklifebalance": "work_life_balance",
+        "wlb": "work_life_balance",
+        "keseimbanganhidup": "work_life_balance",
+        "sleephours": "sleep_hours",
+        "jamtidur": "sleep_hours",
+        "tidur": "sleep_hours",
+        "sleepquality": "sleep_quality",
+        "kualitastidur": "sleep_quality",
+        "stresslevel": "stress_level",
+        "tingkatstres": "stress_level",
+        "stres": "stress_level",
+        "anxietyscore": "anxiety_score",
+        "anxiety": "anxiety_score",
+        "kecemasan": "anxiety_score",
+        "skorcemas": "anxiety_score",
+        "depressionscore": "depression_score",
+        "depression": "depression_score",
+        "depresi": "depression_score",
+        "skordepresi": "depression_score",
+        "moodscore": "mood_score",
+        "mood": "mood_score",
+        "skorsuasanahati": "mood_score",
+        "emotionalstability": "emotional_stability",
+        "stabilitsemosi": "emotional_stability",
+        "physicalactivityhours": "physical_activity_hours",
+        "aktivitasfisik": "physical_activity_hours",
+        "exercisefrequency": "exercise_frequency",
+        "olahraga": "exercise_frequency",
+        "frekuensiolahraga": "exercise_frequency",
+        "meditationminutes": "meditation_minutes",
+        "meditasi": "meditation_minutes",
+        "screentimehours": "screen_time_hours",
+        "screentime": "screen_time_hours",
+        "waktulayar": "screen_time_hours",
+        "socialmediahours": "social_media_hours",
+        "socialmedia": "social_media_hours",
+        "medsos": "social_media_hours",
+        "gaminghours": "gaming_hours",
+        "gaming": "gaming_hours",
+        "game": "gaming_hours",
+        "coffeecupsperday": "coffee_cups_per_day",
+        "coffee": "coffee_cups_per_day",
+        "kopi": "coffee_cups_per_day",
+        "alcoholconsumption": "alcohol_consumption",
+        "alcohol": "alcohol_consumption",
+        "alkohol": "alcohol_consumption",
+        "smoking": "smoking",
+        "merokok": "smoking",
+        "rokok": "smoking",
+        "healthydiet": "healthy_diet",
+        "diet": "healthy_diet",
+        "dietsehat": "healthy_diet",
+        "polamakan": "healthy_diet",
+        "chronicstress": "chronic_stress",
+        "streskronis": "chronic_stress",
+        "familyhistorymentalillness": "family_history_mental_illness",
+        "riwayatkeluarga": "family_history_mental_illness",
+        "therapyattendance": "therapy_attendance",
+        "terapi": "therapy_attendance",
+        "supportsystem": "support_system",
+        "dukungansosial": "support_system",
+        "lifesatisfaction": "life_satisfaction",
+        "kepuasanhidup": "life_satisfaction",
+        "productivityscore": "productivity_score",
+        "produktivitas": "productivity_score",
+        "absenteeismdays": "absenteeism_days",
+        "absen": "absenteeism_days",
+        "absenhari": "absenteeism_days",
+        "haritidukerja": "absenteeism_days",
+        "burnoutscore": "burnout_score",
+        "skorburnout": "burnout_score",
+        "burnoutrisk": "burnout_risk",
+        "burnoutlevel": "burnout_risk",
+        "risikoburnout": "burnout_risk",
+        "mentalhealthstatus": "mental_health_status",
+        "statuskesehatanmental": "mental_health_status",
+        "aiwellnessrecommendation": "ai_wellness_recommendation",
+        "recommendation": "ai_wellness_recommendation",
+        "rekomendasi": "ai_wellness_recommendation",
+        "notes": "notes",
+        "catatan": "notes"
+    }
 
-    def execute(self, file_source: Any, filename: Optional[str] = None) -> Dict[str, Any]:
+    def __init__(self, repository: IAssessmentRepository, ml_service: Optional[IMLPredictorService] = None):
+        self.repository = repository
+        self.ml_service = ml_service
+
+    @staticmethod
+    def _normalize_key(key: str) -> str:
+        """Menghapus spasi, underscore, simbol, dan lowercase key"""
+        if not key:
+            return ""
+        clean = key.replace("\ufeff", "").strip()
+        return re.sub(r"[^a-zA-Z0-9]", "", clean.lower())
+
+    @staticmethod
+    def _clean_val(val: Any) -> Any:
+        """Membersihkan nilai NaN/None dari Pandas/CSV"""
+        if val is None:
+            return None
+        if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+            return None
+        if isinstance(val, str):
+            s = val.strip()
+            return s if s != "" and s.lower() not in ("nan", "null", "none") else None
+        return val
+
+    def execute(self, file_source: Any = None, filename: Optional[str] = None, mode: str = "append", auto_predict: bool = True, max_rows: int = 10000, file_content: Any = None) -> Dict[str, Any]:
         """
-        Mengeksekusi pembacaan CSV dan memasukkannya ke database secara batch.
-        file_source: bisa berupa file stream (Flask FileStorage.stream), string, bytes, atau io.TextIOBase.
+        Memproses file Excel (.xlsx / .xls) atau CSV.
+        Args:
+            file_source: bytes, string, io.IOBase, atau Flask FileStorage
+            filename: nama file asli
+            mode: 'append' (tambahkan) atau 'replace' (hapus data lama dahulu)
+            auto_predict: True jika nilai burnout kosong maka dihitung oleh model ML / heuristic
+            max_rows: batas maksimum baris yang diimpor per eksekusi
+            file_content: alias kompatibilitas untuk file_source
         """
-        # 1. Konversi file_source ke TextIO reader
-        if isinstance(file_source, bytes):
-            text_stream = io.StringIO(file_source.decode("utf-8-sig", errors="replace"))
-        elif isinstance(file_source, str):
-            text_stream = io.StringIO(file_source)
-        elif hasattr(file_source, "read"):
+        if file_source is None and file_content is not None:
+            file_source = file_content
+        # Ekstrak nama file jika belum ada
+        if not filename and hasattr(file_source, "filename"):
+            filename = file_source.filename
+        filename = filename or "dataset.csv"
+
+        ext = filename.lower().split(".")[-1]
+        if ext not in ["xlsx", "xls", "csv"]:
+            raise ValueError(f"Ekstensi file .{ext} tidak didukung. Harap unggah file Excel (.xlsx, .xls) atau .csv")
+
+        # 1. Ambil bytes dari berbagai jenis file_source
+        if hasattr(file_source, "read"):
             content = file_source.read()
-            if isinstance(content, bytes):
-                text_stream = io.StringIO(content.decode("utf-8-sig", errors="replace"))
-            else:
-                text_stream = io.StringIO(str(content))
+            file_bytes = content if isinstance(content, bytes) else str(content).encode("utf-8")
+        elif isinstance(file_source, bytes):
+            file_bytes = file_source
+        elif isinstance(file_source, str):
+            file_bytes = file_source.encode("utf-8")
         else:
             raise ValueError("Sumber file tidak valid untuk dibaca.")
 
-        reader = csv.reader(text_stream)
+        buffer = io.BytesIO(file_bytes)
+
+        # 2. Baca DataFrame menggunakan Pandas
         try:
-            raw_headers = next(reader)
-        except StopIteration:
-            raise ValueError("File CSV kosong atau tidak memiliki baris data.")
+            if ext in ["xlsx", "xls"]:
+                df = pd.read_excel(buffer, engine="openpyxl" if ext == "xlsx" else None)
+            else:
+                try:
+                    df = pd.read_csv(buffer, encoding="utf-8-sig")
+                except UnicodeDecodeError:
+                    buffer.seek(0)
+                    df = pd.read_csv(buffer, encoding="latin1")
+        except Exception as e:
+            raise ValueError(f"Gagal membaca file {filename}: {str(e)}")
 
-        # Buat mapping header asli ke header ternormalisasi
-        header_map = [_normalize_key(h) for h in raw_headers]
-        if not any(header_map):
-            raise ValueError("Header kolom CSV tidak terdeteksi.")
+        if df.empty:
+            raise ValueError("File Excel/CSV tidak memiliki baris data (kosong).")
 
+        # 3. Pemetaan Kolom File ke Entity Field
+        col_map = {}
+        for original_col in df.columns:
+            norm = self._normalize_key(str(original_col))
+            if norm in self.COLUMN_NORMALIZATION_MAP:
+                col_map[original_col] = self.COLUMN_NORMALIZATION_MAP[norm]
+
+        logger.info(f"Importing {len(df)} rows from {filename}. Mapped columns: {col_map}")
+
+        # 4. Handle Mode Replace jika dipilih
+        if mode == "replace":
+            try:
+                existing_records = self.repository.find_all()
+                for rec in existing_records:
+                    if rec.id:
+                        self.repository.delete(rec.id)
+            except Exception as e:
+                logger.warning(f"Gagal mengosongkan data lama dalam mode replace: {e}")
+
+        # 5. Iterasi Baris Data & Bangun List Entities
         assessments: List[RespondentAssessment] = []
-        row_index = 0
+        skipped_count = 0
+        errors: List[str] = []
 
-        for row in reader:
-            if not row or not any(cell.strip() for cell in row):
-                continue  # Lewati baris kosong
-            row_index += 1
+        total_to_process = min(len(df), max_rows)
 
-            # Buat dict mapping baris
+        for idx in range(total_to_process):
+            row = df.iloc[idx]
             row_dict = {}
-            for col_idx, val in enumerate(row):
-                if col_idx < len(header_map):
-                    row_dict[header_map[col_idx]] = val.strip()
 
-            entity = self._map_row_to_entity(row_dict, row_index)
-            assessments.append(entity)
+            for orig_col, field_name in col_map.items():
+                row_dict[field_name] = self._clean_val(row.get(orig_col))
+
+            def _num(key, default, cast_fn=float):
+                v = row_dict.get(key)
+                if v is None:
+                    return default
+                try:
+                    return cast_fn(v)
+                except (ValueError, TypeError):
+                    return default
+
+            def _str(key, default):
+                v = row_dict.get(key)
+                return str(v).strip() if v is not None else default
+
+            person_id = _str("person_id", f"PID-IMP-{(idx+1):04d}")
+            full_name = _str("full_name", f"Responden #{person_id}")
+
+            try:
+                assessment = RespondentAssessment(
+                    person_id=person_id,
+                    full_name=full_name,
+                    age=_num("age", 28.0),
+                    gender=_str("gender", "Male"),
+                    country=_str("country", "Indonesia"),
+                    occupation=_str("occupation", "Software Engineer"),
+                    education_level=_str("education_level", "Bachelor"),
+                    employment_status=_str("employment_status", "Employed"),
+                    monthly_income_usd=_num("monthly_income_usd", 1500.0),
+                    remote_work=_str("remote_work", "Hybrid"),
+                    work_hours_per_week=_num("work_hours_per_week", 40.0),
+                    job_satisfaction=_num("job_satisfaction", 6.0),
+                    work_life_balance=_num("work_life_balance", 5.0),
+                    productivity_score=_num("productivity_score", 65.0),
+                    absenteeism_days=_num("absenteeism_days", 2, cast_fn=int),
+                    sleep_hours=_num("sleep_hours", 7.0),
+                    sleep_quality=_str("sleep_quality", "Average"),
+                    physical_activity_hours=_num("physical_activity_hours", 4.0),
+                    exercise_frequency=_str("exercise_frequency", "Weekly"),
+                    meditation_minutes=_num("meditation_minutes", 10.0),
+                    screen_time_hours=_num("screen_time_hours", 8.0),
+                    social_media_hours=_num("social_media_hours", 2.5),
+                    gaming_hours=_num("gaming_hours", 1.0),
+                    coffee_cups_per_day=_num("coffee_cups_per_day", 2, cast_fn=int),
+                    alcohol_consumption=_str("alcohol_consumption", "No"),
+                    smoking=_str("smoking", "No"),
+                    healthy_diet=_str("healthy_diet", "Yes"),
+                    stress_level=_str("stress_level", "Moderate"),
+                    chronic_stress=_str("chronic_stress", "No"),
+                    anxiety_score=_num("anxiety_score", 35.0),
+                    depression_score=_num("depression_score", 30.0),
+                    mood_score=_num("mood_score", 60.0),
+                    emotional_stability=_num("emotional_stability", 60.0),
+                    family_history_mental_illness=_str("family_history_mental_illness", "No"),
+                    therapy_attendance=_str("therapy_attendance", "No"),
+                    support_system=_str("support_system", "Good"),
+                    life_satisfaction=_num("life_satisfaction", 6.0),
+                    notes=_str("notes", f"Diimpor dari {filename}"),
+                    created_at=datetime.now()
+                )
+
+                # Evaluasi target burnout
+                existing_score = row_dict.get("burnout_score")
+                existing_risk = row_dict.get("burnout_risk")
+
+                if existing_score is not None and existing_risk is not None:
+                    assessment.burnout_score = float(existing_score)
+                    assessment.burnout_risk = str(existing_risk)
+                    assessment.mental_health_status = _str("mental_health_status", "Needs Attention")
+                    assessment.ai_wellness_recommendation = _str("ai_wellness_recommendation", "Maintain Healthy Routine")
+                elif self.ml_service and auto_predict:
+                    ml_eval = self.ml_service.predict_burnout(assessment.to_dict())
+                    assessment.burnout_score = float(ml_eval.get("burnout_score", 0.0))
+                    assessment.burnout_risk = str(ml_eval.get("burnout_risk") or ml_eval.get("burnout_level", "Moderate"))
+                    assessment.mental_health_status = str(ml_eval.get("mental_health_status") or "Needs Attention")
+                    assessment.ai_wellness_recommendation = str(ml_eval.get("ai_wellness_recommendation") or ml_eval.get("recommendation", "Take Regular Breaks"))
+                elif auto_predict:
+                    # Heuristic fallback jika ml_service tidak diinjeksi
+                    calc_score = min(100.0, max(0.0, (assessment.work_hours_per_week * 0.8) + (10.0 - assessment.sleep_hours) * 3.0))
+                    assessment.burnout_score = round(calc_score, 1)
+                    if calc_score >= 70:
+                        assessment.burnout_risk = "High"
+                        assessment.mental_health_status = "Critical"
+                        assessment.ai_wellness_recommendation = "Reduce Workload & Consult Professional"
+                    elif calc_score >= 40:
+                        assessment.burnout_risk = "Moderate"
+                        assessment.mental_health_status = "Needs Attention"
+                        assessment.ai_wellness_recommendation = "Take Regular Breaks & Practice Mindfulness"
+                    else:
+                        assessment.burnout_risk = "Low"
+                        assessment.mental_health_status = "Healthy"
+                        assessment.ai_wellness_recommendation = "Maintain Healthy Routine"
+
+                assessments.append(assessment)
+
+            except Exception as e:
+                skipped_count += 1
+                errors.append(f"Baris {idx + 2}: {str(e)}")
 
         if not assessments:
-            raise ValueError("Tidak ada baris data valid yang ditemukan di dalam file CSV.")
+            raise ValueError("Tidak ada baris data valid yang dapat diimpor dari file tersebut.")
 
-        # 2. Simpan ke database menggunakan batch insert
-        saved_count = self.repository.bulk_save(assessments)
+        # 6. Simpan ke database (Gunakan bulk_save jika tersedia, fallback ke save())
+        if hasattr(self.repository, "bulk_save"):
+            imported_count = self.repository.bulk_save(assessments)
+        else:
+            imported_count = 0
+            for item in assessments:
+                self.repository.save(item)
+                imported_count += 1
 
         return {
-            "filename": filename or "dataset.csv",
+            "total_rows_file": len(df),
             "total_rows": len(assessments),
-            "imported_count": saved_count,
-            "columns_detected": raw_headers
+            "processed_rows": total_to_process,
+            "imported_count": imported_count,
+            "skipped_count": skipped_count,
+            "mode": mode,
+            "filename": filename,
+            "mapped_columns_count": len(col_map),
+            "columns_detected": list(df.columns),
+            "errors": errors[:15]
         }
 
-    def _map_row_to_entity(self, d: Dict[str, str], row_num: int) -> RespondentAssessment:
-        """Helper untuk memetakan dictionary baris CSV ke RespondentAssessment entity"""
-        pid = _clean_str(d.get("person_id") or d.get("id") or d.get("respondent_id") or f"CSV-{row_num:04d}")
-        full_name = _clean_str(d.get("full_name") or d.get("nama") or d.get("name") or f"Responden {pid}")
+    @classmethod
+    def generate_excel_template(cls) -> bytes:
+        """
+        Menghasilkan file Excel (.xlsx) template resmi dengan 40 kolom
+        dan 2 baris data contoh untuk panduan pengisian kuesioner.
+        """
+        headers = [
+            "Person_ID", "Full_Name", "Age", "Gender", "Country", "Occupation",
+            "Education_Level", "Employment_Status", "Monthly_Income_USD", "Work_Hours_Per_Week",
+            "Remote_Work", "Job_Satisfaction", "Work_Life_Balance", "Sleep_Hours",
+            "Sleep_Quality", "Stress_Level", "Anxiety_Score", "Depression_Score",
+            "Mood_Score", "Emotional_Stability", "Physical_Activity_Hours", "Exercise_Frequency",
+            "Meditation_Minutes", "Screen_Time_Hours", "Social_Media_Hours", "Gaming_Hours",
+            "Coffee_Cups_Per_Day", "Alcohol_Consumption", "Smoking", "Healthy_Diet",
+            "Chronic_Stress", "Family_History_Mental_Illness", "Therapy_Attendance",
+            "Support_System", "Life_Satisfaction", "Productivity_Score", "Absenteeism_Days",
+            "Burnout_Score", "Burnout_Risk", "Mental_Health_Status"
+        ]
 
-        age = _clean_float(d.get("age") or d.get("umur") or d.get("usia"), 28.0)
-        gender = _clean_str(d.get("gender") or d.get("jenis_kelamin"), "Male")
-        country = _clean_str(d.get("country") or d.get("negara"), "Indonesia")
-        occupation = _clean_str(d.get("occupation") or d.get("pekerjaan") or d.get("role") or d.get("jabatan"), "Software Engineer")
-        education_level = _clean_str(d.get("education_level") or d.get("pendidikan"), "Bachelor")
-        employment_status = _clean_str(d.get("employment_status") or d.get("status_pekerjaan"), "Employed")
-        monthly_income_usd = _clean_float(d.get("monthly_income_usd") or d.get("income") or d.get("gaji"), 1500.0)
-        remote_work = _clean_str(d.get("remote_work") or d.get("tipe_kerja"), "Hybrid")
+        sample_rows = [
+            [
+                "PID-1001", "Ahmad Fauzi", 29.0, "Male", "Indonesia", "Software Engineer",
+                "Bachelor", "Employed", 1800.0, 48.0, "Hybrid", 6.0, 5.0, 6.5,
+                "Average", "Moderate", 45.0, 35.0, 60.0, 65.0, 3.5, "Weekly",
+                15.0, 8.5, 2.0, 1.0, 2, "No", "No", "Yes",
+                "No", "No", "No", "Good", 6.0, 70.0, 1,
+                58.0, "Moderate", "Needs Attention"
+            ],
+            [
+                "PID-1002", "Siti Nurhaliza", 25.0, "Female", "Indonesia", "Data Analyst",
+                "Bachelor", "Employed", 1400.0, 40.0, "Yes", 8.0, 8.0, 7.5,
+                "Good", "Low", 20.0, 15.0, 85.0, 80.0, 5.0, "Daily",
+                20.0, 6.0, 1.5, 0.5, 1, "No", "No", "Yes",
+                "No", "No", "No", "Good", 8.0, 85.0, 0,
+                24.0, "Low", "Healthy"
+            ]
+        ]
 
-        work_hours = _clean_float(d.get("work_hours_per_week") or d.get("work_hours") or d.get("jam_kerja"), 40.0)
-        job_satisfaction = _clean_float(d.get("job_satisfaction") or d.get("kepuasan_kerja"), 6.0)
-        work_life_balance = _clean_float(d.get("work_life_balance") or d.get("keseimbangan_hidup"), 5.0)
-        productivity_score = _clean_float(d.get("productivity_score") or d.get("produktivitas"), 65.0)
-        absenteeism_days = _clean_int(d.get("absenteeism_days") or d.get("absen_hari"), 2)
+        df = pd.DataFrame(sample_rows, columns=headers)
 
-        sleep_hours = _clean_float(d.get("sleep_hours") or d.get("jam_tidur"), 7.0)
-        sleep_quality = _clean_str(d.get("sleep_quality") or d.get("kualitas_tidur"), "Average")
-        physical_activity_hours = _clean_float(d.get("physical_activity_hours") or d.get("aktivitas_fisik"), 4.0)
-        exercise_frequency = _clean_str(d.get("exercise_frequency") or d.get("frekuensi_olahraga"), "Weekly")
-        meditation_minutes = _clean_float(d.get("meditation_minutes") or d.get("meditasi"), 10.0)
-        screen_time_hours = _clean_float(d.get("screen_time_hours") or d.get("waktu_layar"), 8.0)
-        social_media_hours = _clean_float(d.get("social_media_hours") or d.get("medsos"), 2.5)
-        gaming_hours = _clean_float(d.get("gaming_hours") or d.get("game"), 1.0)
-        coffee_cups_per_day = _clean_int(d.get("coffee_cups_per_day") or d.get("kopi"), 2)
-        alcohol_consumption = _clean_str(d.get("alcohol_consumption") or d.get("alkohol"), "No")
-        smoking = _clean_str(d.get("smoking") or d.get("merokok"), "No")
-        healthy_diet = _clean_str(d.get("healthy_diet") or d.get("diet_sehat"), "Yes")
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Data Responden", index=False)
+            
+            guide_data = {
+                "Nama Kolom": ["Person_ID", "Full_Name", "Age", "Gender", "Occupation", "Work_Hours_Per_Week", "Sleep_Hours", "Stress_Level", "Burnout_Score & Risk"],
+                "Format / Tipe": ["Teks unik (misal: PID-001)", "Nama responden", "Angka (15 - 100)", "Male / Female / Other", "Profesi / Pekerjaan", "Jam kerja per minggu (0 - 120)", "Jam tidur per hari (0 - 24)", "Low / Moderate / High", "Boleh dikosongkan (akan dihitung otomatis oleh AI/ML AntiBurnout)"]
+            }
+            pd.DataFrame(guide_data).to_excel(writer, sheet_name="Panduan Pengisian", index=False)
 
-        stress_level = _clean_str(d.get("stress_level") or d.get("tingkat_stres"), "Moderate")
-        chronic_stress = _clean_str(d.get("chronic_stress") or d.get("stres_kronis"), "No")
-        anxiety_score = _clean_float(d.get("anxiety_score") or d.get("skor_cemas"), 35.0)
-        depression_score = _clean_float(d.get("depression_score") or d.get("skor_depresi"), 30.0)
-        mood_score = _clean_float(d.get("mood_score") or d.get("skor_suasana_hati"), 60.0)
-        emotional_stability = _clean_float(d.get("emotional_stability") or d.get("stabilitas_emosi"), 60.0)
-        family_history = _clean_str(d.get("family_history_mental_illness") or d.get("riwayat_keluarga"), "No")
-        therapy = _clean_str(d.get("therapy_attendance") or d.get("terapi"), "No")
-        support_system = _clean_str(d.get("support_system") or d.get("dukungan_sosial"), "Good")
-        life_satisfaction = _clean_float(d.get("life_satisfaction") or d.get("kepuasan_hidup"), 6.0)
-        notes = _clean_str(d.get("notes") or d.get("catatan"), "")
-
-        raw_score = d.get("burnout_score") or d.get("skor_burnout")
-        burnout_score = _clean_float(raw_score, None) if raw_score is not None and str(raw_score).strip() else None
-
-        raw_risk = _clean_str(d.get("burnout_risk") or d.get("burnout_level") or d.get("risiko_burnout"), "")
-        if not raw_risk and burnout_score is not None:
-            if burnout_score >= 70:
-                raw_risk = "High"
-            elif burnout_score >= 40:
-                raw_risk = "Moderate"
-            else:
-                raw_risk = "Low"
-        elif not raw_risk:
-            raw_risk = "Moderate"
-
-        mental_health = _clean_str(d.get("mental_health_status") or d.get("status_kesehatan_mental"), "")
-        if not mental_health:
-            if raw_risk.lower() in ("high", "tinggi", "critical"):
-                mental_health = "Critical"
-            elif raw_risk.lower() in ("low", "rendah", "healthy"):
-                mental_health = "Healthy"
-            else:
-                mental_health = "Needs Attention"
-
-        recommendation = _clean_str(
-            d.get("ai_wellness_recommendation") or d.get("recommendation") or d.get("rekomendasi"),
-            "Maintain Healthy Routine"
-        )
-
-        return RespondentAssessment(
-            person_id=pid,
-            full_name=full_name,
-            age=age,
-            gender=gender,
-            country=country,
-            occupation=occupation,
-            education_level=education_level,
-            employment_status=employment_status,
-            monthly_income_usd=monthly_income_usd,
-            remote_work=remote_work,
-            work_hours_per_week=work_hours,
-            job_satisfaction=job_satisfaction,
-            work_life_balance=work_life_balance,
-            productivity_score=productivity_score,
-            absenteeism_days=absenteeism_days,
-            sleep_hours=sleep_hours,
-            sleep_quality=sleep_quality,
-            physical_activity_hours=physical_activity_hours,
-            exercise_frequency=exercise_frequency,
-            meditation_minutes=meditation_minutes,
-            screen_time_hours=screen_time_hours,
-            social_media_hours=social_media_hours,
-            gaming_hours=gaming_hours,
-            coffee_cups_per_day=coffee_cups_per_day,
-            alcohol_consumption=alcohol_consumption,
-            smoking=smoking,
-            healthy_diet=healthy_diet,
-            stress_level=stress_level,
-            chronic_stress=chronic_stress,
-            anxiety_score=anxiety_score,
-            depression_score=depression_score,
-            mood_score=mood_score,
-            emotional_stability=emotional_stability,
-            family_history_mental_illness=family_history,
-            therapy_attendance=therapy,
-            support_system=support_system,
-            life_satisfaction=life_satisfaction,
-            notes=notes,
-            burnout_score=burnout_score,
-            burnout_risk=raw_risk,
-            mental_health_status=mental_health,
-            ai_wellness_recommendation=recommendation,
-            created_at=datetime.now()
-        )
-
+        return output.getvalue()

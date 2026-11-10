@@ -55,6 +55,10 @@
                             <span class="pma-tree-icon">▦</span>
                             <span>assessments (data primer)</span>
                         </a>
+                        <a href="{{ url_for('assessment.import_view') }}" class="pma-tree-item {% if request.path == '/assessment/import' %}active{% endif %}">
+                            <span class="pma-tree-icon">📥</span>
+                            <span>import_dataset (Excel/CSV)</span>
+                        </a>
                         <a href="{{ url_for('assessment.form') }}" class="pma-tree-item {% if request.path == '/assessment/' %}active{% endif %}">
                             <span class="pma-tree-icon">📝</span>
                             <span>admin_data_entry</span>
@@ -127,6 +131,10 @@
                 <a href="{{ url_for('assessment.export_csv') }}" class="pma-tab">
                     <span>💾</span>
                     <span>Export CSV (Bahan ML)</span>
+                </a>
+                <a href="{{ url_for('assessment.import_view') }}" class="pma-tab {% if request.path == '/assessment/import' %}active{% endif %}">
+                    <span>📥</span>
+                    <span>Import Excel / CSV</span>
                 </a>
                 <a href="{{ url_for('main.health_check') }}" target="_blank" class="pma-tab">
                     <span>⚡</span>
