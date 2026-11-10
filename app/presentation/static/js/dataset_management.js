@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnSaveDbSummary = document.getElementById("btn-save-db-summary");
     const btnViewDataset = document.getElementById("btn-view-dataset");
     const dbSaveFeedback = document.getElementById("db-save-feedback");
+    const targetReadiness = document.getElementById("target-readiness");
 
     // EDA Elements
     const btnEda = document.getElementById("btn-eda");
@@ -112,6 +113,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return "Teks";
     };
 
+    const normalizeHeader = (header) => (header || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const findTargetColumnIndex = (headers) => {
+        const riskIndex = headers.findIndex((header) => normalizeHeader(header) === "burnoutrisk");
+        if (riskIndex !== -1) return riskIndex;
+        return headers.findIndex((header) => normalizeHeader(header) === "burnoutlevel");
+    };
+    const isTargetColumn = (header, index, targetColumnIndex) =>
+        index === targetColumnIndex
+        || ["burnoutrisk", "burnoutlevel"].includes(normalizeHeader(header));
+    const normalizeBurnoutLabel = (value) => {
+        const label = (value ?? "").trim().toLowerCase();
+        if (label === "low") return "Low";
+        if (label === "moderate") return "Moderate";
+        if (label === "high") return "High";
+        return null;
+    };
+
     // Render Ringkasan & Pratinjau Dataset Awal
     const renderDataset = (fileOrName, rows) => {
         if (!rows.length || !rows[0].some((value) => value.trim())) {
@@ -127,6 +145,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const missingByColumn = headers.map((_, column) => dataRows.reduce(
             (count, values) => count + ((values[column] ?? "").trim() === "" ? 1 : 0), 0
         ));
+        const targetColumnIndex = findTargetColumnIndex(headers);
+        const targetCounts = { Low: 0, Moderate: 0, High: 0 };
+        let invalidTargetCount = 0;
+        if (targetColumnIndex !== -1) {
+            dataRows.forEach((row) => {
+                const label = normalizeBurnoutLabel(row[targetColumnIndex]);
+                if (label) targetCounts[label] += 1;
+                else invalidTargetCount += 1;
+            });
+        }
         const duplicateRows = new Set();
         const seenRows = new Set();
 
@@ -145,8 +173,38 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("summary-missing").textContent = `${totalMissing} nilai kosong`;
         document.getElementById("summary-duplicates").textContent = `${duplicateRows.size} baris`;
         
-        const hasTarget = headers.some(h => /burnout[_\s]?(risk|level|score)/i.test(h));
-        document.getElementById("summary-target").textContent = hasTarget ? "Tersedia" : "Tidak ditemukan";
+        document.getElementById("summary-target").textContent = targetColumnIndex === -1
+            ? "Tidak ditemukan"
+            : `${headers[targetColumnIndex]} (${dataRows.length - invalidTargetCount}/${dataRows.length} label valid)`;
+
+        const candidateFeatureCount = headers.filter((header, index) =>
+            !isTargetColumn(header, index, targetColumnIndex) && !isDefaultDroppedColumn(header)
+        ).length;
+        const missingClasses = Object.entries(targetCounts)
+            .filter(([, count]) => count === 0)
+            .map(([label]) => label);
+        const targetIsReady = targetColumnIndex !== -1
+            && missingClasses.length === 0
+            && candidateFeatureCount > 0;
+        if (targetReadiness) {
+            targetReadiness.className = targetIsReady ? "pma-alert-success" : "pma-alert-warning";
+            if (targetColumnIndex === -1) {
+                targetReadiness.textContent = "Dataset belum memiliki kolom target Burnout_Risk (atau Burnout_Level). Label target tidak akan dibuat otomatis; tambahkan label kelas Low, Moderate, atau High sebelum pelatihan.";
+            } else {
+                const classSummary = Object.entries(targetCounts)
+                    .map(([label, count]) => `${label}: ${count}`)
+                    .join(" • ");
+                const readinessMessage = targetIsReady
+                    ? "Target ditemukan. Label kosong atau di luar kelas yang didukung harus dikecualikan saat pelatihan."
+                    : "Dataset belum siap: pastikan label kelas Low, Moderate, High tersedia dan setidaknya satu calon fitur.";
+                const classWarning = missingClasses.length
+                    ? ` Kelas belum tersedia: ${missingClasses.join(", ")}.`
+                    : "";
+                targetReadiness.textContent = `${readinessMessage} Distribusi label — ${classSummary}. Label kosong/tidak valid: ${invalidTargetCount}; calon fitur: ${candidateFeatureCount}.`;
+                if (classWarning) targetReadiness.textContent += classWarning;
+                if (!targetIsReady) targetReadiness.className = "pma-alert-warning";
+            }
+        }
 
         previewHead.replaceChildren(...headers.map((header) => makeCell("th", header, "col")));
         previewBody.replaceChildren(...dataRows.slice(0, 10).map((values) => {
@@ -174,6 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
             headers,
             columnTypes,
             dataRows,
+            targetColumnIndex,
             missingByColumn,
             duplicateRows,
             totalMissing
@@ -344,17 +403,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Helper mengecek kolom yang di-drop secara default sesuai spesifikasi pipeline ML
     const isDefaultDroppedColumn = (colName) => {
-        const norm = (colName || "").trim().toLowerCase().replace(/[\s-]/g, "_");
+        const norm = normalizeHeader(colName);
         const droppedCols = new Set([
-            "burnout_score",
+            "burnoutscore",
             "gender",
             "country",
             "occupation",
-            "ai_wellness_recommendation",
-            "burnout_risk",
+            "aiwellnessrecommendation",
+            "burnoutrisk",
+            "burnoutlevel",
             "education_level",
-            "employment_status",
-            "person_id",
+            "educationlevel",
+            "employmentstatus",
+            "personid",
             "id",
             "notes",
             "catatan"
@@ -374,16 +435,18 @@ document.addEventListener("DOMContentLoaded", () => {
         prepColumnsGrid.innerHTML = "";
         headers.forEach((h, idx) => {
             const colType = columnTypes[idx];
-            const shouldDrop = isDefaultDroppedColumn(h);
+            const isTarget = isTargetColumn(h, idx, currentDataset.targetColumnIndex);
+            const shouldDrop = isTarget || isDefaultDroppedColumn(h);
 
             const label = document.createElement("label");
             label.className = "prep-col-item";
             label.innerHTML = `
-                <input type="checkbox" class="prep-col-check" data-col-idx="${idx}" ${!shouldDrop ? 'checked' : ''}>
+                <input type="checkbox" class="prep-col-check" data-col-idx="${idx}" ${!shouldDrop ? 'checked' : ''} ${isTarget ? "disabled" : ""}>
                 <span class="prep-col-name" title="${h}">${h}</span>
                 <span class="pma-badge ${colType.startsWith('Int') || colType.startsWith('Num') ? 'pma-badge-warning' : 'pma-badge-success'}" style="font-size: 10px; padding: 1px 4px;">
                     ${colType}
                 </span>
+                ${isTarget ? '<span class="pma-badge pma-badge-success" style="font-size: 10px; padding: 1px 4px;">Label target; tidak diproses sebagai fitur</span>' : ""}
             `;
             prepColumnsGrid.appendChild(label);
         });
@@ -439,10 +502,10 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const updateSelectedColsCount = () => {
-        const checked = prepColumnsGrid.querySelectorAll(".prep-col-check:checked");
-        const total = prepColumnsGrid.querySelectorAll(".prep-col-check");
+        const checkboxes = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check"));
+        const checked = checkboxes.filter((checkbox) => checkbox.checked && !checkbox.disabled);
         prepSelectedColsCount.textContent = String(checked.length);
-        prepTotalColsCount.textContent = String(total.length);
+        prepTotalColsCount.textContent = String(checkboxes.filter((checkbox) => !checkbox.disabled).length);
     };
 
     // Render Preview Mapping Encoding
@@ -487,7 +550,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Tombol Pilih Semua / Hilangkan Semua / Rekomendasi
     if (btnColSelectAll) {
         btnColSelectAll.addEventListener("click", () => {
-            prepColumnsGrid.querySelectorAll(".prep-col-check").forEach(cb => cb.checked = true);
+            prepColumnsGrid.querySelectorAll(".prep-col-check").forEach(cb => {
+                if (!cb.disabled) cb.checked = true;
+            });
             updateSelectedColsCount();
         });
     }
@@ -505,7 +570,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const { headers } = currentDataset;
             prepColumnsGrid.querySelectorAll(".prep-col-check").forEach((cb, idx) => {
                 const h = headers[idx];
-                cb.checked = !isDefaultDroppedColumn(h);
+                cb.checked = !isTargetColumn(h, idx, currentDataset.targetColumnIndex)
+                    && !isDefaultDroppedColumn(h);
             });
             updateSelectedColsCount();
         });
@@ -551,10 +617,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================================================
     const executePreprocessingAndDownload = () => {
         if (!currentDataset) return;
-        const { headers, dataRows, columnTypes, duplicateRows } = currentDataset;
+        const { headers, dataRows, columnTypes, duplicateRows, targetColumnIndex } = currentDataset;
 
         // 1. Seleksi Kolom
-        const selectedCheckboxes = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check:checked"));
+        const selectedCheckboxes = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check:checked"))
+            .filter((checkbox) => {
+                const index = Number(checkbox.dataset.colIdx);
+                return !isTargetColumn(headers[index], index, targetColumnIndex);
+            });
         if (!selectedCheckboxes.length) {
             alert("Harap pilih minimal 1 kolom untuk diikutsertakan dalam dataset.");
             return;
@@ -564,9 +634,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedHeaders = selectedColIndices.map(idx => headers[idx]);
 
         // 2. Baris Duplikat
-        let filteredRows = prepOptDedup.checked
-            ? dataRows.filter((_, idx) => !duplicateRows.has(idx))
-            : [...dataRows];
+        const filteredSourceIndices = dataRows
+            .map((_, index) => index)
+            .filter((index) => !prepOptDedup.checked || !duplicateRows.has(index));
+        const filteredRows = filteredSourceIndices.map((index) => dataRows[index]);
 
         // 3. Imputasi Nilai Kosong
         const imputeNumMode = prepOptImputeNum.value;
@@ -623,9 +694,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Filter / Imputasi
         let processedRows = [];
+        let processedSourceIndices = [];
         let imputedValuesCount = 0;
 
-        for (const row of filteredRows) {
+        for (const [filteredRowIndex, row] of filteredRows.entries()) {
             let dropThisRow = false;
             const newRow = [];
 
@@ -653,14 +725,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!dropThisRow) {
                 processedRows.push(newRow);
+                processedSourceIndices.push(filteredSourceIndices[filteredRowIndex]);
             }
         }
 
         // 4. Penanganan Outlier
-        const outlierMode = prepOptOptOutlier = prepOptOutlier.value;
+        const outlierMode = prepOptOutlier.value;
         if (outlierMode !== "none") {
             const newProcessed = [];
-            processedRows.forEach(row => {
+            const newSourceIndices = [];
+            processedRows.forEach((row, rowIndex) => {
                 let hasOutlier = false;
                 const modifiedRow = [...row];
 
@@ -683,9 +757,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     // skip baris ini
                 } else {
                     newProcessed.push(modifiedRow);
+                    newSourceIndices.push(processedSourceIndices[rowIndex]);
                 }
             });
             processedRows = newProcessed;
+            processedSourceIndices = newSourceIndices;
         }
 
         // 5. Penskalaan / Feature Scaling
@@ -794,6 +870,19 @@ document.addEventListener("DOMContentLoaded", () => {
             finalRows = oneHotRows;
         }
 
+        let validOutputLabels = 0;
+        let invalidOutputLabels = 0;
+        if (targetColumnIndex !== -1) {
+            finalHeaders.push("Burnout_Risk");
+            finalRows = finalRows.map((row, index) => {
+                const rawLabel = dataRows[processedSourceIndices[index]][targetColumnIndex].trim();
+                const normalizedLabel = normalizeBurnoutLabel(rawLabel);
+                if (normalizedLabel) validOutputLabels += 1;
+                else invalidOutputLabels += 1;
+                return [...row, normalizedLabel || rawLabel];
+            });
+        }
+
         // 7. Generate & Download CSV
         const escapeCsv = (str) => {
             const s = String(str ?? "");
@@ -821,8 +910,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Update status info
         prepSummaryStatus.innerHTML = `
             <span style="color: #274e13; font-weight: bold;">
-                ✅ Ekspor Sukses! ${finalRows.length} baris & ${finalHeaders.length} kolom berhasil diproses dan diunduh.
+                ✅ Ekspor sukses! ${finalRows.length} baris & ${finalHeaders.length} kolom berhasil diproses dan diunduh.
             </span>
+            ${targetColumnIndex === -1
+                ? '<div style="color: #8a5a00; margin-top: 4px;">Kolom target Burnout_Risk tidak ditemukan; file belum memiliki label untuk pelatihan klasifikasi.</div>'
+                : `<div style="color: #555; margin-top: 4px;">Label valid: ${validOutputLabels}; label kosong/tidak valid: ${invalidOutputLabels}. Label tetap terpisah dari fitur dan tidak diimputasi atau diskalakan. Baris berlabel tidak valid harus dikecualikan saat pelatihan.</div>`}
         `;
     };
 
