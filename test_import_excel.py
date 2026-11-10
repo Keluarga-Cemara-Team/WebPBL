@@ -30,6 +30,11 @@ class MockAssessmentRepository(IAssessmentRepository):
             return True
         return False
 
+    def bulk_save(self, assessments):
+        for a in assessments:
+            self.save(a)
+        return len(assessments)
+
 class MockMLService(IMLPredictorService):
     def predict_burnout(self, features):
         return {

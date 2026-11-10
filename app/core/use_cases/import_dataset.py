@@ -2,6 +2,7 @@ import io
 import re
 import math
 import logging
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 import pandas as pd
 from app.core.entities.assessment import RespondentAssessment
@@ -18,11 +19,12 @@ class ImportDatasetUseCase:
     serta opsi mode Append atau Replace.
     """
 
-    # Kamus mapping nama kolom file Excel ke atribut RespondentAssessment
+    # Kamus mapping nama kolom file Excel/CSV ke atribut RespondentAssessment
     COLUMN_NORMALIZATION_MAP = {
         "personid": "person_id",
         "id": "person_id",
         "idresponden": "person_id",
+        "respondentid": "person_id",
         "fullname": "full_name",
         "name": "full_name",
         "nama": "full_name",
@@ -48,6 +50,7 @@ class ImportDatasetUseCase:
         "employmentstatus": "employment_status",
         "employment": "employment_status",
         "statuskerja": "employment_status",
+        "statuspekerjaan": "employment_status",
         "monthlyincomeusd": "monthly_income_usd",
         "income": "monthly_income_usd",
         "pendapatan": "monthly_income_usd",
@@ -59,11 +62,13 @@ class ImportDatasetUseCase:
         "remotework": "remote_work",
         "remote": "remote_work",
         "kerjaremote": "remote_work",
+        "tipekerja": "remote_work",
         "wfh": "remote_work",
         "jobsatisfaction": "job_satisfaction",
         "kepuasankerja": "job_satisfaction",
         "worklifebalance": "work_life_balance",
         "wlb": "work_life_balance",
+        "keseimbanganhidup": "work_life_balance",
         "sleephours": "sleep_hours",
         "jamtidur": "sleep_hours",
         "tidur": "sleep_hours",
@@ -75,21 +80,26 @@ class ImportDatasetUseCase:
         "anxietyscore": "anxiety_score",
         "anxiety": "anxiety_score",
         "kecemasan": "anxiety_score",
+        "skorcemas": "anxiety_score",
         "depressionscore": "depression_score",
         "depression": "depression_score",
         "depresi": "depression_score",
+        "skordepresi": "depression_score",
         "moodscore": "mood_score",
         "mood": "mood_score",
+        "skorsuasanahati": "mood_score",
         "emotionalstability": "emotional_stability",
         "stabilitsemosi": "emotional_stability",
         "physicalactivityhours": "physical_activity_hours",
         "aktivitasfisik": "physical_activity_hours",
         "exercisefrequency": "exercise_frequency",
         "olahraga": "exercise_frequency",
+        "frekuensiolahraga": "exercise_frequency",
         "meditationminutes": "meditation_minutes",
         "meditasi": "meditation_minutes",
         "screentimehours": "screen_time_hours",
         "screentime": "screen_time_hours",
+        "waktulayar": "screen_time_hours",
         "socialmediahours": "social_media_hours",
         "socialmedia": "social_media_hours",
         "medsos": "social_media_hours",
@@ -107,6 +117,7 @@ class ImportDatasetUseCase:
         "rokok": "smoking",
         "healthydiet": "healthy_diet",
         "diet": "healthy_diet",
+        "dietsehat": "healthy_diet",
         "polamakan": "healthy_diet",
         "chronicstress": "chronic_stress",
         "streskronis": "chronic_stress",
@@ -122,6 +133,7 @@ class ImportDatasetUseCase:
         "produktivitas": "productivity_score",
         "absenteeismdays": "absenteeism_days",
         "absen": "absenteeism_days",
+        "absenhari": "absenteeism_days",
         "haritidukerja": "absenteeism_days",
         "burnoutscore": "burnout_score",
         "skorburnout": "burnout_score",
@@ -137,50 +149,72 @@ class ImportDatasetUseCase:
         "catatan": "notes"
     }
 
-    def __init__(self, repository: IAssessmentRepository, ml_service: IMLPredictorService):
+    def __init__(self, repository: IAssessmentRepository, ml_service: Optional[IMLPredictorService] = None):
         self.repository = repository
         self.ml_service = ml_service
 
     @staticmethod
     def _normalize_key(key: str) -> str:
         """Menghapus spasi, underscore, simbol, dan lowercase key"""
-        return re.sub(r"[^a-zA-Z0-9]", "", str(key).strip().lower())
+        if not key:
+            return ""
+        clean = key.replace("\ufeff", "").strip()
+        return re.sub(r"[^a-zA-Z0-9]", "", clean.lower())
 
     @staticmethod
     def _clean_val(val: Any) -> Any:
-        """Membersihkan nilai NaN/None dari Pandas"""
+        """Membersihkan nilai NaN/None dari Pandas/CSV"""
         if val is None:
             return None
         if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
             return None
         if isinstance(val, str):
             s = val.strip()
-            return s if s != "" else None
+            return s if s != "" and s.lower() not in ("nan", "null", "none") else None
         return val
 
-    def execute(self, file_content: bytes, filename: str, mode: str = "append", auto_predict: bool = True, max_rows: int = 1000) -> Dict[str, Any]:
+    def execute(self, file_source: Any = None, filename: Optional[str] = None, mode: str = "append", auto_predict: bool = True, max_rows: int = 10000, file_content: Any = None) -> Dict[str, Any]:
         """
         Memproses file Excel (.xlsx / .xls) atau CSV.
         Args:
-            file_content: bytes dari file yang diunggah
+            file_source: bytes, string, io.IOBase, atau Flask FileStorage
             filename: nama file asli
             mode: 'append' (tambahkan) atau 'replace' (hapus data lama dahulu)
-            auto_predict: True jika nilai burnout kosong maka dihitung oleh model ML
+            auto_predict: True jika nilai burnout kosong maka dihitung oleh model ML / heuristic
             max_rows: batas maksimum baris yang diimpor per eksekusi
+            file_content: alias kompatibilitas untuk file_source
         """
+        if file_source is None and file_content is not None:
+            file_source = file_content
+        # Ekstrak nama file jika belum ada
+        if not filename and hasattr(file_source, "filename"):
+            filename = file_source.filename
+        filename = filename or "dataset.csv"
+
         ext = filename.lower().split(".")[-1]
         if ext not in ["xlsx", "xls", "csv"]:
             raise ValueError(f"Ekstensi file .{ext} tidak didukung. Harap unggah file Excel (.xlsx, .xls) atau .csv")
 
-        # 1. Baca DataFrame dari Bytes menggunakan Pandas
-        buffer = io.BytesIO(file_content)
+        # 1. Ambil bytes dari berbagai jenis file_source
+        if hasattr(file_source, "read"):
+            content = file_source.read()
+            file_bytes = content if isinstance(content, bytes) else str(content).encode("utf-8")
+        elif isinstance(file_source, bytes):
+            file_bytes = file_source
+        elif isinstance(file_source, str):
+            file_bytes = file_source.encode("utf-8")
+        else:
+            raise ValueError("Sumber file tidak valid untuk dibaca.")
+
+        buffer = io.BytesIO(file_bytes)
+
+        # 2. Baca DataFrame menggunakan Pandas
         try:
             if ext in ["xlsx", "xls"]:
                 df = pd.read_excel(buffer, engine="openpyxl" if ext == "xlsx" else None)
             else:
-                # Coba utf-8, fallback ke latin1
                 try:
-                    df = pd.read_csv(buffer, encoding="utf-8")
+                    df = pd.read_csv(buffer, encoding="utf-8-sig")
                 except UnicodeDecodeError:
                     buffer.seek(0)
                     df = pd.read_csv(buffer, encoding="latin1")
@@ -190,16 +224,16 @@ class ImportDatasetUseCase:
         if df.empty:
             raise ValueError("File Excel/CSV tidak memiliki baris data (kosong).")
 
-        # 2. Pemetaan Kolom File ke Entity Field
+        # 3. Pemetaan Kolom File ke Entity Field
         col_map = {}
         for original_col in df.columns:
-            norm = self._normalize_key(original_col)
+            norm = self._normalize_key(str(original_col))
             if norm in self.COLUMN_NORMALIZATION_MAP:
                 col_map[original_col] = self.COLUMN_NORMALIZATION_MAP[norm]
 
         logger.info(f"Importing {len(df)} rows from {filename}. Mapped columns: {col_map}")
 
-        # 3. Handle Mode Replace jika dipilih
+        # 4. Handle Mode Replace jika dipilih
         if mode == "replace":
             try:
                 existing_records = self.repository.find_all()
@@ -209,8 +243,8 @@ class ImportDatasetUseCase:
             except Exception as e:
                 logger.warning(f"Gagal mengosongkan data lama dalam mode replace: {e}")
 
-        # 4. Iterasi Baris Data
-        imported_count = 0
+        # 5. Iterasi Baris Data & Bangun List Entities
+        assessments: List[RespondentAssessment] = []
         skipped_count = 0
         errors: List[str] = []
 
@@ -220,11 +254,9 @@ class ImportDatasetUseCase:
             row = df.iloc[idx]
             row_dict = {}
 
-            # Ambil nilai berdasarkan kolom terpetakan
             for orig_col, field_name in col_map.items():
                 row_dict[field_name] = self._clean_val(row.get(orig_col))
 
-            # Helper konversi angka aman
             def _num(key, default, cast_fn=float):
                 v = row_dict.get(key)
                 if v is None:
@@ -280,10 +312,11 @@ class ImportDatasetUseCase:
                     therapy_attendance=_str("therapy_attendance", "No"),
                     support_system=_str("support_system", "Good"),
                     life_satisfaction=_num("life_satisfaction", 6.0),
-                    notes=_str("notes", f"Diimpor dari {filename}")
+                    notes=_str("notes", f"Diimpor dari {filename}"),
+                    created_at=datetime.now()
                 )
 
-                # Cek target burnout (apakah sudah ada di Excel atau perlu dihitung ML)
+                # Evaluasi target burnout
                 existing_score = row_dict.get("burnout_score")
                 existing_risk = row_dict.get("burnout_risk")
 
@@ -292,30 +325,57 @@ class ImportDatasetUseCase:
                     assessment.burnout_risk = str(existing_risk)
                     assessment.mental_health_status = _str("mental_health_status", "Needs Attention")
                     assessment.ai_wellness_recommendation = _str("ai_wellness_recommendation", "Maintain Healthy Routine")
-                elif auto_predict:
-                    # Jalankan inferensi Machine Learning
+                elif self.ml_service and auto_predict:
                     ml_eval = self.ml_service.predict_burnout(assessment.to_dict())
                     assessment.burnout_score = float(ml_eval.get("burnout_score", 0.0))
                     assessment.burnout_risk = str(ml_eval.get("burnout_risk") or ml_eval.get("burnout_level", "Moderate"))
                     assessment.mental_health_status = str(ml_eval.get("mental_health_status") or "Needs Attention")
                     assessment.ai_wellness_recommendation = str(ml_eval.get("ai_wellness_recommendation") or ml_eval.get("recommendation", "Take Regular Breaks"))
+                elif auto_predict:
+                    # Heuristic fallback jika ml_service tidak diinjeksi
+                    calc_score = min(100.0, max(0.0, (assessment.work_hours_per_week * 0.8) + (10.0 - assessment.sleep_hours) * 3.0))
+                    assessment.burnout_score = round(calc_score, 1)
+                    if calc_score >= 70:
+                        assessment.burnout_risk = "High"
+                        assessment.mental_health_status = "Critical"
+                        assessment.ai_wellness_recommendation = "Reduce Workload & Consult Professional"
+                    elif calc_score >= 40:
+                        assessment.burnout_risk = "Moderate"
+                        assessment.mental_health_status = "Needs Attention"
+                        assessment.ai_wellness_recommendation = "Take Regular Breaks & Practice Mindfulness"
+                    else:
+                        assessment.burnout_risk = "Low"
+                        assessment.mental_health_status = "Healthy"
+                        assessment.ai_wellness_recommendation = "Maintain Healthy Routine"
 
-                # Simpan ke repository database
-                self.repository.save(assessment)
-                imported_count += 1
+                assessments.append(assessment)
 
             except Exception as e:
                 skipped_count += 1
                 errors.append(f"Baris {idx + 2}: {str(e)}")
 
+        if not assessments:
+            raise ValueError("Tidak ada baris data valid yang dapat diimpor dari file tersebut.")
+
+        # 6. Simpan ke database (Gunakan bulk_save jika tersedia, fallback ke save())
+        if hasattr(self.repository, "bulk_save"):
+            imported_count = self.repository.bulk_save(assessments)
+        else:
+            imported_count = 0
+            for item in assessments:
+                self.repository.save(item)
+                imported_count += 1
+
         return {
             "total_rows_file": len(df),
+            "total_rows": len(assessments),
             "processed_rows": total_to_process,
             "imported_count": imported_count,
             "skipped_count": skipped_count,
             "mode": mode,
             "filename": filename,
             "mapped_columns_count": len(col_map),
+            "columns_detected": list(df.columns),
             "errors": errors[:15]
         }
 
@@ -363,7 +423,6 @@ class ImportDatasetUseCase:
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
             df.to_excel(writer, sheet_name="Data Responden", index=False)
             
-            # Tambahkan sheet keterangan petunjuk pengisian
             guide_data = {
                 "Nama Kolom": ["Person_ID", "Full_Name", "Age", "Gender", "Occupation", "Work_Hours_Per_Week", "Sleep_Hours", "Stress_Level", "Burnout_Score & Risk"],
                 "Format / Tipe": ["Teks unik (misal: PID-001)", "Nama responden", "Angka (15 - 100)", "Male / Female / Other", "Profesi / Pekerjaan", "Jam kerja per minggu (0 - 120)", "Jam tidur per hari (0 - 24)", "Low / Moderate / High", "Boleh dikosongkan (akan dihitung otomatis oleh AI/ML AntiBurnout)"]
@@ -371,4 +430,3 @@ class ImportDatasetUseCase:
             pd.DataFrame(guide_data).to_excel(writer, sheet_name="Panduan Pengisian", index=False)
 
         return output.getvalue()
-
