@@ -23,7 +23,7 @@
     </header>
 
     <div class="pma-alert-warning dataset-local-notice" role="note">
-        File dibaca langsung di browser untuk analisis cepat (EDA & Preprocessing). Anda dapat mengunggah file CSV lokal atau memuat data dari database lokal.
+        File CSV dapat diperiksa struktur datanya, diunggah langsung ke database <code>antiburnout_db</code>, serta dianalisis (EDA & Preprocessing).
     </div>
 
     <!-- 1. Pilihan Dataset -->
@@ -34,11 +34,16 @@
             <div class="dataset-file-row">
                 <input id="dataset-file" class="pma-input dataset-file-input" type="file" accept=".csv,text/csv">
                 <span id="dataset-filename" class="dataset-filename" aria-live="polite">Belum ada file dipilih</span>
-                <button id="btn-load-db" type="button" class="pma-btn pma-btn-primary" style="margin-left: auto;">
-                    🗄️ Muat dari Database (antiburnout_db)
-                </button>
+                <div style="margin-left: auto; display: flex; gap: 8px;">
+                    <button id="btn-save-db" type="button" class="pma-btn pma-btn-primary" style="display: none;">
+                        💾 Simpan ke Database
+                    </button>
+                    <button id="btn-load-db" type="button" class="pma-btn">
+                        🗄️ Muat dari Database (antiburnout_db)
+                    </button>
+                </div>
             </div>
-            <p class="dataset-help">Pilih file .csv dari laptop Anda atau klik tombol di atas untuk memuat dataset kuesioner yang tersimpan di sistem.</p>
+            <p class="dataset-help">Pilih file .csv dari komputer Anda, lalu klik "Simpan ke Database" untuk memasukkan datanya ke sistem, atau muat data yang sudah tersimpan.</p>
         </div>
     </section>
 
@@ -59,6 +64,17 @@
                     <div class="dataset-summary-item"><dt>Baris duplikat</dt><dd id="summary-duplicates">—</dd></div>
                     <div class="dataset-summary-item"><dt>Target Burnout_Risk</dt><dd id="summary-target">—</dd></div>
                 </dl>
+                <div class="dataset-save-bar" style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #dcdcdc; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button id="btn-save-db-summary" type="button" class="pma-btn pma-btn-primary" style="font-weight: 600;">
+                            💾 Masukkan Seluruh Data CSV ke Database
+                        </button>
+                        <a id="btn-view-dataset" href="{{ url_for('assessment.dataset_view') }}" target="_blank" class="pma-btn" style="display: none; background: #eaf5ea; border-color: #5bb75b; color: #1e691e;">
+                            📋 Lihat Data di Tabel Assessments &raquo;
+                        </a>
+                    </div>
+                    <span id="db-save-feedback" style="font-size: 12px; font-weight: 500;"></span>
+                </div>
             </div>
         </section>
 

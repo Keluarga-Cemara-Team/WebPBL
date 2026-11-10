@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const previewBody = document.getElementById("preview-body");
     const typesBody = document.getElementById("types-body");
     const btnLoadDb = document.getElementById("btn-load-db");
+    const btnSaveDb = document.getElementById("btn-save-db");
+    const btnSaveDbSummary = document.getElementById("btn-save-db-summary");
+    const btnViewDataset = document.getElementById("btn-view-dataset");
+    const dbSaveFeedback = document.getElementById("db-save-feedback");
 
     // EDA Elements
     const btnEda = document.getElementById("btn-eda");
@@ -835,6 +839,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnLoadDb) {
         btnLoadDb.addEventListener("click", async () => {
             setStatus("Mengambil data responden dari database antiburnout_db...", "loading");
+            if (btnSaveDb) btnSaveDb.style.display = "none";
+            if (btnViewDataset) btnViewDataset.style.display = "inline-block";
+            if (dbSaveFeedback) {
+                dbSaveFeedback.textContent = "Data saat ini dimuat langsung dari tabel database.";
+                dbSaveFeedback.style.color = "#235a81";
+            }
             try {
                 const resp = await fetch("/assessment/export/csv");
                 if (!resp.ok) throw new Error(`Gagal mengambil data dari server (HTTP ${resp.status})`);
@@ -847,10 +857,86 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Fungsi upload dan simpan file CSV ke database
+    const handleUploadToDatabase = async () => {
+        const file = fileInput.files?.[0];
+        if (!file) {
+            alert("Silakan pilih file CSV terlebih dahulu.");
+            return;
+        }
+
+        const confirmSave = confirm(`Apakah Anda yakin ingin memasukkan seluruh baris data dari "${file.name}" ke database?`);
+        if (!confirmSave) return;
+
+        const setButtonsLoading = (loading) => {
+            if (btnSaveDb) {
+                btnSaveDb.disabled = loading;
+                btnSaveDb.textContent = loading ? "⏳ Menyimpan..." : "💾 Simpan ke Database";
+            }
+            if (btnSaveDbSummary) {
+                btnSaveDbSummary.disabled = loading;
+                btnSaveDbSummary.textContent = loading ? "⏳ Memproses Ingestion..." : "💾 Masukkan Seluruh Data CSV ke Database";
+            }
+        };
+
+        setButtonsLoading(true);
+        if (dbSaveFeedback) {
+            dbSaveFeedback.textContent = "Sedang mengunggah dan menyimpan data ke database...";
+            dbSaveFeedback.style.color = "#235a81";
+        }
+        setStatus("Mengunggah file CSV dan menyimpan ke database...", "loading");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const resp = await fetch("/dataset-management/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await resp.json();
+
+            if (!resp.ok || data.status !== "success") {
+                throw new Error(data.message || `Gagal menyimpan data (HTTP ${resp.status})`);
+            }
+
+            setStatus(`✅ ${data.message}`, "success");
+            if (dbSaveFeedback) {
+                dbSaveFeedback.textContent = `✅ ${data.message}`;
+                dbSaveFeedback.style.color = "#2e7d32";
+            }
+            if (btnViewDataset) {
+                btnViewDataset.style.display = "inline-block";
+            }
+            alert(`Sukses!\n${data.message}`);
+        } catch (err) {
+            setStatus(`❌ Gagal menyimpan ke database: ${err.message}`, "error");
+            if (dbSaveFeedback) {
+                dbSaveFeedback.textContent = `❌ ${err.message}`;
+                dbSaveFeedback.style.color = "#c62828";
+            }
+            alert(`Terjadi Kesalahan:\n${err.message}`);
+        } finally {
+            setButtonsLoading(false);
+        }
+    };
+
+    if (btnSaveDb) {
+        btnSaveDb.addEventListener("click", handleUploadToDatabase);
+    }
+    if (btnSaveDbSummary) {
+        btnSaveDbSummary.addEventListener("click", handleUploadToDatabase);
+    }
+
     // Input File CSV dari laptop
     fileInput.addEventListener("change", async () => {
         const file = fileInput.files?.[0];
         results.hidden = true;
+        if (btnSaveDb) btnSaveDb.style.display = "none";
+        if (btnViewDataset) btnViewDataset.style.display = "none";
+        if (dbSaveFeedback) dbSaveFeedback.textContent = "";
+
         if (!file) {
             filename.textContent = "Belum ada file dipilih";
             setStatus("Pilih file CSV atau klik 'Muat dari Database' untuk memulai.");
@@ -866,6 +952,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus("Membaca dan memeriksa CSV di browser…", "loading");
         try {
             renderDataset(file, parseCsv(await file.text()));
+            if (btnSaveDb) btnSaveDb.style.display = "inline-block";
         } catch (error) {
             setStatus(error instanceof Error ? error.message : "CSV tidak dapat dibaca.", "error");
         }

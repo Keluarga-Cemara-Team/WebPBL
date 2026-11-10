@@ -30,6 +30,10 @@ class IAssessmentRepository(ABC):
         """Menghapus data responden berdasarkan ID"""
         pass
 
+    @abstractmethod
+    def bulk_save(self, assessments: List[RespondentAssessment]) -> int:
+        """Menyimpan banyak record responden secara batch/bulk ke storage. Mengembalikan jumlah data tersimpan."""
+        pass
 
 class IUserRepository(ABC):
     """
