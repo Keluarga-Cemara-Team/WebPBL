@@ -141,6 +141,156 @@
   opacity: 0.7;
 }
 
+.training-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+
+.training-presets-label {
+  color: #444;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.training-preset {
+  padding: 7px 12px;
+  border: 1px solid #b8c5d0;
+  border-radius: 4px;
+  background: #fff;
+  color: #235a81;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.training-preset:hover,
+.training-preset[aria-pressed="true"] {
+  border-color: #235a81;
+  background: #eaf2fa;
+}
+
+.training-split-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #d8d8d8;
+  background: #fafafa;
+}
+
+.training-split-controls label {
+  display: grid;
+  gap: 4px;
+  color: #444;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.training-split-controls input {
+  width: 110px;
+  padding: 6px;
+  border: 1px solid #b8c5d0;
+  border-radius: 3px;
+}
+
+.training-split-controls .pma-badge {
+  margin-bottom: 4px;
+}
+
+.training-run-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.training-run-row .pma-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.training-subheading {
+  margin: 20px 0 10px;
+  color: #235a81;
+  font-size: 15px;
+}
+
+.training-class-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.training-class-row {
+  display: grid;
+  grid-template-columns: 100px minmax(100px, 1fr) 100px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.training-class-track {
+  height: 18px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #ececec;
+}
+
+.training-class-fill {
+  height: 100%;
+  background: #235a81;
+}
+
+.training-confusion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.training-confusion-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d8d8d8;
+  background: #fafafa;
+}
+
+.training-confusion-card h4 {
+  margin: 0 0 8px;
+  color: #333;
+  font-size: 14px;
+}
+
+.training-confusion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: center;
+}
+
+.training-confusion-table th,
+.training-confusion-table td {
+  padding: 6px;
+  border: 1px solid #d0d0d0;
+}
+
+.training-confusion-table th {
+  background: #eaf2fa;
+}
+
+.training-confusion-table td {
+  background: #fff;
+  font-family: Consolas, monospace;
+  font-weight: 600;
+}
+
 /* EDA Custom Visual Progress Bars */
 .eda-bar-row {
   display: flex;
@@ -229,6 +379,7 @@
   .eda-bar-track { min-width: 100%; order: 3; }
   .eda-bar-meta { margin-left: auto; }
   .prep-columns-container { grid-template-columns: 1fr; }
+  .training-class-row { grid-template-columns: 75px minmax(80px, 1fr) 75px; }
 }
 
 @media (max-width: 420px) {

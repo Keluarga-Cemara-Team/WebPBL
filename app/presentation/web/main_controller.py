@@ -42,6 +42,27 @@ def upload_dataset():
     except Exception as e:
         return jsonify({"status": "error", "message": f"Terjadi kesalahan saat memproses file: {str(e)}"}), 500
 
+@main_bp.route("/dataset-management/train", methods=["POST"])
+def compare_dataset_models():
+    """Train and compare classifiers for the dataset currently open in the admin page."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"status": "error", "message": "Payload dataset harus berupa JSON object."}), 400
+
+    try:
+        from app.core.use_cases.compare_dataset_models import CompareDatasetModelsUseCase
+
+        result = CompareDatasetModelsUseCase().execute(payload)
+        return jsonify({"status": "success", "data": result}), 200
+    except ValueError as error:
+        return jsonify({"status": "error", "message": str(error)}), 400
+    except Exception:
+        current_app.logger.exception("Gagal melatih dan membandingkan model klasifikasi.")
+        return jsonify({
+            "status": "error",
+            "message": "Terjadi kesalahan saat melatih model. Periksa log server untuk detail.",
+        }), 500
+
 @main_bp.route("/healthz")
 def health_check():
     """Endpoint Pemantauan Kesehatan Sistem (Standar Industri Uptime Monitor)"""
