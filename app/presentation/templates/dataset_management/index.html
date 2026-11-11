@@ -105,7 +105,7 @@
 
         <!-- Tahap Berikutnya: Tombol EDA & Preprocessing -->
         <section class="pma-card dataset-next-steps" aria-labelledby="next-steps-heading">
-            <h2 class="pma-card-header" id="next-steps-heading">Tahap berikutnya</h2>
+            <h2 class="pma-card-header" id="next-steps-heading">Analisis &amp; pemodelan</h2>
             <div class="pma-card-body dataset-action-row">
                 <button id="btn-eda" class="pma-btn pma-btn-primary" type="button">
                     📊 Buka EDA (Exploratory Data Analysis)
@@ -113,7 +113,10 @@
                 <button id="btn-preprocessing" class="pma-btn pma-btn-primary" type="button">
                     ⚙️ Buka Data Preprocessing Pipeline
                 </button>
-                <span id="next-steps-hint" class="dataset-help">Klik tombol di atas untuk membuka analisis eksplorasi atau mengatur pra-pemrosesan data.</span>
+                <button id="btn-train-models" class="pma-btn pma-btn-primary" type="button">
+                    🧠 Atur Pembagian & Bandingkan Model
+                </button>
+                <span id="next-steps-hint" class="dataset-help">Alur disarankan: EDA (opsional) → pilih fitur dan preprocessing → bandingkan model. CSV unduhan hanya keluaran terpisah.</span>
             </div>
         </section>
 
@@ -207,7 +210,7 @@
                     </div>
                     <div class="pma-card-body" style="padding: 10px 14px;">
                         <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
-                            Centang kolom yang ingin dimasukkan ke dalam dataset hasil pra-pemrosesan (otomatis mengecualikan Target, Demografi non-fitur, dan ID):
+                            Centang fitur untuk CSV hasil dan perbandingan model (Target, Demografi non-fitur, dan ID dikecualikan secara default):
                         </div>
                         <div id="prep-columns-grid" class="prep-columns-container">
                             <!-- Checkbox kolom akan di-generate via JavaScript -->
@@ -254,6 +257,10 @@
                                     <option value="drop">Hapus Baris (Drop Row jika Kosong)</option>
                                 </select>
                             </div>
+                            <p class="pma-form-desc">
+                                Pengaturan imputasi juga diterapkan saat membandingkan model. Statistik imputasi dipelajari dari data latih saja.
+                                Pilihan Drop menghapus baris dengan nilai kosong sebelum pembagian data.
+                            </p>
                         </div>
                     </div>
 
@@ -277,7 +284,7 @@
                                     <option value="drop">Hapus Baris yang Memiliki Outlier</option>
                                 </select>
                                 <div class="pma-form-desc" style="margin-top: 6px;">
-                                    Metode Capping menjaga jumlah baris data tetap utuh dengan membatasi nilai ekstrim ke ambang batas [Q1 - 1.5×IQR, Q3 + 1.5×IQR].
+                                    Batas IQR dipelajari hanya dari data latih. Capping membatasi nilai ekstrem; pilihan Hapus hanya menghapus outlier dari data latih, bukan dari data validasi/uji.
                                 </div>
                             </div>
                         </div>
@@ -296,9 +303,9 @@
                             <div style="margin-bottom: 10px;">
                                 <label class="pma-form-label" for="prep-opt-encoding">Metode Encoding:</label>
                                 <select id="prep-opt-encoding" class="pma-select" style="max-width: 100%; margin-top: 4px;">
-                                    <option value="label" selected>Label Encoding (0, 1, 2... - Rekomendasi ML)</option>
-                                    <option value="onehot">One-Hot Encoding (Kolom Biner)</option>
-                                    <option value="none">Biarkan Teks Asli (Tanpa Encoding)</option>
+                                    <option value="label">Label Encoding (0, 1, 2...)</option>
+                                    <option value="onehot" selected>One-Hot Encoding (Rekomendasi fitur kategorikal)</option>
+                                    <option value="none">Biarkan Teks Asli (CSV saja; model memerlukan encoding)</option>
                                 </select>
                             </div>
 
@@ -318,30 +325,116 @@
                             <div style="margin-bottom: 10px;">
                                 <label class="pma-form-label" for="prep-opt-scaling">Metode Penskalaan:</label>
                                 <select id="prep-opt-scaling" class="pma-select" style="max-width: 100%; margin-top: 4px;">
-                                    <option value="none" selected>Tanpa Standarisasi (Nilai Asli - Default Random Forest / XGBoost)</option>
+                                    <option value="none">Tanpa Standarisasi (Nilai Asli)</option>
                                     <option value="minmax">Min-Max Normalization (Rentang 0.0 - 1.0 - Rekomendasi Neural Net / KNN)</option>
-                                    <option value="standard">StandardScaler / Z-Score (Mean = 0, Std = 1 - Rekomendasi SVM / Regresi)</option>
+                                    <option value="standard" selected>StandardScaler / Z-Score (Rekomendasi perbandingan model)</option>
                                 </select>
                             </div>
 
                             <div id="prep-scaling-desc" style="font-size: 12px; color: #555; background: #fdfdfd; border: 1px solid #e0e0e0; padding: 8px; border-radius: 2px;">
-                                Menyesuaikan skala kolom numerik agar fitur dengan rentang besar (misal jam kerja) seimbang dengan fitur lainnya.
+                                Pilihan encoding dan scaling diterapkan di pipeline per model; parameternya dipelajari hanya dari data latih dan diulang pada setiap fold validasi silang. Scaling penting untuk KNN, SVM, dan Logistic Regression.
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- LANGKAH 6: EKSEKUSI PIPELINE & DOWNLOAD DATASET BERSIH -->
+                <!-- EKSPOR DATASET BERSIH ATAU LANJUT KE PERBANDINGAN -->
                 <div style="background: #eaf2fa; border: 1px solid #a4c2e0; border-left: 5px solid #235a81; padding: 14px 18px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                     <div>
-                        <strong style="color: #173b54; font-size: 14px;">⚡ Eksekusi Pipeline Pra-pemrosesan Data</strong>
+                        <strong style="color: #173b54; font-size: 14px;">Gunakan pengaturan preprocessing</strong>
                         <div id="prep-summary-status" style="font-size: 12px; color: #555; margin-top: 3px;">
-                            Siap memproses sesuai konfigurasi di atas dan mengekspor hasilnya ke CSV.
+                            Pengaturan diterapkan saat Anda menjalankan perbandingan model. Unduh CSV hanya jika membutuhkan file hasil terpisah.
                         </div>
                     </div>
-                    <button id="btn-download-cleaned" type="button" class="pma-btn pma-btn-primary" style="padding: 8px 16px; font-size: 13px; font-weight: bold;">
+                    <div class="dataset-action-row">
+                    <button id="btn-go-training" type="button" class="pma-btn pma-btn-primary" style="padding: 8px 16px; font-size: 13px; font-weight: bold;">
+                        Lanjut ke pembagian model
+                    </button>
+                    <button id="btn-download-cleaned" type="button" class="pma-btn" style="padding: 8px 16px; font-size: 13px; font-weight: bold;">
                         📥 Proses & Unduh Dataset Bersih (.CSV)
                     </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-training" class="pma-card" hidden aria-labelledby="training-heading">
+            <h2 class="pma-card-header" id="training-heading">7. Pelatihan &amp; Perbandingan Model</h2>
+            <div class="pma-card-body">
+                <p class="dataset-help">
+                    Pilih pembagian data. Validasi holdout memakai bagian validasi terpisah; opsi 80/20 memakai
+                    validasi silang pada data latih. Data uji hanya dipakai untuk evaluasi akhir kandidat teratas.
+                    Pengaturan preprocessing di panel atas juga diterapkan pada pelatihan, tanpa mempelajari transformasi
+                    dari data validasi/uji. Hasil evaluasi ini hanya untuk perbandingan; model tidak disimpan.
+                </p>
+                <div class="training-presets" role="group" aria-label="Template pembagian data">
+                    <span class="training-presets-label">Pilih template:</span>
+                    <button class="training-preset pma-btn" type="button" data-train="70" data-validation="15" data-test="15" aria-pressed="false">70 / 15 / 15</button>
+                    <button class="training-preset pma-btn" type="button" data-train="60" data-validation="20" data-test="20" aria-pressed="false">60 / 20 / 20</button>
+                    <button class="training-preset pma-btn" type="button" data-strategy="cross_validation" data-train="80" data-validation="0" data-test="20" aria-pressed="false">80 / 20 + CV</button>
+                </div>
+                <div class="training-split-controls" aria-label="Pengaturan pembagian data">
+                    <label>
+                        Data latih (%)
+                        <input id="training-train-percent" type="number" min="50" max="90" step="1" placeholder="50–90">
+                    </label>
+                    <label>
+                        Data validasi (%)
+                        <input id="training-validation-percent" type="number" min="0" max="45" step="1" placeholder="5–45">
+                    </label>
+                    <label>
+                        Data uji (%)
+                        <input id="training-test-percent" type="number" min="5" max="45" step="1" placeholder="5–45">
+                    </label>
+                    <span id="training-percent-total" class="pma-badge" aria-live="polite">Pilih atau isi pembagian</span>
+                </div>
+                <div class="training-run-row">
+                    <button id="btn-run-training" class="pma-btn pma-btn-primary" type="button" disabled>
+                        ▶ Terapkan Pengaturan &amp; Bandingkan Model
+                    </button>
+                    <span class="dataset-help">Hasil perbandingan akan muncul di bawah setelah proses selesai.</span>
+                </div>
+                <div id="training-status" class="dataset-status" role="status" aria-live="polite">
+                    Pilih salah satu template atau isi persentase sendiri. Hasil belum ditampilkan sebelum tombol dijalankan.
+                </div>
+                <div id="training-results" hidden>
+                    <dl class="dataset-summary-grid">
+                        <div class="dataset-summary-item"><dt>Baris diterima</dt><dd id="training-rows-received">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Baris dipakai</dt><dd id="training-rows-used">—</dd></div>
+                        <div class="dataset-summary-item"><dt id="training-split-label">Baris latih / validasi / uji</dt><dd id="training-split">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Label tidak valid dikecualikan</dt><dd id="training-invalid-labels">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Duplikat dihapus</dt><dd id="training-duplicates">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Baris fitur kosong dihapus</dt><dd id="training-missing-removed">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Outlier dihapus dari data latih akhir</dt><dd id="training-outliers-removed">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Preprocessing yang diterapkan</dt><dd id="training-preprocessing">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Kandidat teratas (validasi Macro F1)</dt><dd id="training-top-model">—</dd></div>
+                        <div class="dataset-summary-item"><dt>Fitur yang digunakan</dt><dd id="training-feature-list">—</dd></div>
+                    </dl>
+
+                    <h3 class="training-subheading">Distribusi kelas pada dataset yang dipakai</h3>
+                    <div id="training-class-chart" class="training-class-chart" aria-label="Grafik distribusi kelas"></div>
+
+                    <h3 class="training-subheading">Perbandingan kandidat pada data validasi</h3>
+                    <div class="pma-table-container dataset-table-container">
+                        <table class="pma-table training-metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th id="training-accuracy-heading">Akurasi validasi</th>
+                                    <th>Precision Macro</th>
+                                    <th>Recall Macro</th>
+                                    <th id="training-f1-heading">F1 Macro validasi</th>
+                                    <th>Waktu latih (detik)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="training-metrics-body"></tbody>
+                        </table>
+                    </div>
+
+                    <h3 class="training-subheading">Evaluasi akhir kandidat teratas pada data uji</h3>
+                    <p id="training-final-test-summary" class="dataset-help"></p>
+                    <h3 class="training-subheading">Confusion matrix data uji (baris: label aktual, kolom: prediksi)</h3>
+                    <div id="training-confusion-matrices" class="training-confusion-grid"></div>
                 </div>
             </div>
         </section>

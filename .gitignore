@@ -11,4 +11,7 @@ venv/
 .env
 *firebase-adminsdk*.json
 serviceAccountKey.json
+# Local database files
 *.db
+*.sqlite
+*.sqlite3

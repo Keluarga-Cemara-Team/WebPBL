@@ -30,6 +30,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnColRecommend = document.getElementById("btn-col-recommend");
     const prepSelectedColsCount = document.getElementById("prep-selected-cols-count");
     const prepTotalColsCount = document.getElementById("prep-total-cols-count");
+    const btnOpenTraining = document.getElementById("btn-train-models");
+    const btnRunTraining = document.getElementById("btn-run-training");
+    const sectionTraining = document.getElementById("section-training");
+    const trainingStatus = document.getElementById("training-status");
+    const trainingResults = document.getElementById("training-results");
+    const trainingTrainPercent = document.getElementById("training-train-percent");
+    const trainingValidationPercent = document.getElementById("training-validation-percent");
+    const trainingTestPercent = document.getElementById("training-test-percent");
+    const trainingPercentTotal = document.getElementById("training-percent-total");
+    const trainingPresets = Array.from(document.querySelectorAll(".training-preset"));
+    const trainingClassChart = document.getElementById("training-class-chart");
+    const trainingMetricsBody = document.getElementById("training-metrics-body");
+    const trainingConfusionMatrices = document.getElementById("training-confusion-matrices");
 
     const prepOptDedup = document.getElementById("prep-opt-dedup");
     const prepDupsBadge = document.getElementById("prep-dups-badge");
@@ -42,9 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const prepOptScaling = document.getElementById("prep-opt-scaling");
     const prepSummaryStatus = document.getElementById("prep-summary-status");
     const btnDownloadCleaned = document.getElementById("btn-download-cleaned");
+    const btnGoTraining = document.getElementById("btn-go-training");
 
     // State cache
     let currentDataset = null;
+    let trainingValidationMethod = "holdout";
     let detectedOutliersInfo = { totalOutliers: 0, columnsWithOutliers: 0, columnBounds: {} };
 
     if (!fileInput || !status || !results) return;
@@ -237,6 +252,12 @@ document.addEventListener("DOMContentLoaded", () => {
             duplicateRows,
             totalMissing
         };
+        if (sectionTraining) sectionTraining.hidden = true;
+        if (trainingResults) trainingResults.hidden = true;
+        if (trainingStatus) {
+            trainingStatus.textContent = "Muat dataset berlabel lengkap, pilih fitur, lalu jalankan perbandingan.";
+            delete trainingStatus.dataset.state;
+        }
 
         // Aktifkan tombol
         if (btnEda) btnEda.disabled = false;
@@ -508,6 +529,319 @@ document.addEventListener("DOMContentLoaded", () => {
         prepTotalColsCount.textContent = String(checkboxes.filter((checkbox) => !checkbox.disabled).length);
     };
 
+    const getTrainingSplitPercentages = () => {
+        const values = [
+            Number(trainingTrainPercent.value),
+            Number(trainingValidationPercent.value),
+            Number(trainingTestPercent.value)
+        ];
+        if (values.some((value) => !Number.isInteger(value))) return null;
+        const [train, validation, test] = values;
+        if (trainingValidationMethod === "cross_validation") {
+            if (train < 50 || train > 95 || validation !== 0 || test < 5 || test > 50) {
+                return null;
+            }
+            return train + test === 100 ? { train, validation, test } : null;
+        }
+        if (train < 50 || train > 90 || validation < 5 || validation > 45 || test < 5 || test > 45) {
+            return null;
+        }
+        return train + validation + test === 100 ? { train, validation, test } : null;
+    };
+
+    const updateTrainingSplitTotal = () => {
+        const validationIsCrossValidation = trainingValidationMethod === "cross_validation";
+        trainingValidationPercent.disabled = validationIsCrossValidation;
+        trainingValidationPercent.placeholder = validationIsCrossValidation ? "CV" : "5–45";
+        const values = [
+            Number(trainingTrainPercent.value),
+            Number(trainingValidationPercent.value),
+            Number(trainingTestPercent.value)
+        ];
+        if ([trainingTrainPercent, trainingValidationPercent, trainingTestPercent]
+            .every((input) => input.value === "")) {
+            trainingPercentTotal.textContent = "Pilih atau isi pembagian";
+            trainingPercentTotal.className = "pma-badge";
+            btnRunTraining.disabled = true;
+            return;
+        }
+        const total = validationIsCrossValidation
+            ? values[0] + values[2]
+            : values.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+        const valid = getTrainingSplitPercentages() !== null;
+        const totalLabel = validationIsCrossValidation ? "Total latih + uji" : "Total";
+        const requirement = validationIsCrossValidation
+            ? " — latih + uji harus 100% (latih ≥50%, uji ≥5%)"
+            : " — harus 100% (latih ≥50%, validasi/uji ≥5%)";
+        trainingPercentTotal.textContent = `${totalLabel}: ${total}%${valid ? "" : requirement}`;
+        trainingPercentTotal.className = valid ? "pma-badge pma-badge-success" : "pma-badge pma-badge-warning";
+        btnRunTraining.disabled = !valid;
+    };
+
+    const renderTrainingResults = (data) => {
+        const validationLabel = data.validation_method === "cross_validation"
+            ? `validasi silang ${data.validation_folds}-fold`
+            : "validasi";
+        document.getElementById("training-rows-received").textContent = String(data.rows_received);
+        document.getElementById("training-rows-used").textContent = String(data.rows_used);
+        const trainingSplitLabel = document.getElementById("training-split-label");
+        if (data.validation_method === "cross_validation") {
+            trainingSplitLabel.textContent = "Baris latih / validasi silang / uji";
+            document.getElementById("training-split").textContent =
+                `${data.train_rows} / ${data.validation_folds}-fold CV / ${data.test_rows} baris ` +
+                `(target latih/uji ${data.split_percentages.train}/${data.split_percentages.test}%; ` +
+                `aktual ${data.actual_split_percentages.train}/${data.actual_split_percentages.test}%)`;
+        } else {
+            trainingSplitLabel.textContent = "Baris latih / validasi / uji";
+            document.getElementById("training-split").textContent =
+                `${data.train_rows} / ${data.validation_rows} / ${data.test_rows} baris ` +
+                `(target ${data.split_percentages.train}/${data.split_percentages.validation}/${data.split_percentages.test}%; ` +
+                `aktual ${data.actual_split_percentages.train}/${data.actual_split_percentages.validation}/${data.actual_split_percentages.test}%)`;
+        }
+        document.getElementById("training-invalid-labels").textContent = String(data.invalid_label_rows_excluded);
+        document.getElementById("training-duplicates").textContent = String(data.duplicate_rows_removed);
+        document.getElementById("training-missing-removed").textContent =
+            String(data.missing_feature_rows_removed);
+        document.getElementById("training-outliers-removed").textContent =
+            String(data.final_training_outliers_removed);
+        const preprocessingLabels = {
+            numeric_imputation: {
+                mean: "imputasi numerik: mean",
+                median: "imputasi numerik: median",
+                mode: "imputasi numerik: modus",
+                zero: "imputasi numerik: 0",
+                drop: "nilai kosong: hapus baris"
+            },
+            categorical_imputation: {
+                mode: "imputasi kategori: modus",
+                unknown: 'imputasi kategori: "Unknown"',
+                drop: "nilai kosong: hapus baris"
+            },
+            outlier_handling: {
+                none: "outlier: dibiarkan",
+                iqr_cap: "outlier: IQR capping",
+                drop: "outlier: dihapus dari data latih"
+            },
+            encoding: {
+                label: "encoding: label",
+                onehot: "encoding: one-hot",
+                none: "tanpa encoding"
+            },
+            scaling: {
+                none: "tanpa scaling",
+                minmax: "scaling: Min-Max",
+                standard: "scaling: StandardScaler"
+            }
+        };
+        document.getElementById("training-preprocessing").textContent = [
+            preprocessingLabels.numeric_imputation[data.preprocessing.numeric_imputation],
+            preprocessingLabels.categorical_imputation[data.preprocessing.categorical_imputation],
+            preprocessingLabels.outlier_handling[data.preprocessing.outlier_handling],
+            preprocessingLabels.encoding[data.preprocessing.encoding],
+            preprocessingLabels.scaling[data.preprocessing.scaling]
+        ].join("; ");
+        document.getElementById("training-top-model").textContent = data.top_evaluated_model;
+        document.getElementById("training-feature-list").textContent = data.feature_columns.join(", ");
+        document.getElementById("training-accuracy-heading").textContent = `Akurasi ${validationLabel}`;
+        document.getElementById("training-f1-heading").textContent = `F1 Macro ${validationLabel}`;
+
+        const classCounts = data.class_distribution;
+        const largestClass = Math.max(...data.labels.map((label) => classCounts[label]), 1);
+        trainingClassChart.replaceChildren(...data.labels.map((label) => {
+            const row = document.createElement("div");
+            row.className = "training-class-row";
+            const labelCell = makeCell("span", label);
+            const track = document.createElement("div");
+            track.className = "training-class-track";
+            const fill = document.createElement("div");
+            fill.className = "training-class-fill";
+            fill.style.width = `${(classCounts[label] / largestClass) * 100}%`;
+            track.appendChild(fill);
+            const countCell = makeCell("span", `${classCounts[label]} baris`);
+            row.append(labelCell, track, countCell);
+            return row;
+        }));
+
+        trainingMetricsBody.replaceChildren(...data.results.map((result) => {
+            const row = document.createElement("tr");
+            const modelCell = makeCell("th", result.model_name, "row");
+            if (result.model_name === data.top_evaluated_model) {
+                modelCell.appendChild(document.createTextNode(" (F1 tertinggi)"));
+            }
+            row.append(
+                modelCell,
+                makeCell("td", `${(result.validation_accuracy * 100).toFixed(2)}%`),
+                makeCell("td", result.validation_precision_macro.toFixed(4)),
+                makeCell("td", result.validation_recall_macro.toFixed(4)),
+                makeCell("td", result.validation_f1_macro.toFixed(4)),
+                makeCell("td", result.training_time_seconds.toFixed(4))
+            );
+            return row;
+        }));
+
+        const finalMetrics = data.final_test_metrics;
+        document.getElementById("training-final-test-summary").textContent =
+            `${data.final_test_model} — akurasi ${(finalMetrics.accuracy * 100).toFixed(2)}%, ` +
+            `precision macro ${finalMetrics.precision_macro.toFixed(4)}, recall macro ${finalMetrics.recall_macro.toFixed(4)}, ` +
+            `F1 macro ${finalMetrics.f1_macro.toFixed(4)} pada ${data.test_rows} baris uji.`;
+
+        const card = document.createElement("section");
+        card.className = "training-confusion-card";
+        const title = document.createElement("h4");
+        title.textContent = data.final_test_model;
+        const table = document.createElement("table");
+        table.className = "training-confusion-table";
+        const head = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        headerRow.append(makeCell("th", "Aktual \\ Prediksi"));
+        data.labels.forEach((label) => headerRow.appendChild(makeCell("th", label, "col")));
+        head.appendChild(headerRow);
+        const body = document.createElement("tbody");
+        data.labels.forEach((label, rowIndex) => {
+            const row = document.createElement("tr");
+            row.appendChild(makeCell("th", label, "row"));
+            finalMetrics.confusion_matrix[rowIndex].forEach((count) => {
+                row.appendChild(makeCell("td", String(count)));
+            });
+            body.appendChild(row);
+        });
+        table.append(head, body);
+        card.append(title, table);
+        trainingConfusionMatrices.replaceChildren(card);
+
+        trainingResults.hidden = false;
+        trainingStatus.textContent =
+            `Evaluasi selesai. Preprocessing dari panel diterapkan; kandidat dipilih berdasarkan ${validationLabel}. ` +
+            "Data uji dipakai sekali untuk evaluasi akhir dan tidak ikut mempelajari preprocessing. Model tidak disimpan.";
+        trainingStatus.dataset.state = "success";
+    };
+
+    const trainAndCompareModels = async () => {
+        if (!currentDataset) return;
+        sectionTraining.hidden = false;
+        sectionTraining.scrollIntoView({ behavior: "smooth", block: "start" });
+        trainingResults.hidden = true;
+
+        if (currentDataset.targetColumnIndex === -1) {
+            trainingStatus.textContent = "Kolom Burnout_Risk atau Burnout_Level tidak ditemukan.";
+            trainingStatus.dataset.state = "error";
+            return;
+        }
+
+        const featureColumns = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check:checked"))
+            .map((checkbox) => {
+                const index = Number(checkbox.dataset.colIdx);
+                return { header: currentDataset.headers[index], index };
+            })
+            .filter(({ header, index }) => !isTargetColumn(
+                header, index, currentDataset.targetColumnIndex
+            ))
+            .map(({ header }) => header);
+        if (!featureColumns.length) {
+            trainingStatus.textContent = "Pilih minimal satu fitur sebelum menjalankan pelatihan.";
+            trainingStatus.dataset.state = "error";
+            return;
+        }
+        const splitPercentages = getTrainingSplitPercentages();
+        if (!splitPercentages) {
+            trainingStatus.textContent = trainingValidationMethod === "cross_validation"
+                ? "Pembagian tidak valid: data latih minimal 50%, data uji minimal 5%, dan total latih + uji harus tepat 100%."
+                : "Persentase tidak valid: data latih minimal 50%, validasi dan uji minimal 5%, serta total harus tepat 100%.";
+            trainingStatus.dataset.state = "error";
+            return;
+        }
+        const trainingColumnIndices = featureColumns.map((column) =>
+            currentDataset.headers.indexOf(column)
+        );
+        trainingColumnIndices.push(currentDataset.targetColumnIndex);
+        const trainingHeaders = trainingColumnIndices.map((index) => currentDataset.headers[index]);
+        const trainingRows = currentDataset.dataRows.map((row) =>
+            trainingColumnIndices.map((index) => row[index])
+        );
+
+        btnRunTraining.disabled = true;
+        btnRunTraining.textContent = "⏳ Melatih dan membandingkan...";
+        trainingStatus.textContent = trainingValidationMethod === "cross_validation"
+            ? `Membagi data latih/uji ${splitPercentages.train}/${splitPercentages.test} dan mengevaluasi lima kandidat dengan validasi silang.`
+            : `Membagi data ${splitPercentages.train}/${splitPercentages.validation}/${splitPercentages.test} (latih/validasi/uji) dan mengevaluasi lima kandidat.`;
+        trainingStatus.dataset.state = "loading";
+
+        try {
+            const response = await fetch("/dataset-management/train", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    headers: trainingHeaders,
+                    rows: trainingRows,
+                    feature_columns: featureColumns,
+                    deduplicate: prepOptDedup.checked,
+                    train_percent: splitPercentages.train,
+                    validation_percent: splitPercentages.validation,
+                    test_percent: splitPercentages.test,
+                    validation_method: trainingValidationMethod,
+                    preprocessing: {
+                        numeric_imputation: prepOptImputeNum.value,
+                        categorical_imputation: prepOptImputeCat.value,
+                        outlier_handling: prepOptOutlier.value,
+                        encoding: prepOptEncoding.value,
+                        scaling: prepOptScaling.value
+                    }
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || result.status !== "success") {
+                throw new Error(result.message || `Pelatihan gagal (HTTP ${response.status}).`);
+            }
+            renderTrainingResults(result.data);
+        } catch (error) {
+            trainingStatus.textContent = error instanceof Error
+                ? `Gagal melatih model: ${error.message}`
+                : "Gagal melatih model karena terjadi kesalahan.";
+            trainingStatus.dataset.state = "error";
+        } finally {
+            btnRunTraining.textContent = "▶ Terapkan Pembagian & Bandingkan Model";
+            btnRunTraining.disabled = getTrainingSplitPercentages() === null;
+        }
+    };
+
+    if (btnOpenTraining) {
+        btnOpenTraining.addEventListener("click", () => {
+            sectionTraining.hidden = false;
+            sectionTraining.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (trainingResults.hidden) {
+                trainingStatus.textContent = currentDataset
+                    ? "Pilih template pembagian atau isi persentase sendiri, lalu jalankan perbandingan."
+                    : "Muat dataset terlebih dahulu, lalu pilih template pembagian untuk menjalankan perbandingan.";
+                delete trainingStatus.dataset.state;
+            }
+        });
+    }
+    if (btnRunTraining) {
+        btnRunTraining.addEventListener("click", trainAndCompareModels);
+    }
+    trainingPresets.forEach((preset) => {
+        preset.addEventListener("click", () => {
+            trainingValidationMethod = preset.dataset.strategy || "holdout";
+            trainingTrainPercent.value = preset.dataset.train;
+            trainingValidationPercent.value = preset.dataset.validation;
+            trainingTestPercent.value = preset.dataset.test;
+            trainingPresets.forEach((option) => {
+                option.setAttribute("aria-pressed", String(option === preset));
+            });
+            updateTrainingSplitTotal();
+        });
+    });
+    [trainingTrainPercent, trainingValidationPercent, trainingTestPercent].forEach((input) => {
+        input.addEventListener("input", () => {
+            if (input === trainingValidationPercent) {
+                trainingValidationMethod = "holdout";
+            }
+            trainingPresets.forEach((preset) => preset.setAttribute("aria-pressed", "false"));
+            updateTrainingSplitTotal();
+        });
+    });
+    updateTrainingSplitTotal();
+
     // Render Preview Mapping Encoding
     const renderEncodingPreview = () => {
         if (!currentDataset) return;
@@ -609,6 +943,22 @@ document.addEventListener("DOMContentLoaded", () => {
         btnPrep.addEventListener("click", () => {
             sectionPrep.hidden = false;
             sectionPrep.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+    }
+    if (btnGoTraining) {
+        btnGoTraining.addEventListener("click", () => {
+            sectionTraining.hidden = false;
+            sectionTraining.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (trainingResults.hidden) {
+                trainingStatus.textContent =
+                    "Pilih pembagian data, lalu tekan “Terapkan Pengaturan & Bandingkan Model”. " +
+                    "Pengaturan preprocessing yang dipilih akan ikut digunakan.";
+                delete trainingStatus.dataset.state;
+            } else {
+                trainingStatus.textContent =
+                    "Pengaturan preprocessing terbaru akan digunakan saat Anda menjalankan perbandingan kembali.";
+                trainingStatus.dataset.state = "loading";
+            }
         });
     }
 
