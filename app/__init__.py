@@ -118,6 +118,10 @@ def create_app(config_name="development"):
         if endpoint == "main.health_check" or path == "/healthz":
             return None
 
+        # Bebaskan endpoint API publik untuk Mobile App & Client External
+        if path.startswith("/assessment/api") or endpoint == "assessment.api_predict":
+            return None
+
         # Periksa apakah sesi login administrator aktif
         if not session.get("logged_in"):
             # Jika akses via browser, arahkan ke login dengan parameter next URL

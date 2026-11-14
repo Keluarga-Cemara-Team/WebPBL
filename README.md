@@ -214,12 +214,17 @@ Di dalam `app/__init__.py`, sistem secara otomatis mendeteksi ketersediaan kunci
 4. **Tangkap parameter di Controller** (`app/presentation/web/assessment_controller.py`).
 
 ### 2. Menghubungkan ke API Asli MachineLearningPBL
-1. Buka file `.env`.
-2. Arahkan variabel `ML_API_URL` ke endpoint ML tim Anda:
+1. Buka file `.env` (atau gunakan nilai default di `app/config.py`).
+2. Arahkan variabel `ML_API_URL` ke endpoint microservice MachineLearningPBL:
    ```env
    ML_API_URL=http://127.0.0.1:8000/predict
    ```
-3. Jika modul ML belum siap, fitur *fallback simulation* otomatis aktif memberikan kalkulasi perkiraan.
+3. WebPBL menyediakan endpoint gateway publik untuk Flutter Mobile di:
+   ```http
+   POST /assessment/api/predict
+   ```
+   *(Endpoint ini dibebaskan dari proteksi sesi admin portal agar Flutter Mobile dapat mengirimkan survei kapan saja).*
+4. Jika microservice ML di port 8000 offline, fitur *fallback heuristic correlation* otomatis aktif sehingga aplikasi tidak akan crash.
 
 ### 3. Mengganti Database Engine (Firestore / SQLite / MySQL)
 Karena arsitektur menggunakan *Repository Pattern*, Anda hanya perlu membuat satu adapter repository baru yang mengimplementasikan `IAssessmentRepository`, lalu menyuntikkannya (*Dependency Injection*) pada `app/__init__.py`. Lapisan Controller dan Template Jinja2 tidak perlu diubah sama sekali.
@@ -235,21 +240,35 @@ Karena arsitektur menggunakan *Repository Pattern*, Anda hanya perlu membuat sat
 ### Format JSON yang Dikirim ke `MachineLearningPBL`:
 ```json
 {
-  "work_hours": 9.5,
-  "sleep_hours": 6.0,
-  "stress_level": 4,
-  "workload_feeling": 4,
-  "physical_fatigue": 3
+  "work_hours_per_week": 55.0,
+  "sleep_hours": 4.5,
+  "sleep_quality": "Poor",
+  "stress_level": "High",
+  "screen_time_hours": 10.0,
+  "coffee_cups_per_day": 4,
+  "meditation_minutes": 5.0,
+  "mood_score": 30.0,
+  "chronic_stress": "Yes"
 }
 ```
 
-### Format JSON yang Diharapkan Kembali dari `MachineLearningPBL`:
+### Format JSON yang Diterima Kembali dari `MachineLearningPBL` (Champion Model: GaussianNB):
 ```json
 {
-  "burnout_score": 78.5,
-  "burnout_level": "Tinggi (High Risk / Burnout)",
+  "status": "success",
+  "is_simulation": false,
+  "model_name": "Gaussian Naive Bayes (GaussianNB)",
+  "burnout_score": 98.0,
+  "burnout_risk": "High",
+  "burnout_level": "High (Gaussian Naive Bayes (GaussianNB))",
+  "mental_health_status": "Critical",
+  "ai_wellness_recommendation": "Tingkat risiko burnout tinggi terdeteksi oleh AI. Segera kurangi jam kerja/belajar, ambil jeda pemulihan, dan jadwalkan sesi konseling dengan profesional.",
   "badge_class": "danger",
-  "recommendation": "Tingkat stres dan jam kerja tinggi terdeteksi. Segera lakukan evaluasi beban kerja."
+  "probabilities": {
+    "low": 0.0,
+    "moderate": 0.0001,
+    "high": 0.9999
+  }
 }
 ```
 
