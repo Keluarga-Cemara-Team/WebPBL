@@ -166,18 +166,29 @@ def download_template():
         headers={"Content-Disposition": "attachment;filename=antiburnout_dataset_template.xlsx"}
     )
 
-@assessment_bp.route("/api/predict", methods=["POST"])
+@assessment_bp.route("/api/predict", methods=["POST", "OPTIONS"])
 def api_predict():
     """API endpoint JSON jika dipanggil dari aplikasi luar atau AJAX"""
+    if request.method == "OPTIONS":
+        resp = Response()
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
+        return resp
+
     submit_uc, _, _, _ = _get_use_cases()
     payload = request.get_json(silent=True) or request.form.to_dict()
 
     try:
         saved_entity, ml_result = submit_uc.execute(payload)
-        return jsonify({
+        resp = jsonify({
             "status": "success",
             "data": saved_entity.to_dict(),
             "evaluation": ml_result
-        }), 201
+        })
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp, 201
     except ValueError as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+        resp = jsonify({"status": "error", "message": str(e)})
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp, 400
