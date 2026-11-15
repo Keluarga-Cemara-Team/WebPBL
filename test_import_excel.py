@@ -30,6 +30,12 @@ class MockAssessmentRepository(IAssessmentRepository):
             return True
         return False
 
+    def update(self, assessment: RespondentAssessment) -> bool:
+        if assessment.id in self.records:
+            self.records[assessment.id] = assessment
+            return True
+        return False
+
     def bulk_save(self, assessments):
         for a in assessments:
             self.save(a)
