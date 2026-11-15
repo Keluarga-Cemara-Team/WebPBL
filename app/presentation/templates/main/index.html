@@ -2,21 +2,209 @@
 
 {% block title %}Admin Console &bull; AntiBurnout phpMyAdmin{% endblock %}
 
+{% block extra_head %}
+<style>
+/* Dashboard KPI Cards */
+.pma-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.pma-kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--pma-card-border, #c8c8c8);
+    border-radius: 3px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.pma-kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.pma-kpi-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.pma-kpi-icon {
+    font-size: 18px;
+}
+.pma-kpi-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: monospace;
+    color: #235a81;
+    line-height: 1.2;
+}
+.pma-kpi-desc {
+    font-size: 11px;
+    color: #777;
+    margin-top: 4px;
+}
+
+/* Chart Canvas Wrapper */
+.chart-container-card {
+    position: relative;
+    height: 240px;
+    width: 100%;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- phpMyAdmin SQL Execution Banner -->
 <div class="pma-sql-box">
     <div>
-        <code>SELECT 'ADMIN_INPUT_PORTAL' AS role, 'antiburnout_db' AS database, COUNT(*) AS total_records FROM `assessments`;</code>
+        <code>SELECT 'ADMIN_INPUT_PORTAL' AS role, 'antiburnout_db' AS database, {{ analytics.total_respondents or 0 }} AS total_records FROM `assessments`;</code>
         <div class="pma-sql-meta">
-            Portal Khusus Administrator &bull; Penginputan & Kurasi Dataset Primer &bull; Status: Terhubung ke SQLite Engine
+            Portal Administrator AntiBurnout &bull; Penginputan & Kurasi Dataset Primer &bull; Status: Terhubung ke {{ db_engine }}
         </div>
     </div>
-    <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
-        🔍 Browse Table
-    </a>
+    <div style="display: flex; gap: 6px;">
+        <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
+            ➕ Input Responden
+        </a>
+        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
+            🔍 Browse Table
+        </a>
+    </div>
 </div>
 
-<!-- phpMyAdmin 4-Panel Grid Khusus Admin Input -->
+<!-- =========================================================================
+     1. KARTU METRIK UTAMA (QUICK KPI CARDS)
+     ========================================================================= -->
+<div class="pma-kpi-grid">
+    <!-- KPI 1: Total Responden -->
+    <div class="pma-kpi-card" style="border-left: 4px solid #235a81;">
+        <div class="pma-kpi-header">
+            <span class="pma-kpi-title">Total Responden</span>
+            <span class="pma-kpi-icon">👥</span>
+        </div>
+        <div class="pma-kpi-value">{{ analytics.total_respondents or 0 }}</div>
+        <div class="pma-kpi-desc">Rekaman data primer di database</div>
+    </div>
+
+    <!-- KPI 2: Rata-rata Skor Burnout -->
+    <div class="pma-kpi-card" style="border-left: 4px solid {% if (analytics.avg_burnout_score or 0) > 70 %}#d9534f{% elif (analytics.avg_burnout_score or 0) > 40 %}#f0ad4e{% else %}#5cb85c{% endif %};">
+        <div class="pma-kpi-header">
+            <span class="pma-kpi-title">Rata-rata Skor Burnout</span>
+            <span class="pma-kpi-icon">🔥</span>
+        </div>
+        <div class="pma-kpi-value" style="color: {% if (analytics.avg_burnout_score or 0) > 70 %}#d9534f{% elif (analytics.avg_burnout_score or 0) > 40 %}#8a6d3b{% else %}#3c763d{% endif %};">
+            {{ analytics.avg_burnout_score or 0 }}<span style="font-size: 16px;">%</span>
+        </div>
+        <div class="pma-kpi-desc">Tingkat kelelahan kerja sistem</div>
+    </div>
+
+    <!-- KPI 3: Responden Risiko Tinggi -->
+    <div class="pma-kpi-card" style="border-left: 4px solid #d9534f;">
+        <div class="pma-kpi-header">
+            <span class="pma-kpi-title">Risiko Tinggi (High Risk)</span>
+            <span class="pma-kpi-icon">⚠️</span>
+        </div>
+        <div class="pma-kpi-value" style="color: #d9534f;">
+            {{ analytics.high_risk_count or 0 }}
+            <span style="font-size: 13px; font-weight: normal; color: #777;">({{ analytics.high_risk_percentage or 0 }}%)</span>
+        </div>
+        <div class="pma-kpi-desc">Responden butuh intervensi segera</div>
+    </div>
+
+    <!-- KPI 4: Rata-rata Jam Kerja Mingguan -->
+    <div class="pma-kpi-card" style="border-left: 4px solid #5bc0de;">
+        <div class="pma-kpi-header">
+            <span class="pma-kpi-title">Rerata Jam Kerja</span>
+            <span class="pma-kpi-icon">⏱️</span>
+        </div>
+        <div class="pma-kpi-value" style="color: #235a81;">
+            {{ analytics.avg_work_hours or 0 }}<span style="font-size: 14px; font-weight: normal; color: #555;"> jam/minggu</span>
+        </div>
+        <div class="pma-kpi-desc">Rerata jam tidur: {{ analytics.avg_sleep_hours or 0 }} jam/hari</div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     2. SECTION VISUALISASI GRAFIK UTAMA (CHART.JS INTERACTIVE)
+     ========================================================================= -->
+<div class="pma-card" style="margin-bottom: 16px;">
+    <div class="pma-card-header" style="justify-content: space-between; align-items: center;">
+        <div>
+            <span>📊</span>
+            <span>Visualisasi Analitik Dataset & Indikator Burnout</span>
+        </div>
+        <span class="pma-badge pma-badge-success" style="font-size: 10px;">Interaktif & Live Data</span>
+    </div>
+    <div class="pma-card-body">
+        <!-- Grid Baris 1: 2 Grafik Utama -->
+        <div class="pma-grid-2col" style="margin-bottom: 16px;">
+            <!-- Grafik 1: Distribusi Tingkat Risiko Burnout -->
+            <div class="pma-card" style="margin-bottom: 0; box-shadow: none; border: 1px solid #e0e0e0;">
+                <div class="pma-card-header" style="background: #fafafa; font-size: 13px;">
+                    <span>🎯</span>
+                    <span>Distribusi Tingkat Risiko (Burnout Risk)</span>
+                </div>
+                <div class="pma-card-body">
+                    <div class="chart-container-card">
+                        <canvas id="chart-risk-distribution"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafik 2: Jam Kerja vs Jam Tidur per Risiko -->
+            <div class="pma-card" style="margin-bottom: 0; box-shadow: none; border: 1px solid #e0e0e0;">
+                <div class="pma-card-header" style="background: #fafafa; font-size: 13px;">
+                    <span>⚖️</span>
+                    <span>Korelasi Jam Kerja vs Jam Tidur per Risiko</span>
+                </div>
+                <div class="pma-card-body">
+                    <div class="chart-container-card">
+                        <canvas id="chart-work-sleep"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Baris 2: 2 Grafik Lanjutan -->
+        <div class="pma-grid-2col" style="margin-bottom: 0;">
+            <!-- Grafik 3: Status Kesehatan Mental -->
+            <div class="pma-card" style="margin-bottom: 0; box-shadow: none; border: 1px solid #e0e0e0;">
+                <div class="pma-card-header" style="background: #fafafa; font-size: 13px;">
+                    <span>🧠</span>
+                    <span>Sebaran Status Kesehatan Mental Responden</span>
+                </div>
+                <div class="pma-card-body">
+                    <div class="chart-container-card">
+                        <canvas id="chart-mental-health"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafik 4: Indeks Pilar Kesejahteraan & Kualitas Kerja -->
+            <div class="pma-card" style="margin-bottom: 0; box-shadow: none; border: 1px solid #e0e0e0;">
+                <div class="pma-card-header" style="background: #fafafa; font-size: 13px;">
+                    <span>🧭</span>
+                    <span>Indeks Pilar Kesejahteraan & Kepuasan Kerja</span>
+                </div>
+                <div class="pma-card-body">
+                    <div class="chart-container-card">
+                        <canvas id="chart-wellness-pillars"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     3. 4-PANEL GRID TEKNIS phpMyAdmin (Server & System Context)
+     ========================================================================= -->
 <div class="pma-grid-2col">
     <!-- Panel 1: Peran & Fungsi Admin Input -->
     <div class="pma-card">
@@ -35,7 +223,7 @@
                 </li>
                 <li class="pma-list-item">
                     <span>Akses Hak:</span>
-                    <span class="pma-badge pma-badge-success">Full Admin (Insert, View, Export)</span>
+                    <span class="pma-badge pma-badge-success">Full Admin (Insert, Edit, View, Export)</span>
                 </li>
                 <li class="pma-list-item">
                     <span>Tujuan Akhir:</span>
@@ -63,7 +251,7 @@
             <ul class="pma-list">
                 <li class="pma-list-item">
                     <span>Server:</span>
-                    <span>Localhost via SQLite Engine</span>
+                    <span>Localhost via {{ db_engine }}</span>
                 </li>
                 <li class="pma-list-item">
                     <span>Database Name:</span>
@@ -150,4 +338,14 @@
         </div>
     </div>
 </div>
+
+<!-- Embedded JSON Data for Chart.js -->
+<script id="dashboard-analytics-data" type="application/json">
+{{ analytics|tojson }}
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard_charts.js') }}" defer></script>
 {% endblock %}

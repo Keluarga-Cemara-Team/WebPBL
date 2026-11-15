@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Record #{{ item.id }} &bull; antiburnout_db.assessments &bull; phpMyAdmin{% endblock %}
+
+{% block breadcrumb_extra %}
+<span style="color: #888;">&raquo;</span>
+<span><a href="{{ url_for('assessment.dataset_view') }}">Table: <strong>assessments</strong></a></span>
+<span style="color: #888;">&raquo;</span>
+<span><strong>Edit Record #{{ item.id }} ({{ item.full_name }})</strong></span>
+{% endblock %}
+
+{% block content %}
+<!-- phpMyAdmin SQL Execution Preview Box -->
+<div class="pma-sql-box">
+    <div>
+        <code>UPDATE `assessments` SET `full_name` = '{{ item.full_name }}', `age` = {{ item.age|int if item.age is not none else 28 }}, `gender` = '{{ item.gender }}', `work_hours_per_week` = {{ item.work_hours_per_week if item.work_hours_per_week is not none else 40 }}, `stress_level` = '{{ item.stress_level }}' WHERE `id` = '{{ item.id }}';</code>
+        <div class="pma-sql-meta">
+            Panel Edit Data Responden #{{ item.id }} &bull; Person_ID: <strong>{{ item.person_id or item.id }}</strong> &bull; Storage: Local SQLite / Cloud Firestore
+        </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('assessment.detail', assessment_id=item.id) }}" class="pma-btn" style="font-size: 11px;">
+            🔍 Lihat Detail Responden
+        </a>
+        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
+            ⬅️ Kembali ke Tabel
+        </a>
+    </div>
+</div>
+
+<div class="pma-card" style="margin-bottom: 14px; border-left: 4px solid #f0ad4e;">
+    <div class="pma-card-body" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <div style="font-weight: bold; color: #8a6d3b; margin-bottom: 2px;">
+                ✏️ Mengubah Rekaman Data Responden #{{ item.id }}
+            </div>
+            <div style="font-size: 12px; color: #555;">
+                Perbarui nilai atribut di bawah ini. Anda dapat mengaktifkan opsi kalkulasi ulang agar skor burnout dan rekomendasi diperbarui secara otomatis menggunakan model Machine Learning.
+            </div>
+        </div>
+        <div>
+            <span class="pma-badge pma-badge-warning" style="font-size: 12px; padding: 4px 8px;">
+                Status Saat Ini: {{ item.burnout_risk or 'Moderate' }} (Skor: {{ item.burnout_score if item.burnout_score is not none else '-' }})
+            </span>
+        </div>
+    </div>
+</div>
+
+<form action="{{ url_for('assessment.update', assessment_id=item.id) }}" method="POST">
+    <!-- SECTION 1: DEMOGRAFI & PROFIL PEKERJA -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>👤</span>
+            <span>1. Demografi & Status Pekerjaan (Demographics & Employment)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Person_ID</span>
+                            <div class="pma-form-desc">ID Subjek / Responden</div>
+                        </td>
+                        <td><code>VARCHAR(50)</code></td>
+                        <td>
+                            <input type="text" name="person_id" class="pma-input" value="{{ item.person_id or '' }}" placeholder="PID-0001" style="max-width: 200px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">full_name</span>
+                            <div class="pma-form-desc">Nama Lengkap Responden</div>
+                        </td>
+                        <td><code>VARCHAR(100)</code></td>
+                        <td>
+                            <input type="text" name="full_name" class="pma-input" value="{{ item.full_name }}" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Age</span>
+                            <div class="pma-form-desc">Usia Responden (Tahun)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="age" class="pma-input" min="15" max="100" step="1" value="{{ item.age|int if item.age is not none else 28 }}" style="max-width: 140px;" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Gender</span>
+                            <div class="pma-form-desc">Jenis Kelamin</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="gender" class="pma-select">
+                                <option value="Male" {% if item.gender == 'Male' %}selected{% endif %}>Male (Laki-laki)</option>
+                                <option value="Female" {% if item.gender == 'Female' %}selected{% endif %}>Female (Perempuan)</option>
+                                <option value="Other" {% if item.gender == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Country</span>
+                            <div class="pma-form-desc">Negara Asal</div>
+                        </td>
+                        <td><code>VARCHAR(50)</code></td>
+                        <td>
+                            <input type="text" name="country" class="pma-input" value="{{ item.country or 'Indonesia' }}">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Occupation</span>
+                            <div class="pma-form-desc">Profesi / Pekerjaan</div>
+                        </td>
+                        <td><code>VARCHAR(80)</code></td>
+                        <td>
+                            <input type="text" name="occupation" class="pma-input" value="{{ item.occupation or item.role or 'Software Engineer' }}">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Education_Level</span>
+                            <div class="pma-form-desc">Jenjang Pendidikan Terakhir</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="education_level" class="pma-select">
+                                <option value="Bachelor" {% if item.education_level == 'Bachelor' %}selected{% endif %}>Bachelor (S1)</option>
+                                <option value="Diploma" {% if item.education_level == 'Diploma' %}selected{% endif %}>Diploma (D3/D4)</option>
+                                <option value="Master" {% if item.education_level == 'Master' %}selected{% endif %}>Master (S2)</option>
+                                <option value="PhD" {% if item.education_level == 'PhD' %}selected{% endif %}>PhD (S3)</option>
+                                <option value="High School" {% if item.education_level == 'High School' %}selected{% endif %}>High School (SMA/SMK)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Employment_Status</span>
+                            <div class="pma-form-desc">Status Kepegawaian</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="employment_status" class="pma-select">
+                                <option value="Employed" {% if item.employment_status == 'Employed' %}selected{% endif %}>Employed (Karyawan Tetap/Kontrak)</option>
+                                <option value="Self-Employed" {% if item.employment_status == 'Self-Employed' %}selected{% endif %}>Self-Employed (Wirausaha)</option>
+                                <option value="Freelancer" {% if item.employment_status == 'Freelancer' %}selected{% endif %}>Freelancer</option>
+                                <option value="Student" {% if item.employment_status == 'Student' %}selected{% endif %}>Student (Mahasiswa/Pelajar)</option>
+                                <option value="Unemployed" {% if item.employment_status == 'Unemployed' %}selected{% endif %}>Unemployed</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Monthly_Income_USD</span>
+                            <div class="pma-form-desc">Estimasi Penghasilan Bulanan (USD)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="monthly_income_usd" class="pma-input" step="50" value="{{ item.monthly_income_usd if item.monthly_income_usd is not none else 1500 }}" style="max-width: 180px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Remote_Work</span>
+                            <div class="pma-form-desc">Sistem Kerja Jarak Jauh</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="remote_work" class="pma-select">
+                                <option value="Hybrid" {% if item.remote_work == 'Hybrid' %}selected{% endif %}>Hybrid (WFO & WFH)</option>
+                                <option value="Yes" {% if item.remote_work == 'Yes' %}selected{% endif %}>Yes (Full Remote / WFH)</option>
+                                <option value="No" {% if item.remote_work == 'No' %}selected{% endif %}>No (Full On-site / WFO)</option>
+                            </select>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 2: BEBAN KERJA & PRODUKTIVITAS -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>💼</span>
+            <span>2. Beban Kerja & Produktivitas (Workload & Productivity)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Work_Hours_Per_Week</span>
+                            <div class="pma-form-desc">Total Jam Kerja per Minggu</div>
+                        </td>
+                        <td><code>FLOAT (Jam/Minggu)</code></td>
+                        <td>
+                            {% set cur_work = item.work_hours_per_week if item.work_hours_per_week is not none else (item.work_hours or 40) %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="work_hours_per_week" name="work_hours_per_week" class="range-input" min="10" max="90" step="1" value="{{ cur_work|int }}" style="flex: 1;">
+                                <span id="work_hours_per_week_val" class="pma-range-badge">{{ cur_work|int }}</span>
+                                <span style="font-size: 11px; color: #777;">jam/minggu</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Job_Satisfaction</span>
+                            <div class="pma-form-desc">Kepuasan Kerja (Skala 1.0 - 10.0)</div>
+                        </td>
+                        <td><code>FLOAT (1-10)</code></td>
+                        <td>
+                            {% set cur_sat = item.job_satisfaction if item.job_satisfaction is not none else 6 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="job_satisfaction" name="job_satisfaction" class="range-input" min="1" max="10" step="0.5" value="{{ cur_sat }}" style="flex: 1;">
+                                <span id="job_satisfaction_val" class="pma-range-badge">{{ cur_sat }}</span>
+                                <span style="font-size: 11px; color: #777;">/ 10</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Work_Life_Balance</span>
+                            <div class="pma-form-desc">Keseimbangan Hidup & Kerja (1.0 - 10.0)</div>
+                        </td>
+                        <td><code>FLOAT (1-10)</code></td>
+                        <td>
+                            {% set cur_wlb = item.work_life_balance if item.work_life_balance is not none else 5 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="work_life_balance" name="work_life_balance" class="range-input" min="1" max="10" step="0.5" value="{{ cur_wlb }}" style="flex: 1;">
+                                <span id="work_life_balance_val" class="pma-range-badge">{{ cur_wlb }}</span>
+                                <span style="font-size: 11px; color: #777;">/ 10</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Productivity_Score</span>
+                            <div class="pma-form-desc">Skor Produktivitas (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            {% set cur_prod = item.productivity_score if item.productivity_score is not none else 65 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="productivity_score" name="productivity_score" class="range-input" min="0" max="100" step="1" value="{{ cur_prod|int }}" style="flex: 1;">
+                                <span id="productivity_score_val" class="pma-range-badge">{{ cur_prod|int }}</span>
+                                <span style="font-size: 11px; color: #777;">%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Absenteeism_Days</span>
+                            <div class="pma-form-desc">Jumlah Hari Absen/Izin (Bulan ini)</div>
+                        </td>
+                        <td><code>INTEGER</code></td>
+                        <td>
+                            <input type="number" name="absenteeism_days" class="pma-input" min="0" max="30" value="{{ item.absenteeism_days if item.absenteeism_days is not none else 0 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 3: KESEHATAN MENTAL & TINGKAT STRES -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>🧠</span>
+            <span>3. Kondisi Psikologis & Tingkat Stres (Mental Health & Stress)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Stress_Level</span>
+                            <div class="pma-form-desc">Tingkat Stres Saat Ini</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="stress_level" class="pma-select">
+                                <option value="Low" {% if item.stress_level == 'Low' or item.stress_level == 1 or item.stress_level == 2 %}selected{% endif %}>Low (Rendah)</option>
+                                <option value="Moderate" {% if item.stress_level == 'Moderate' or item.stress_level == 3 %}selected{% endif %}>Moderate (Sedang)</option>
+                                <option value="High" {% if item.stress_level == 'High' or item.stress_level == 4 or item.stress_level == 5 %}selected{% endif %}>High (Tinggi)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Chronic_Stress</span>
+                            <div class="pma-form-desc">Mengalami Stres Kronis / Berkepanjangan?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="chronic_stress" class="pma-select">
+                                <option value="No" {% if item.chronic_stress == 'No' %}selected{% endif %}>No (Tidak)</option>
+                                <option value="Yes" {% if item.chronic_stress == 'Yes' %}selected{% endif %}>Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Anxiety_Score</span>
+                            <div class="pma-form-desc">Skor Kecemasan (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            {% set cur_anx = item.anxiety_score if item.anxiety_score is not none else 35 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="anxiety_score" name="anxiety_score" class="range-input" min="0" max="100" step="1" value="{{ cur_anx|int }}" style="flex: 1;">
+                                <span id="anxiety_score_val" class="pma-range-badge">{{ cur_anx|int }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Depression_Score</span>
+                            <div class="pma-form-desc">Skor Gejala Depresi (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            {% set cur_dep = item.depression_score if item.depression_score is not none else 30 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="depression_score" name="depression_score" class="range-input" min="0" max="100" step="1" value="{{ cur_dep|int }}" style="flex: 1;">
+                                <span id="depression_score_val" class="pma-range-badge">{{ cur_dep|int }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Mood_Score</span>
+                            <div class="pma-form-desc">Skor Suasana Hati / Mood (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            {% set cur_mood = item.mood_score if item.mood_score is not none else 60 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="mood_score" name="mood_score" class="range-input" min="0" max="100" step="1" value="{{ cur_mood|int }}" style="flex: 1;">
+                                <span id="mood_score_val" class="pma-range-badge">{{ cur_mood|int }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Emotional_Stability</span>
+                            <div class="pma-form-desc">Kestabilan Emosional (0 - 100)</div>
+                        </td>
+                        <td><code>FLOAT (0-100)</code></td>
+                        <td>
+                            {% set cur_em = item.emotional_stability if item.emotional_stability is not none else 60 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="emotional_stability" name="emotional_stability" class="range-input" min="0" max="100" step="1" value="{{ cur_em|int }}" style="flex: 1;">
+                                <span id="emotional_stability_val" class="pma-range-badge">{{ cur_em|int }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Support_System</span>
+                            <div class="pma-form-desc">Dukungan Keluarga / Rekan Kerja</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="support_system" class="pma-select">
+                                <option value="Excellent" {% if item.support_system == 'Excellent' %}selected{% endif %}>Excellent (Sangat Baik)</option>
+                                <option value="Good" {% if item.support_system == 'Good' %}selected{% endif %}>Good (Baik)</option>
+                                <option value="Average" {% if item.support_system == 'Average' %}selected{% endif %}>Average (Cukup)</option>
+                                <option value="Poor" {% if item.support_system == 'Poor' %}selected{% endif %}>Poor (Kurang / Tidak Ada)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Family_History_Mental_Illness</span>
+                            <div class="pma-form-desc">Riwayat Keluarga dengan Gangguan Mental</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="family_history_mental_illness" class="pma-select">
+                                <option value="No" {% if item.family_history_mental_illness == 'No' %}selected{% endif %}>No (Tidak)</option>
+                                <option value="Yes" {% if item.family_history_mental_illness == 'Yes' %}selected{% endif %}>Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Therapy_Attendance</span>
+                            <div class="pma-form-desc">Pernah / Sedang Mengikuti Terapi/Konseling</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="therapy_attendance" class="pma-select">
+                                <option value="No" {% if item.therapy_attendance == 'No' %}selected{% endif %}>No (Tidak)</option>
+                                <option value="Yes" {% if item.therapy_attendance == 'Yes' %}selected{% endif %}>Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Life_Satisfaction</span>
+                            <div class="pma-form-desc">Kepuasan Hidup Keseluruhan (1.0 - 10.0)</div>
+                        </td>
+                        <td><code>FLOAT (1-10)</code></td>
+                        <td>
+                            {% set cur_life = item.life_satisfaction if item.life_satisfaction is not none else 6 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="life_satisfaction" name="life_satisfaction" class="range-input" min="1" max="10" step="0.5" value="{{ cur_life }}" style="flex: 1;">
+                                <span id="life_satisfaction_val" class="pma-range-badge">{{ cur_life }}</span>
+                                <span style="font-size: 11px; color: #777;">/ 10</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 4: POLA TIDUR & GAYA HIDUP -->
+    <div class="pma-card" style="margin-bottom: 16px;">
+        <div class="pma-card-header">
+            <span>💤</span>
+            <span>4. Pola Tidur & Gaya Hidup Sehari-hari (Lifestyle & Habits)</span>
+        </div>
+        <div class="pma-card-body" style="padding: 0;">
+            <table class="pma-form-table" style="margin-bottom: 0; border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Atribut Kolom</th>
+                        <th style="width: 140px;">Tipe Data</th>
+                        <th>Nilai Input (Value)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Sleep_Hours</span>
+                            <div class="pma-form-desc">Durasi Tidur Rata-rata per Hari</div>
+                        </td>
+                        <td><code>FLOAT (Jam/Hari)</code></td>
+                        <td>
+                            {% set cur_sleep = item.sleep_hours if item.sleep_hours is not none else 7.0 %}
+                            <div class="pma-range-wrapper">
+                                <input type="range" id="sleep_hours" name="sleep_hours" class="range-input" min="3" max="12" step="0.5" value="{{ cur_sleep }}" style="flex: 1;">
+                                <span id="sleep_hours_val" class="pma-range-badge">{{ cur_sleep }}</span>
+                                <span style="font-size: 11px; color: #777;">jam</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Sleep_Quality</span>
+                            <div class="pma-form-desc">Kualitas Tidur yang Dirasakan</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="sleep_quality" class="pma-select">
+                                <option value="Excellent" {% if item.sleep_quality == 'Excellent' %}selected{% endif %}>Excellent (Sangat Nyenyak)</option>
+                                <option value="Good" {% if item.sleep_quality == 'Good' %}selected{% endif %}>Good (Baik)</option>
+                                <option value="Average" {% if item.sleep_quality == 'Average' %}selected{% endif %}>Average (Biasa/Cukup)</option>
+                                <option value="Poor" {% if item.sleep_quality == 'Poor' %}selected{% endif %}>Poor (Buruk / Insomnia)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Exercise_Frequency</span>
+                            <div class="pma-form-desc">Frekuensi Berolahraga</div>
+                        </td>
+                        <td><code>ENUM</code></td>
+                        <td>
+                            <select name="exercise_frequency" class="pma-select">
+                                <option value="Daily" {% if item.exercise_frequency == 'Daily' %}selected{% endif %}>Daily (Setiap Hari)</option>
+                                <option value="Weekly" {% if item.exercise_frequency == 'Weekly' %}selected{% endif %}>Weekly (1-3x Seminggu)</option>
+                                <option value="Rarely" {% if item.exercise_frequency == 'Rarely' %}selected{% endif %}>Rarely (Jarang)</option>
+                                <option value="Never" {% if item.exercise_frequency == 'Never' %}selected{% endif %}>Never (Tidak Pernah)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Physical_Activity_Hours</span>
+                            <div class="pma-form-desc">Total Jam Aktivitas Fisik per Minggu</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="physical_activity_hours" class="pma-input" step="0.5" value="{{ item.physical_activity_hours if item.physical_activity_hours is not none else 4.0 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Meditation_Minutes</span>
+                            <div class="pma-form-desc">Durasi Meditasi / Relaksasi (Menit/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="meditation_minutes" class="pma-input" step="5" value="{{ item.meditation_minutes if item.meditation_minutes is not none else 10 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Screen_Time_Hours</span>
+                            <div class="pma-form-desc">Waktu di Depan Layar (Jam/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="screen_time_hours" class="pma-input" step="0.5" value="{{ item.screen_time_hours if item.screen_time_hours is not none else 8.0 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Social_Media_Hours</span>
+                            <div class="pma-form-desc">Waktu Buka Media Sosial (Jam/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="social_media_hours" class="pma-input" step="0.5" value="{{ item.social_media_hours if item.social_media_hours is not none else 2.5 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Gaming_Hours</span>
+                            <div class="pma-form-desc">Waktu Bermain Game (Jam/Hari)</div>
+                        </td>
+                        <td><code>FLOAT</code></td>
+                        <td>
+                            <input type="number" name="gaming_hours" class="pma-input" step="0.5" value="{{ item.gaming_hours if item.gaming_hours is not none else 1.0 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Coffee_Cups_Per_Day</span>
+                            <div class="pma-form-desc">Konsumsi Kopi (Cangkir/Hari)</div>
+                        </td>
+                        <td><code>INTEGER</code></td>
+                        <td>
+                            <input type="number" name="coffee_cups_per_day" class="pma-input" min="0" max="15" value="{{ item.coffee_cups_per_day if item.coffee_cups_per_day is not none else 2 }}" style="max-width: 140px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Alcohol_Consumption</span>
+                            <div class="pma-form-desc">Mengonsumsi Alkohol?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="alcohol_consumption" class="pma-select">
+                                <option value="No" {% if item.alcohol_consumption == 'No' %}selected{% endif %}>No (Tidak)</option>
+                                <option value="Yes" {% if item.alcohol_consumption == 'Yes' %}selected{% endif %}>Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Smoking</span>
+                            <div class="pma-form-desc">Merokok?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="smoking" class="pma-select">
+                                <option value="No" {% if item.smoking == 'No' %}selected{% endif %}>No (Tidak)</option>
+                                <option value="Yes" {% if item.smoking == 'Yes' %}selected{% endif %}>Yes (Ya)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Healthy_Diet</span>
+                            <div class="pma-form-desc">Pola Makan Sehat & Teratur?</div>
+                        </td>
+                        <td><code>ENUM (Yes/No)</code></td>
+                        <td>
+                            <select name="healthy_diet" class="pma-select">
+                                <option value="Yes" {% if item.healthy_diet == 'Yes' %}selected{% endif %}>Yes (Ya)</option>
+                                <option value="No" {% if item.healthy_diet == 'No' %}selected{% endif %}>No (Tidak)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="pma-form-label">Notes (Observasi Admin)</span>
+                            <div class="pma-form-desc">Catatan Tambahan Lapangan</div>
+                        </td>
+                        <td><code>TEXT</code></td>
+                        <td>
+                            <textarea name="notes" rows="2" class="pma-textarea" placeholder="Catatan hasil wawancara atau pengamatan petugas admin...">{{ item.notes or '' }}</textarea>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- OPSI PENGATURAN MACHINE LEARNING -->
+    <div class="pma-card" style="margin-bottom: 16px; background: #fdfdfd;">
+        <div class="pma-card-body" style="padding: 12px 16px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #235a81; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" name="recalculate_ml" value="1" checked style="width: 16px; height: 16px;">
+                <span>🤖 Hitung ulang estimasi skor burnout dan rekomendasi kesehatan kerja secara otomatis menggunakan Machine Learning</span>
+            </label>
+            <div style="font-size: 11px; color: #777; margin-left: 24px; margin-top: 3px;">
+                Jika dicentang, sistem akan mengirimkan fitur-fitur baru ke model ML untuk mengkalkulasi ulang skor probabilitas risiko dan status kesehatan mental.
+            </div>
+        </div>
+    </div>
+
+    <!-- phpMyAdmin Bottom Submit Bar -->
+    <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 12px 18px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div style="font-size: 11px; color: #555;">
+            Target Update: <strong>assessments #{{ item.id }}</strong> &bull; Storage: <code>{{ item.person_id or item.id }}</code>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('assessment.detail', assessment_id=item.id) }}" class="pma-btn">⬅️ Batal</a>
+            <button type="submit" class="pma-btn pma-btn-primary" style="font-weight: bold; padding: 6px 24px; font-size: 13px;">
+                💾 Simpan Perubahan &rarr;
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+

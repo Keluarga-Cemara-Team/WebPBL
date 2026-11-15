@@ -1,13 +1,36 @@
 from flask import Blueprint, render_template, jsonify, current_app, request
-from app.core.use_cases import ImportDatasetUseCase
+from app.core.use_cases import ImportDatasetUseCase, GetDashboardAnalyticsUseCase
 
 main_bp = Blueprint("main", __name__)
 
 @main_bp.route("/")
 def index():
-    """Halaman Utama / Landing Page"""
+    """Halaman Utama / Landing Page dengan Visualisasi Grafik & Ringkasan Analitik"""
     db_engine = getattr(current_app, "db_engine_name", "Google Cloud Firestore")
-    return render_template("main/index.html", db_engine=db_engine)
+    repo = getattr(current_app, "assessment_repository", None)
+
+    analytics = {}
+    if repo:
+        analytics = GetDashboardAnalyticsUseCase(repo).execute()
+
+    return render_template(
+        "main/index.html",
+        db_engine=db_engine,
+        analytics=analytics
+    )
+
+@main_bp.route("/api/dashboard/stats", methods=["GET"])
+def dashboard_stats_api():
+    """Endpoint API JSON untuk data metrik & grafik visualisasi dashboard"""
+    repo = getattr(current_app, "assessment_repository", None)
+    if not repo:
+        return jsonify({"status": "error", "message": "Repository belum terinisialisasi"}), 500
+
+    analytics = GetDashboardAnalyticsUseCase(repo).execute()
+    return jsonify({
+        "status": "success",
+        "data": analytics
+    }), 200
 
 @main_bp.route("/dataset-management/")
 def dataset_management():
