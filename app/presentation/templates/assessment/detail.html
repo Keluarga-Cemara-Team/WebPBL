@@ -19,6 +19,9 @@
         </div>
     </div>
     <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('assessment.edit', assessment_id=item.id) }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
+            ✏️ Ubah / Edit Record
+        </a>
         <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
             ⬅️ Kembali ke Tabel
         </a>

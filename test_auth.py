@@ -107,5 +107,48 @@ class TestAdminAuthentication(unittest.TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertIn("/login", res.headers["Location"])
 
+    def test_unauthenticated_edit_redirect(self):
+        """Akses halaman edit data responden tanpa login harus dialihkan ke /login"""
+        res = self.client.get("/assessment/edit/1", follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("/login", res.headers["Location"])
+
+    def test_edit_record_get_and_post_update(self):
+        """Login admin kemudian membuka halaman edit dan menyimpan pembaruan data"""
+        # 1. Login
+        self.client.post("/login", data={
+            "identifier": "admin",
+            "password": "admin123"
+        })
+
+        # 2. Buka halaman edit responden #1
+        get_res = self.client.get("/assessment/edit/1")
+        self.assertEqual(get_res.status_code, 200)
+        self.assertIn(b"Edit Record #1", get_res.data)
+
+        # 3. Kirim update data responden #1
+        post_res = self.client.post("/assessment/edit/1", data={
+            "full_name": "Budi Santoso (Updated)",
+            "age": "32",
+            "gender": "Male",
+            "country": "Indonesia",
+            "occupation": "Lead Software Engineer",
+            "education_level": "Master",
+            "employment_status": "Employed",
+            "monthly_income_usd": "2500",
+            "remote_work": "Hybrid",
+            "work_hours_per_week": "42",
+            "job_satisfaction": "8",
+            "work_life_balance": "7",
+            "productivity_score": "80",
+            "absenteeism_days": "1",
+            "sleep_hours": "7.5",
+            "sleep_quality": "Good",
+            "stress_level": "Moderate",
+            "recalculate_ml": "1"
+        }, follow_redirects=True)
+        self.assertEqual(post_res.status_code, 200)
+        self.assertIn("Budi Santoso (Updated)".encode("utf-8"), post_res.data)
+
 if __name__ == "__main__":
     unittest.main()

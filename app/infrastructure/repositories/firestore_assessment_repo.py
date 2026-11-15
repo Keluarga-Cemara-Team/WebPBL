@@ -54,6 +54,16 @@ class FirestoreAssessmentRepository(IAssessmentRepository):
         doc_ref.delete()
         return True
 
+    def update(self, assessment: RespondentAssessment) -> bool:
+        """Memperbarui record responden di Google Cloud Firestore"""
+        if not assessment.id:
+            return False
+        doc_ref = self.db.collection(self.collection_name).document(str(assessment.id))
+        data = assessment.to_dict()
+        data["operator"] = "admin@localhost"
+        doc_ref.set(data, merge=True)
+        return True
+
     def bulk_save(self, assessments: List[RespondentAssessment]) -> int:
         """Menyimpan banyak record responden sekaligus menggunakan batch Firestore (chunked 450)"""
         if not assessments:

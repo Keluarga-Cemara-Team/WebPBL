@@ -31,6 +31,11 @@ class IAssessmentRepository(ABC):
         pass
 
     @abstractmethod
+    def update(self, assessment: RespondentAssessment) -> bool:
+        """Memperbarui record data responden yang sudah ada berdasarkan ID"""
+        pass
+
+    @abstractmethod
     def bulk_save(self, assessments: List[RespondentAssessment]) -> int:
         """Menyimpan banyak record responden secara batch/bulk ke storage. Mengembalikan jumlah data tersimpan."""
         pass
