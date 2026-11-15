@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, Response, redirect, url_for, flash, jsonify, current_app
 from app.core.use_cases import (
     SubmitAssessmentUseCase,
+    UpdateAssessmentUseCase,
     ExportDatasetUseCase,
     GetAssessmentHistoryUseCase,
     ImportDatasetUseCase
@@ -16,7 +17,8 @@ def _get_use_cases():
         SubmitAssessmentUseCase(repo, ml_svc),
         ExportDatasetUseCase(repo),
         GetAssessmentHistoryUseCase(repo),
-        ImportDatasetUseCase(repo, ml_svc)
+        ImportDatasetUseCase(repo, ml_svc),
+        UpdateAssessmentUseCase(repo, ml_svc)
     )
 
 @assessment_bp.route("/", methods=["GET"])
@@ -27,7 +29,7 @@ def form():
 @assessment_bp.route("/submit", methods=["POST"])
 def submit():
     """Memproses submission form data primer menggunakan Clean Architecture Use Case"""
-    submit_uc, _, _, _ = _get_use_cases()
+    submit_uc, _, _, _, _ = _get_use_cases()
 
     # Ambil seluruh atribut dari input form
     raw_data = request.form.to_dict()
@@ -46,7 +48,7 @@ def submit():
 @assessment_bp.route("/dataset", methods=["GET"])
 def dataset_view():
     """Halaman tabel data primer yang terkumpul beserta metrik ringkas"""
-    _, _, history_uc, _ = _get_use_cases()
+    _, _, history_uc, _, _ = _get_use_cases()
     data = history_uc.execute()
     return render_template(
         "assessment/dataset.html",
@@ -63,6 +65,35 @@ def detail(assessment_id):
         flash(f"Data responden #{assessment_id} tidak ditemukan.", "danger")
         return redirect(url_for("assessment.dataset_view"))
     return render_template("assessment/detail.html", item=entity.to_dict())
+
+@assessment_bp.route("/edit/<assessment_id>", methods=["GET"])
+def edit(assessment_id):
+    """Menampilkan form edit untuk data responden berdasarkan ID"""
+    repo = current_app.assessment_repository
+    entity = repo.find_by_id(assessment_id)
+    if not entity:
+        flash(f"Data responden #{assessment_id} tidak ditemukan.", "danger")
+        return redirect(url_for("assessment.dataset_view"))
+    return render_template("assessment/edit.html", item=entity.to_dict())
+
+@assessment_bp.route("/edit/<assessment_id>", methods=["POST"])
+def update(assessment_id):
+    """Memproses perubahan data responden dengan UpdateAssessmentUseCase"""
+    _, _, _, _, update_uc = _get_use_cases()
+
+    raw_data = request.form.to_dict()
+    recalculate_ml = request.form.get("recalculate_ml") in ("1", "true", "on", "yes")
+
+    try:
+        updated_entity, _ = update_uc.execute(assessment_id, raw_data, recalculate_ml=recalculate_ml)
+        flash(f"Data responden #{assessment_id} ({updated_entity.full_name}) berhasil diperbarui.", "success")
+        return redirect(url_for("assessment.detail", assessment_id=assessment_id))
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for("assessment.edit", assessment_id=assessment_id))
+    except Exception as e:
+        flash(f"Terjadi kesalahan saat memperbarui data: {str(e)}", "danger")
+        return redirect(url_for("assessment.edit", assessment_id=assessment_id))
 
 @assessment_bp.route("/delete/<assessment_id>", methods=["POST"])
 def delete_item(assessment_id):
@@ -95,7 +126,7 @@ def delete_batch():
 @assessment_bp.route("/export/csv", methods=["GET"])
 def export_csv():
     """Download data primer dalam format CSV (persis format mental_health_burnout_prediction_dataset.csv)"""
-    _, export_uc, _, _ = _get_use_cases()
+    _, export_uc, _, _, _ = _get_use_cases()
     csv_content = export_uc.execute()
 
     return Response(
@@ -112,7 +143,7 @@ def import_view():
 @assessment_bp.route("/import", methods=["POST"])
 def import_process():
     """Memproses file Excel / CSV yang diunggah untuk disimpan ke database"""
-    _, _, _, import_uc = _get_use_cases()
+    _, _, _, import_uc, _ = _get_use_cases()
 
     uploaded_file = request.files.get("dataset_file")
     if not uploaded_file or not uploaded_file.filename:
@@ -176,7 +207,7 @@ def api_predict():
         resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
         return resp
 
-    submit_uc, _, _, _ = _get_use_cases()
+    submit_uc, _, _, _, _ = _get_use_cases()
     payload = request.get_json(silent=True) or request.form.to_dict()
 
     try:

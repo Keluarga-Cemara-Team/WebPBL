@@ -74,6 +74,7 @@
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
                         <a href="{{ url_for('assessment.detail', assessment_id=row.id) }}" class="pma-action-link" title="Detail Lengkap Responden (40 Atribut & Evaluasi)">🔍</a>
+                        <a href="{{ url_for('assessment.edit', assessment_id=row.id) }}" class="pma-action-link" title="Edit / Ubah Data Responden Ini" style="text-decoration: none; padding: 0 4px; font-size: 13px;">✏️</a>
                         <button type="button" class="pma-action-link" style="background: none; border: none; cursor: pointer; padding: 0 4px; font-size: 13px; color: #cc0000;" title="Hapus Data Responden Ini" onclick="deleteSingle('{{ row.id }}', '{{ row.full_name|replace("'", "\\'") }}')">🗑️</button>
                     </td>
                     <td style="font-family: monospace; color: #777;">{{ row.person_id or row.id[:8] }}</td>

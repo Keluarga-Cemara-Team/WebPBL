@@ -99,6 +99,40 @@ class SQLiteAssessmentRepository(IAssessmentRepository):
             conn.commit()
             return cursor.rowcount > 0
 
+    def update(self, assessment: RespondentAssessment) -> bool:
+        """Memperbarui record data responden yang sudah ada berdasarkan ID"""
+        if not assessment.id:
+            return False
+
+        try:
+            aid = int(assessment.id)
+        except (ValueError, TypeError):
+            aid = assessment.id
+
+        query = """
+            UPDATE assessments SET
+                person_id = ?, full_name = ?, age = ?, gender = ?, country = ?, occupation = ?, role = ?,
+                education_level = ?, employment_status = ?, monthly_income_usd = ?, remote_work = ?,
+                work_hours = ?, work_hours_per_week = ?, job_satisfaction = ?, work_life_balance = ?,
+                productivity_score = ?, absenteeism_days = ?, sleep_hours = ?, sleep_quality = ?,
+                physical_activity_hours = ?, exercise_frequency = ?, meditation_minutes = ?,
+                screen_time_hours = ?, social_media_hours = ?, gaming_hours = ?, coffee_cups_per_day = ?,
+                alcohol_consumption = ?, smoking = ?, healthy_diet = ?, stress_level = ?, workload_feeling = ?,
+                physical_fatigue = ?, chronic_stress = ?, anxiety_score = ?, depression_score = ?,
+                mood_score = ?, emotional_stability = ?, family_history_mental_illness = ?,
+                therapy_attendance = ?, support_system = ?, life_satisfaction = ?, notes = ?,
+                burnout_score = ?, burnout_level = ?, burnout_risk = ?, mental_health_status = ?,
+                recommendation = ?, ai_wellness_recommendation = ?
+            WHERE id = ?
+        """
+        params = self._entity_to_db_tuple(assessment)[:-1] + (aid,)
+
+        with self.db_client.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            conn.commit()
+            return cursor.rowcount > 0
+
     def bulk_save(self, assessments: List[RespondentAssessment]) -> int:
         """Menyimpan sekumpulan data responden sekaligus menggunakan executemany (batch insert)"""
         if not assessments:
