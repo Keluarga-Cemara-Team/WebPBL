@@ -49,7 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const trainingFinalTestSamples = document.getElementById("training-final-test-samples");
     const finalModelBadge = document.getElementById("final-model-badge");
     const finalModelStatusBody = document.getElementById("final-model-status-body");
+    const finalModelReconfirmNotice = document.getElementById("final-model-reconfirm-notice");
     const finalizeModelSelect = document.getElementById("finalize-model-select");
+    const finalizeConfirmCheck = document.getElementById("finalize-confirm-check");
     const btnSaveFinalModel = document.getElementById("btn-save-final-model");
     const finalizeStatus = document.getElementById("finalize-status");
 
@@ -72,6 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let detectedOutliersInfo = { totalOutliers: 0, columnsWithOutliers: 0, columnBounds: {} };
     let lastComparisonData = null;
     let lastTrainingRequestPayload = null;
+    let lastComparedSignature = null;
+    let lastFinalizedSignature = null;
 
     if (!fileInput || !status || !results) return;
 
@@ -276,6 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Siapkan kontrol Preprocessing
         initPreprocessingControls();
+        invalidateComparisonIfConfigChanged("Dataset baru");
 
         results.hidden = false;
         setStatus("CSV berhasil dibaca. Anda dapat melihat ringkasan atau membuka tombol EDA & Preprocessing di bawah.", "success");
@@ -594,10 +599,94 @@ document.addEventListener("DOMContentLoaded", () => {
         btnRunTraining.disabled = !valid;
     };
 
+    const getCurrentConfigSignature = () => {
+        if (!currentDataset) return "";
+        const featureColumns = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check:checked"))
+            .map((checkbox) => currentDataset.headers[Number(checkbox.dataset.colIdx)]);
+        return JSON.stringify({
+            filename: currentDataset.filename || "",
+            rowCount: currentDataset.dataRows ? currentDataset.dataRows.length : 0,
+            headers: currentDataset.headers || [],
+            featureColumns,
+            deduplicate: Boolean(prepOptDedup?.checked),
+            numericImputation: prepOptImputeNum?.value,
+            categoricalImputation: prepOptImputeCat?.value,
+            outlierHandling: prepOptOutlier?.value,
+            encoding: prepOptEncoding?.value,
+            scaling: prepOptScaling?.value,
+            validationMethod: trainingValidationMethod,
+            trainPercent: trainingTrainPercent?.value,
+            validationPercent: trainingValidationPercent?.value,
+            testPercent: trainingTestPercent?.value,
+        });
+    };
+
+    const syncFinalizeButtonState = () => {
+        if (!btnSaveFinalModel) return;
+        const confirmed = Boolean(finalizeConfirmCheck && finalizeConfirmCheck.checked);
+        const hasValidComparison = Boolean(
+            lastComparisonData &&
+            lastComparedSignature &&
+            getCurrentConfigSignature() === lastComparedSignature
+        );
+        btnSaveFinalModel.disabled = !(confirmed && hasValidComparison);
+    };
+
+    const invalidateComparisonIfConfigChanged = (reason = "pengaturan") => {
+        if (!currentDataset) return;
+        const currentSig = getCurrentConfigSignature();
+
+        if (lastComparedSignature && currentSig !== lastComparedSignature) {
+            lastComparisonData = null;
+            lastTrainingRequestPayload = null;
+            lastComparedSignature = null;
+            if (trainingResults) trainingResults.hidden = true;
+            if (finalizeConfirmCheck) finalizeConfirmCheck.checked = false;
+            if (finalizeStatus) {
+                finalizeStatus.hidden = true;
+                finalizeStatus.textContent = "";
+                delete finalizeStatus.dataset.state;
+            }
+            if (trainingStatus) {
+                trainingStatus.textContent =
+                    `⚠️ ${reason} berubah. Hasil perbandingan sebelumnya tidak lagi berlaku — jalankan ulang perbandingan model sebelum menetapkan Model Final.`;
+                trainingStatus.dataset.state = "error";
+            }
+        }
+
+        if (finalModelReconfirmNotice) {
+            if (lastFinalizedSignature && currentSig !== lastFinalizedSignature) {
+                finalModelReconfirmNotice.hidden = false;
+                finalModelReconfirmNotice.innerHTML =
+                    `<strong>⚠️ Perlu Ditetapkan Ulang:</strong> ${reason} berubah sejak Model Final terakhir ditetapkan. Jalankan ulang perbandingan model dan tetapkan ulang Model Final.`;
+            } else {
+                finalModelReconfirmNotice.hidden = true;
+            }
+        }
+        syncFinalizeButtonState();
+    };
+
     const renderMetricsTable = (payload) => {
         const showRaw = Boolean(toggleRawMetrics && toggleRawMetrics.checked);
+        const activeSelection = finalizeModelSelect ? finalizeModelSelect.value : payload.top_evaluated_model;
         trainingMetricsBody.replaceChildren(...payload.results.map((result) => {
             const row = document.createElement("tr");
+
+            const selectCell = document.createElement("td");
+            selectCell.style.textAlign = "center";
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "final-model-radio";
+            radio.value = result.model_name;
+            radio.checked = result.model_name === (activeSelection || payload.top_evaluated_model);
+            radio.title = `Pilih ${result.model_name} sebagai kandidat model final`;
+            radio.addEventListener("change", () => {
+                if (radio.checked && finalizeModelSelect) {
+                    finalizeModelSelect.value = result.model_name;
+                }
+            });
+            selectCell.appendChild(radio);
+
             const modelCell = makeCell("th", result.model_name, "row");
             if (result.model_name === payload.top_evaluated_model) {
                 modelCell.appendChild(document.createTextNode(" (F1 tertinggi)"));
@@ -619,6 +708,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? String(raw.training_time_seconds)
                 : result.training_time_seconds.toFixed(4);
             row.append(
+                selectCell,
                 modelCell,
                 makeCell("td", accText),
                 makeCell("td", precText),
@@ -636,6 +726,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderMetricsTable(lastComparisonData);
             }
         });
+    }
+
+    if (finalizeModelSelect) {
+        finalizeModelSelect.addEventListener("change", () => {
+            const radios = trainingMetricsBody.querySelectorAll('input[name="final-model-radio"]');
+            radios.forEach((radio) => {
+                radio.checked = radio.value === finalizeModelSelect.value;
+            });
+        });
+    }
+
+    if (finalizeConfirmCheck) {
+        finalizeConfirmCheck.addEventListener("change", syncFinalizeButtonState);
     }
 
     const renderTrainingResults = (data) => {
@@ -921,12 +1024,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 return opt;
             }));
+            const radios = trainingMetricsBody.querySelectorAll('input[name="final-model-radio"]');
+            radios.forEach((radio) => {
+                radio.checked = radio.value === finalizeModelSelect.value;
+            });
+        }
+        if (finalizeConfirmCheck) {
+            finalizeConfirmCheck.checked = false;
         }
         if (finalizeStatus) {
             finalizeStatus.hidden = true;
             finalizeStatus.textContent = "";
             delete finalizeStatus.dataset.state;
         }
+        syncFinalizeButtonState();
 
         trainingResults.hidden = false;
         trainingStatus.textContent =
@@ -941,7 +1052,7 @@ document.addEventListener("DOMContentLoaded", () => {
             finalModelBadge.textContent = "Belum Disimpan";
             finalModelBadge.className = "pma-badge pma-badge-warning";
             finalModelStatusBody.innerHTML = `
-                <span>Belum ada pipeline model final yang tersimpan di server. Jalankan perbandingan model di bawah lalu klik <strong>Simpan Pipeline Model Final</strong>.</span>
+                <span>Belum ada pipeline model final yang tersimpan di server. Jalankan perbandingan model di bawah lalu klik <strong>Tetapkan Model Final</strong>.</span>
             `;
             return;
         }
@@ -952,7 +1063,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const testMetrics = evalRes.final_test_metrics || {};
         const prep = meta.preprocessing || {};
 
-        finalModelBadge.textContent = `Tersimpan: ${meta.model_name}`;
+        finalModelBadge.textContent = `Model Final: ${meta.model_name}`;
         finalModelBadge.className = "pma-badge pma-badge-success";
         finalModelStatusBody.innerHTML = `
             <dl class="dataset-summary-grid" style="margin-bottom: 8px;">
@@ -982,20 +1093,35 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const saveFinalModelPipeline = async () => {
-        if (!lastTrainingRequestPayload || !lastComparisonData) {
-            alert("Jalankan perbandingan model terlebih dahulu sebelum menyimpan pipeline.");
+        if (!lastTrainingRequestPayload || !lastComparisonData || lastComparedSignature !== getCurrentConfigSignature()) {
+            alert("Hasil perbandingan tidak berlaku atau belum dijalankan. Jalankan ulang perbandingan model terlebih dahulu.");
+            invalidateComparisonIfConfigChanged("Dataset atau pengaturan");
             return;
         }
+        if (finalizeConfirmCheck && !finalizeConfirmCheck.checked) {
+            alert("Silakan centang kotak konfirmasi verifikasi terlebih dahulu.");
+            return;
+        }
+
         const selectedModelName = finalizeModelSelect ? finalizeModelSelect.value : lastComparisonData.top_evaluated_model;
+        const confirmed = confirm(
+            `Konfirmasi Tetapkan Model Final:\n\n` +
+            `• Model: ${selectedModelName}\n` +
+            `• Dataset: ${currentDataset?.filename || "dataset.csv"}\n` +
+            `• Fitur: ${(lastTrainingRequestPayload.feature_columns || []).length} kolom\n\n` +
+            `Apakah Anda yakin ingin menetapkan dan menyimpan pipeline ini sebagai Model Final?`
+        );
+        if (!confirmed) return;
+
         const selectedCandidateResult = (lastComparisonData.results || []).find(
             (item) => item.model_name === selectedModelName
         );
 
         btnSaveFinalModel.disabled = true;
-        btnSaveFinalModel.textContent = "⏳ Menyimpan Pipeline...";
+        btnSaveFinalModel.textContent = "⏳ Menetapkan & Menyimpan...";
         if (finalizeStatus) {
             finalizeStatus.hidden = false;
-            finalizeStatus.textContent = `Melatih ulang pipeline '${selectedModelName}' dan menyimpan ke server...`;
+            finalizeStatus.textContent = `Melatih ulang pipeline '${selectedModelName}' dan menetapkan sebagai Model Final...`;
             finalizeStatus.dataset.state = "loading";
         }
 
@@ -1019,23 +1145,27 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             const result = await resp.json();
             if (!resp.ok || result.status !== "success") {
-                throw new Error(result.message || `Gagal menyimpan pipeline (HTTP ${resp.status}).`);
+                throw new Error(result.message || `Gagal menetapkan model final (HTTP ${resp.status}).`);
+            }
+            lastFinalizedSignature = lastComparedSignature;
+            if (finalModelReconfirmNotice) {
+                finalModelReconfirmNotice.hidden = true;
             }
             renderFinalModelStatus(result.data);
             if (finalizeStatus) {
                 finalizeStatus.hidden = false;
-                finalizeStatus.textContent = `✅ Pipeline model '${selectedModelName}' (${result.data.metadata.dataset_info.dataset_version}) berhasil disimpan!`;
+                finalizeStatus.textContent = `✅ Model Final '${selectedModelName}' (${result.data.metadata.dataset_info.dataset_version}) berhasil ditetapkan & disimpan!`;
                 finalizeStatus.dataset.state = "success";
             }
         } catch (err) {
             if (finalizeStatus) {
                 finalizeStatus.hidden = false;
-                finalizeStatus.textContent = `❌ ${err instanceof Error ? err.message : "Gagal menyimpan pipeline."}`;
+                finalizeStatus.textContent = `❌ ${err instanceof Error ? err.message : "Gagal menetapkan model final."}`;
                 finalizeStatus.dataset.state = "error";
             }
         } finally {
-            btnSaveFinalModel.disabled = false;
-            btnSaveFinalModel.textContent = "💾 Simpan Pipeline Model Final";
+            btnSaveFinalModel.textContent = "✅ Tetapkan Model Final";
+            syncFinalizeButtonState();
         }
     };
 
@@ -1100,6 +1230,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
         lastTrainingRequestPayload = requestPayload;
+        const requestSignature = getCurrentConfigSignature();
 
         btnRunTraining.disabled = true;
         btnRunTraining.textContent = "⏳ Melatih dan membandingkan...";
@@ -1118,6 +1249,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!response.ok || result.status !== "success") {
                 throw new Error(result.message || `Pelatihan gagal (HTTP ${response.status}).`);
             }
+            lastComparedSignature = requestSignature;
             renderTrainingResults(result.data);
         } catch (error) {
             trainingStatus.textContent = error instanceof Error
@@ -1160,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 option.setAttribute("aria-pressed", String(option === preset));
             });
             updateTrainingSplitTotal();
+            invalidateComparisonIfConfigChanged("Pembagian data");
         });
     });
     [trainingTrainPercent, trainingValidationPercent, trainingTestPercent].forEach((input) => {
@@ -1169,9 +1302,25 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             trainingPresets.forEach((preset) => preset.setAttribute("aria-pressed", "false"));
             updateTrainingSplitTotal();
+            invalidateComparisonIfConfigChanged("Pembagian data");
         });
     });
     updateTrainingSplitTotal();
+
+    [
+        prepOptDedup,
+        prepOptImputeNum,
+        prepOptImputeCat,
+        prepOptOutlier,
+        prepOptEncoding,
+        prepOptScaling
+    ].forEach((control) => {
+        if (control) {
+            control.addEventListener("change", () => {
+                invalidateComparisonIfConfigChanged("Pengaturan preprocessing");
+            });
+        }
+    });
 
     // Render Preview Mapping Encoding
     const renderEncodingPreview = () => {
@@ -1219,6 +1368,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!cb.disabled) cb.checked = true;
             });
             updateSelectedColsCount();
+            invalidateComparisonIfConfigChanged("Seleksi kolom fitur");
         });
     }
 
@@ -1226,6 +1376,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnColDeselectAll.addEventListener("click", () => {
             prepColumnsGrid.querySelectorAll(".prep-col-check").forEach(cb => cb.checked = false);
             updateSelectedColsCount();
+            invalidateComparisonIfConfigChanged("Seleksi kolom fitur");
         });
     }
 
@@ -1239,6 +1390,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     && !isDefaultDroppedColumn(h);
             });
             updateSelectedColsCount();
+            invalidateComparisonIfConfigChanged("Seleksi kolom fitur");
         });
     }
 
@@ -1246,6 +1398,7 @@ document.addEventListener("DOMContentLoaded", () => {
         prepColumnsGrid.addEventListener("change", (e) => {
             if (e.target.classList.contains("prep-col-check")) {
                 updateSelectedColsCount();
+                invalidateComparisonIfConfigChanged("Seleksi kolom fitur");
             }
         });
     }
@@ -1261,6 +1414,7 @@ document.addEventListener("DOMContentLoaded", () => {
             prepOptScaling.value = "none";
             if (btnColRecommend) btnColRecommend.click();
             renderEncodingPreview();
+            invalidateComparisonIfConfigChanged("Reset pengaturan preprocessing");
             setStatus("Pengaturan pra-pemrosesan telah direset ke rekomendasi default ML (Mean Imputation & Feature Selection).", "success");
         });
     }

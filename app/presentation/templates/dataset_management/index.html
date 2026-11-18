@@ -36,6 +36,7 @@
         <div id="final-model-status-body" class="pma-card-body" style="font-size: 12px; color: #555;">
             Memuat status pipeline model tersimpan...
         </div>
+        <div id="final-model-reconfirm-notice" class="pma-alert-warning" style="margin: 0 12px 12px 12px;" hidden></div>
     </section>
 
     <!-- 1. Pilihan Dataset -->
@@ -439,6 +440,7 @@
                         <table class="pma-table training-metrics-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 55px; text-align: center;">Pilih</th>
                                     <th>Model</th>
                                     <th id="training-accuracy-heading">Akurasi validasi</th>
                                     <th>Precision Macro</th>
@@ -460,21 +462,29 @@
                     <div id="training-confusion-matrices" class="training-confusion-grid"></div>
                     <div id="training-final-test-samples" style="margin-top: 12px;"></div>
 
-                    <!-- Simpan Pipeline Model Final (Poin 5) -->
+                    <!-- Tetapkan & Simpan Pipeline Model Final (Poin 3 & Poin 5) -->
                     <div id="finalize-model-panel" style="margin-top: 16px; background: #f2f8f2; border: 1px solid #b7d7b7; border-left: 5px solid #38761d; padding: 14px 16px; border-radius: 3px;">
                         <div style="font-weight: bold; color: #274e13; font-size: 13px; margin-bottom: 6px;">
-                            💾 Simpan Pipeline Model Final (.joblib + Metadata)
+                            ✅ Tetapkan Model Final &amp; Simpan Pipeline (.joblib + Metadata)
                         </div>
                         <p class="dataset-help" style="margin-bottom: 10px;">
-                            Menyimpan satu pipeline utuh (preprocessing + model terpilih) beserta nama model, daftar fitur aktif, versi/tanggal dataset, dan hasil evaluasi ke server.
+                            Pilih kandidat model dari tabel perbandingan di atas atau dropdown di bawah, lalu konfirmasi penetapan model final. Jika dataset atau pengaturan preprocessing/split diubah setelah ini, model final harus ditetapkan ulang.
                         </p>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
                             <label for="finalize-model-select" style="font-size: 12px; font-weight: 600; color: #235a81;">
-                                Pilih Model untuk Disimpan:
+                                Kandidat Model Final:
                             </label>
-                            <select id="finalize-model-select" class="pma-select" style="min-width: 220px;"></select>
-                            <button id="btn-save-final-model" type="button" class="pma-btn pma-btn-primary" style="font-weight: bold;">
-                                💾 Simpan Pipeline Model Final
+                            <select id="finalize-model-select" class="pma-select" style="min-width: 240px;"></select>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; color: #274e13; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                                <input type="checkbox" id="finalize-confirm-check">
+                                <span>Saya mengonfirmasi hasil evaluasi, skor per fold, dan audit anti-leakage kandidat ini untuk ditetapkan sebagai Model Final.</span>
+                            </label>
+                        </div>
+                        <div>
+                            <button id="btn-save-final-model" type="button" class="pma-btn pma-btn-primary" style="font-weight: bold;" disabled>
+                                ✅ Tetapkan Model Final
                             </button>
                         </div>
                         <div id="finalize-status" class="dataset-status" role="status" aria-live="polite" style="margin-top: 8px;" hidden></div>
