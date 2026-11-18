@@ -369,33 +369,33 @@
                 </p>
                 <div class="training-presets" role="group" aria-label="Template pembagian data">
                     <span class="training-presets-label">Pilih template:</span>
+                    <button class="training-preset pma-btn" type="button" data-strategy="cross_validation" data-train="80" data-validation="0" data-test="20" aria-pressed="true">80 / 20 + CV 5-Fold (Default)</button>
                     <button class="training-preset pma-btn" type="button" data-train="70" data-validation="15" data-test="15" aria-pressed="false">70 / 15 / 15</button>
                     <button class="training-preset pma-btn" type="button" data-train="60" data-validation="20" data-test="20" aria-pressed="false">60 / 20 / 20</button>
-                    <button class="training-preset pma-btn" type="button" data-strategy="cross_validation" data-train="80" data-validation="0" data-test="20" aria-pressed="false">80 / 20 + CV</button>
                 </div>
                 <div class="training-split-controls" aria-label="Pengaturan pembagian data">
                     <label>
                         Data latih (%)
-                        <input id="training-train-percent" type="number" min="50" max="90" step="1" placeholder="50–90">
+                        <input id="training-train-percent" type="number" min="50" max="95" step="1" value="80" placeholder="50–95">
                     </label>
                     <label>
                         Data validasi (%)
-                        <input id="training-validation-percent" type="number" min="0" max="45" step="1" placeholder="5–45">
+                        <input id="training-validation-percent" type="number" min="0" max="45" step="1" value="0" placeholder="CV" disabled>
                     </label>
                     <label>
                         Data uji (%)
-                        <input id="training-test-percent" type="number" min="5" max="45" step="1" placeholder="5–45">
+                        <input id="training-test-percent" type="number" min="5" max="50" step="1" value="20" placeholder="5–50">
                     </label>
-                    <span id="training-percent-total" class="pma-badge" aria-live="polite">Pilih atau isi pembagian</span>
+                    <span id="training-percent-total" class="pma-badge pma-badge-success" aria-live="polite">Total latih + uji: 100%</span>
                 </div>
                 <div class="training-run-row">
-                    <button id="btn-run-training" class="pma-btn pma-btn-primary" type="button" disabled>
+                    <button id="btn-run-training" class="pma-btn pma-btn-primary" type="button">
                         ▶ Terapkan Pengaturan &amp; Bandingkan Model
                     </button>
                     <span class="dataset-help">Hasil perbandingan akan muncul di bawah setelah proses selesai.</span>
                 </div>
                 <div id="training-status" class="dataset-status" role="status" aria-live="polite">
-                    Pilih salah satu template atau isi persentase sendiri. Hasil belum ditampilkan sebelum tombol dijalankan.
+                    Pengaturan default 80% data latih (5-Fold Cross-Validation) dan 20% data uji sudah siap. Hasil belum ditampilkan sebelum tombol dijalankan.
                 </div>
                 <div id="training-results" hidden>
                     <dl class="dataset-summary-grid">

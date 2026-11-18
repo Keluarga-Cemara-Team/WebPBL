@@ -62,10 +62,10 @@ class CompareDatasetModelsUseCase:
         rows = payload.get("rows")
         feature_columns = payload.get("feature_columns")
         deduplicate = payload.get("deduplicate", True)
-        train_percent = payload.get("train_percent", 70)
-        validation_percent = payload.get("validation_percent", 15)
-        test_percent = payload.get("test_percent", 15)
-        validation_method = payload.get("validation_method", "holdout")
+        train_percent = payload.get("train_percent", 80)
+        validation_percent = payload.get("validation_percent", 0)
+        test_percent = payload.get("test_percent", 20)
+        validation_method = payload.get("validation_method", "cross_validation")
         preprocessing = payload.get("preprocessing", {})
 
         if not isinstance(headers, list) or not headers or not all(

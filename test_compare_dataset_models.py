@@ -42,7 +42,9 @@ class CompareDatasetModelsUseCaseTests(unittest.TestCase):
             result["train_rows"] + result["validation_rows"] + result["test_rows"],
             30,
         )
-        self.assertEqual(result["split_percentages"], {"train": 70, "validation": 15, "test": 15})
+        self.assertEqual(result["validation_method"], "cross_validation")
+        self.assertEqual(result["validation_folds"], 5)
+        self.assertEqual(result["split_percentages"], {"train": 80, "validation": 0, "test": 20})
         self.assertEqual(sum(result["actual_split_percentages"].values()), 100.0)
         self.assertEqual(result["class_distribution"], {"Low": 10, "Moderate": 10, "High": 10})
         self.assertIn("top_evaluated_model", result)
@@ -233,6 +235,7 @@ class CompareDatasetModelsUseCaseTests(unittest.TestCase):
                     "train_percent": 70,
                     "validation_percent": 15,
                     "test_percent": 15,
+                    "validation_method": "holdout",
                 }
             )
 
@@ -249,6 +252,10 @@ class CompareDatasetModelsUseCaseTests(unittest.TestCase):
                     "headers": self.headers,
                     "rows": rows,
                     "feature_columns": ["Work_Hours"],
+                    "train_percent": 70,
+                    "validation_percent": 15,
+                    "test_percent": 15,
+                    "validation_method": "holdout",
                 }
             )
 
