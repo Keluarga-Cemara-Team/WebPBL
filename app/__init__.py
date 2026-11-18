@@ -77,8 +77,12 @@ def create_app(config_name="development"):
             admin_info = db_status["default_admin"]
             print(f">> [Database Checked] Akun Admin siap: {admin_info['username']} ({admin_info['email']})")
 
-    # Inisialisasi Service ML
-    ml_service = HttpMLPredictorService(app.config["ML_API_URL"])
+    # Inisialisasi Service ML (Prioritas: Pipeline Model Final Tersimpan -> HTTP API -> Fallback)
+    ml_service = HttpMLPredictorService(
+        app.config["ML_API_URL"],
+        pipeline_path=app.config.get("FINAL_MODEL_PIPELINE_PATH"),
+        metadata_path=app.config.get("FINAL_MODEL_METADATA_PATH"),
+    )
 
     # 2. Dependency Injection: Pasang ke app context untuk diakses Controller
     app.assessment_repository = assessment_repo

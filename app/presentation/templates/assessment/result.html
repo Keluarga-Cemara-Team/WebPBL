@@ -23,7 +23,12 @@
 {% if result.is_simulation %}
 <div class="pma-alert-warning">
     <span>⚠️</span>
-    <strong>Notice:</strong> Endpoint <code>MachineLearningPBL</code> belum aktif di port target. Evaluasi menggunakan formula dataset <code>mental_health_burnout_prediction_dataset.csv</code>.
+    <strong>Notice:</strong> Pipeline model final belum ditetapkan dan endpoint <code>MachineLearningPBL</code> belum aktif. Evaluasi menggunakan formula estimasi dataset.
+</div>
+{% elif result.prediction_source == 'final_model_pipeline' %}
+<div class="pma-alert-success" style="background: #eef6fc; border-color: #b5d5ec; border-left-color: #235a81; color: #173b54;">
+    <span>🤖</span>
+    <strong>Model Final Aktif:</strong> Prediksi dihitung langsung menggunakan pipeline tersimpan <strong>{{ result.model_name }}</strong> (Dataset: <code>{{ result.dataset_version }}</code>).
 </div>
 {% endif %}
 

@@ -124,9 +124,19 @@ def save_final_model():
 @main_bp.route("/healthz")
 def health_check():
     """Endpoint Pemantauan Kesehatan Sistem (Standar Industri Uptime Monitor)"""
+    from app.core.use_cases.save_final_model import GetFinalModelUseCase
+
+    final_status = GetFinalModelUseCase(
+        current_app.config["FINAL_MODEL_PIPELINE_PATH"],
+        current_app.config["FINAL_MODEL_METADATA_PATH"],
+    ).execute()
+    meta = final_status.get("metadata") or {}
     return jsonify({
         "status": "healthy",
         "service": "AntiBurnout-WebPBL",
         "database": getattr(current_app, "db_engine_name", "Google Cloud Firestore"),
-        "ml_target": current_app.config.get("ML_API_URL")
+        "ml_target": current_app.config.get("ML_API_URL"),
+        "final_model_active": bool(final_status.get("is_saved")),
+        "final_model_name": meta.get("model_name"),
+        "final_model_dataset_version": (meta.get("dataset_info") or {}).get("dataset_version"),
     }), 200
