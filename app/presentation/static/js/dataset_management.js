@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // State cache
     let currentDataset = null;
-    let trainingValidationMethod = "holdout";
+    let trainingValidationMethod = "cross_validation";
     let detectedOutliersInfo = { totalOutliers: 0, columnsWithOutliers: 0, columnBounds: {} };
 
     if (!fileInput || !status || !results) return;
@@ -553,6 +553,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const validationIsCrossValidation = trainingValidationMethod === "cross_validation";
         trainingValidationPercent.disabled = validationIsCrossValidation;
         trainingValidationPercent.placeholder = validationIsCrossValidation ? "CV" : "5–45";
+        trainingTrainPercent.max = validationIsCrossValidation ? "95" : "90";
+        trainingTrainPercent.placeholder = validationIsCrossValidation ? "50–95" : "50–90";
+        trainingTestPercent.max = validationIsCrossValidation ? "50" : "45";
+        trainingTestPercent.placeholder = validationIsCrossValidation ? "5–50" : "5–45";
         const values = [
             Number(trainingTrainPercent.value),
             Number(trainingValidationPercent.value),
@@ -810,8 +814,8 @@ document.addEventListener("DOMContentLoaded", () => {
             sectionTraining.scrollIntoView({ behavior: "smooth", block: "start" });
             if (trainingResults.hidden) {
                 trainingStatus.textContent = currentDataset
-                    ? "Pilih template pembagian atau isi persentase sendiri, lalu jalankan perbandingan."
-                    : "Muat dataset terlebih dahulu, lalu pilih template pembagian untuk menjalankan perbandingan.";
+                    ? "Pengaturan default 80/20 + Cross-Validation 5-Fold sudah aktif. Klik tombol perbandingan untuk memulai, atau pilih template lain."
+                    : "Muat dataset terlebih dahulu untuk menjalankan perbandingan model (default: 80/20 + Cross-Validation 5-Fold).";
                 delete trainingStatus.dataset.state;
             }
         });
