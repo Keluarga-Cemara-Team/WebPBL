@@ -287,6 +287,46 @@ class CompareDatasetModelsUseCaseTests(unittest.TestCase):
                 }
             )
 
+    def test_rejects_leakage_columns_such_as_burnout_score(self):
+        headers = ["Work_Hours", "Burnout_Score", "Mental_Health_Status", "Burnout_Risk"]
+        rows = [[row[0], "75", "Critical", row[2]] for row in self.rows]
+
+        with self.assertRaisesRegex(ValueError, "data leakage"):
+            self.use_case.execute(
+                {
+                    "headers": headers,
+                    "rows": rows,
+                    "feature_columns": ["Work_Hours", "Burnout_Score"],
+                }
+            )
+
+    def test_returns_fold_scores_raw_metrics_predictions_per_model_and_leakage_audit(self):
+        headers = ["Work_Hours", "Sleep_Quality", "Burnout_Score", "Burnout_Risk"]
+        rows = [[row[0], row[1], "50", row[2]] for row in self.rows]
+
+        result = self.use_case.execute(
+            {
+                "headers": headers,
+                "rows": rows,
+                "feature_columns": ["Work_Hours", "Sleep_Quality"],
+            }
+        )
+
+        self.assertTrue(result["leakage_check"]["passed"])
+        self.assertIn("Burnout_Score", result["leakage_check"]["excluded_leakage_columns"])
+        self.assertIn("raw_metrics", result["final_test_metrics"])
+        self.assertTrue(result["final_test_metrics"]["sample_predictions"])
+
+        for model_result in result["results"]:
+            self.assertEqual(len(model_result["fold_scores"]), 5)
+            self.assertIn("raw_validation_metrics", model_result)
+            self.assertEqual(len(model_result["validation_confusion_matrix"]), 3)
+            self.assertTrue(model_result["sample_predictions"])
+            self.assertEqual(
+                set(model_result["prediction_distribution"].keys()),
+                {"Low", "Moderate", "High"},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

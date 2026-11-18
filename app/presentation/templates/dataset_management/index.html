@@ -414,7 +414,15 @@
                     <h3 class="training-subheading">Distribusi kelas pada dataset yang dipakai</h3>
                     <div id="training-class-chart" class="training-class-chart" aria-label="Grafik distribusi kelas"></div>
 
-                    <h3 class="training-subheading">Perbandingan kandidat pada data validasi</h3>
+                    <div id="training-leakage-audit" class="pma-alert-success" style="margin: 12px 0;" hidden></div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+                        <h3 class="training-subheading" style="margin: 0;">Perbandingan kandidat pada data validasi</h3>
+                        <label style="font-size: 12px; color: #235a81; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <input type="checkbox" id="toggle-raw-metrics">
+                            <span>Tampilkan nilai metrik mentah (sebelum pembulatan)</span>
+                        </label>
+                    </div>
                     <div class="pma-table-container dataset-table-container">
                         <table class="pma-table training-metrics-table">
                             <thead>
@@ -431,10 +439,14 @@
                         </table>
                     </div>
 
+                    <h3 class="training-subheading">Verifikasi detail tiap model (skor per fold, metrik mentah, &amp; prediksi)</h3>
+                    <div id="training-verification-details" class="training-verify-list"></div>
+
                     <h3 class="training-subheading">Evaluasi akhir kandidat teratas pada data uji</h3>
                     <p id="training-final-test-summary" class="dataset-help"></p>
                     <h3 class="training-subheading">Confusion matrix data uji (baris: label aktual, kolom: prediksi)</h3>
                     <div id="training-confusion-matrices" class="training-confusion-grid"></div>
+                    <div id="training-final-test-samples" style="margin-top: 12px;"></div>
                 </div>
             </div>
         </section>
