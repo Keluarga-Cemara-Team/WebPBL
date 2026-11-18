@@ -47,6 +47,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const toggleRawMetrics = document.getElementById("toggle-raw-metrics");
     const trainingVerificationDetails = document.getElementById("training-verification-details");
     const trainingFinalTestSamples = document.getElementById("training-final-test-samples");
+    const finalModelBadge = document.getElementById("final-model-badge");
+    const finalModelStatusBody = document.getElementById("final-model-status-body");
+    const finalizeModelSelect = document.getElementById("finalize-model-select");
+    const btnSaveFinalModel = document.getElementById("btn-save-final-model");
+    const finalizeStatus = document.getElementById("finalize-status");
 
     const prepOptDedup = document.getElementById("prep-opt-dedup");
     const prepDupsBadge = document.getElementById("prep-dups-badge");
@@ -66,6 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let trainingValidationMethod = "cross_validation";
     let detectedOutliersInfo = { totalOutliers: 0, columnsWithOutliers: 0, columnBounds: {} };
     let lastComparisonData = null;
+    let lastTrainingRequestPayload = null;
 
     if (!fileInput || !status || !results) return;
 
@@ -436,6 +442,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "country",
             "occupation",
             "aiwellnessrecommendation",
+            "mentalhealthstatus",
             "burnoutrisk",
             "burnoutlevel",
             "education_level",
@@ -904,11 +911,132 @@ document.addEventListener("DOMContentLoaded", () => {
             );
         }
 
+        if (finalizeModelSelect) {
+            finalizeModelSelect.replaceChildren(...data.results.map((result) => {
+                const opt = document.createElement("option");
+                opt.value = result.model_name;
+                opt.textContent = `${result.model_name} (F1: ${result.validation_f1_macro.toFixed(4)})`;
+                if (result.model_name === data.top_evaluated_model) {
+                    opt.selected = true;
+                }
+                return opt;
+            }));
+        }
+        if (finalizeStatus) {
+            finalizeStatus.hidden = true;
+            finalizeStatus.textContent = "";
+            delete finalizeStatus.dataset.state;
+        }
+
         trainingResults.hidden = false;
         trainingStatus.textContent =
             `Evaluasi selesai. Preprocessing dari panel diterapkan; kandidat dipilih berdasarkan ${validationLabel}. ` +
-            "Data uji dipakai sekali untuk evaluasi akhir dan tidak ikut mempelajari preprocessing. Model tidak disimpan.";
+            "Data uji dipakai sekali untuk evaluasi akhir dan tidak ikut mempelajari preprocessing.";
         trainingStatus.dataset.state = "success";
+    };
+
+    const renderFinalModelStatus = (statusData) => {
+        if (!finalModelStatusBody || !finalModelBadge) return;
+        if (!statusData || !statusData.is_saved || !statusData.metadata) {
+            finalModelBadge.textContent = "Belum Disimpan";
+            finalModelBadge.className = "pma-badge pma-badge-warning";
+            finalModelStatusBody.innerHTML = `
+                <span>Belum ada pipeline model final yang tersimpan di server. Jalankan perbandingan model di bawah lalu klik <strong>Simpan Pipeline Model Final</strong>.</span>
+            `;
+            return;
+        }
+
+        const meta = statusData.metadata;
+        const ds = meta.dataset_info || {};
+        const evalRes = meta.evaluation_results || {};
+        const testMetrics = evalRes.final_test_metrics || {};
+        const prep = meta.preprocessing || {};
+
+        finalModelBadge.textContent = `Tersimpan: ${meta.model_name}`;
+        finalModelBadge.className = "pma-badge pma-badge-success";
+        finalModelStatusBody.innerHTML = `
+            <dl class="dataset-summary-grid" style="margin-bottom: 8px;">
+                <div class="dataset-summary-item"><dt>Nama Model Final</dt><dd><strong>${meta.model_name}</strong></dd></div>
+                <div class="dataset-summary-item"><dt>Tanggal Disimpan</dt><dd>${meta.saved_at || "-"}</dd></div>
+                <div class="dataset-summary-item"><dt>Dataset &amp; Versi</dt><dd>${ds.dataset_name || "-"} (<code>${ds.dataset_version || "-"}</code>, ${ds.rows_used ?? "-"} baris)</dd></div>
+                <div class="dataset-summary-item"><dt>Hasil Uji Akhir (20% Test)</dt><dd>Akurasi ${((testMetrics.accuracy || 0) * 100).toFixed(2)}% &bull; F1 Macro ${(testMetrics.f1_macro ?? 0).toFixed(4)}</dd></div>
+                <div class="dataset-summary-item"><dt>Preprocessing Pipeline</dt><dd>num: ${prep.numeric_imputation}, cat: ${prep.categorical_imputation}, outlier: ${prep.outlier_handling}, enc: ${prep.encoding}, scale: ${prep.scaling}</dd></div>
+                <div class="dataset-summary-item"><dt>Fitur Aktif (${(meta.feature_columns || []).length})</dt><dd style="word-break: break-word;">${(meta.feature_columns || []).join(", ")}</dd></div>
+            </dl>
+            <div style="font-size: 11px; color: #274e13;">
+                📁 Artifact Pipeline: <code>${statusData.pipeline_path}</code> &bull; Metadata: <code>${statusData.metadata_path}</code>
+            </div>
+        `;
+    };
+
+    const fetchFinalModelStatus = async () => {
+        try {
+            const resp = await fetch("/dataset-management/final-model");
+            const payload = await resp.json();
+            if (resp.ok && payload.status === "success") {
+                renderFinalModelStatus(payload.data);
+            }
+        } catch (err) {
+            if (finalModelBadge) finalModelBadge.textContent = "Gagal Memuat";
+        }
+    };
+
+    const saveFinalModelPipeline = async () => {
+        if (!lastTrainingRequestPayload || !lastComparisonData) {
+            alert("Jalankan perbandingan model terlebih dahulu sebelum menyimpan pipeline.");
+            return;
+        }
+        const selectedModelName = finalizeModelSelect ? finalizeModelSelect.value : lastComparisonData.top_evaluated_model;
+        const selectedCandidateResult = (lastComparisonData.results || []).find(
+            (item) => item.model_name === selectedModelName
+        );
+
+        btnSaveFinalModel.disabled = true;
+        btnSaveFinalModel.textContent = "⏳ Menyimpan Pipeline...";
+        if (finalizeStatus) {
+            finalizeStatus.hidden = false;
+            finalizeStatus.textContent = `Melatih ulang pipeline '${selectedModelName}' dan menyimpan ke server...`;
+            finalizeStatus.dataset.state = "loading";
+        }
+
+        try {
+            const resp = await fetch("/dataset-management/finalize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...lastTrainingRequestPayload,
+                    dataset_name: currentDataset?.filename || "dataset.csv",
+                    selected_model_name: selectedModelName,
+                    validation_summary: selectedCandidateResult
+                        ? {
+                              validation_method: lastComparisonData.validation_method,
+                              validation_folds: lastComparisonData.validation_folds,
+                              raw_validation_metrics: selectedCandidateResult.raw_validation_metrics,
+                              fold_scores: selectedCandidateResult.fold_scores || [],
+                          }
+                        : null,
+                }),
+            });
+            const result = await resp.json();
+            if (!resp.ok || result.status !== "success") {
+                throw new Error(result.message || `Gagal menyimpan pipeline (HTTP ${resp.status}).`);
+            }
+            renderFinalModelStatus(result.data);
+            if (finalizeStatus) {
+                finalizeStatus.hidden = false;
+                finalizeStatus.textContent = `✅ Pipeline model '${selectedModelName}' (${result.data.metadata.dataset_info.dataset_version}) berhasil disimpan!`;
+                finalizeStatus.dataset.state = "success";
+            }
+        } catch (err) {
+            if (finalizeStatus) {
+                finalizeStatus.hidden = false;
+                finalizeStatus.textContent = `❌ ${err instanceof Error ? err.message : "Gagal menyimpan pipeline."}`;
+                finalizeStatus.dataset.state = "error";
+            }
+        } finally {
+            btnSaveFinalModel.disabled = false;
+            btnSaveFinalModel.textContent = "💾 Simpan Pipeline Model Final";
+        }
     };
 
     const trainAndCompareModels = async () => {
@@ -954,6 +1082,25 @@ document.addEventListener("DOMContentLoaded", () => {
             trainingColumnIndices.map((index) => row[index])
         );
 
+        const requestPayload = {
+            headers: trainingHeaders,
+            rows: trainingRows,
+            feature_columns: featureColumns,
+            deduplicate: prepOptDedup.checked,
+            train_percent: splitPercentages.train,
+            validation_percent: splitPercentages.validation,
+            test_percent: splitPercentages.test,
+            validation_method: trainingValidationMethod,
+            preprocessing: {
+                numeric_imputation: prepOptImputeNum.value,
+                categorical_imputation: prepOptImputeCat.value,
+                outlier_handling: prepOptOutlier.value,
+                encoding: prepOptEncoding.value,
+                scaling: prepOptScaling.value
+            }
+        };
+        lastTrainingRequestPayload = requestPayload;
+
         btnRunTraining.disabled = true;
         btnRunTraining.textContent = "⏳ Melatih dan membandingkan...";
         trainingStatus.textContent = trainingValidationMethod === "cross_validation"
@@ -965,23 +1112,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const response = await fetch("/dataset-management/train", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    headers: trainingHeaders,
-                    rows: trainingRows,
-                    feature_columns: featureColumns,
-                    deduplicate: prepOptDedup.checked,
-                    train_percent: splitPercentages.train,
-                    validation_percent: splitPercentages.validation,
-                    test_percent: splitPercentages.test,
-                    validation_method: trainingValidationMethod,
-                    preprocessing: {
-                        numeric_imputation: prepOptImputeNum.value,
-                        categorical_imputation: prepOptImputeCat.value,
-                        outlier_handling: prepOptOutlier.value,
-                        encoding: prepOptEncoding.value,
-                        scaling: prepOptScaling.value
-                    }
-                })
+                body: JSON.stringify(requestPayload)
             });
             const result = await response.json();
             if (!response.ok || result.status !== "success") {
@@ -998,6 +1129,11 @@ document.addEventListener("DOMContentLoaded", () => {
             btnRunTraining.disabled = getTrainingSplitPercentages() === null;
         }
     };
+
+    if (btnSaveFinalModel) {
+        btnSaveFinalModel.addEventListener("click", saveFinalModelPipeline);
+    }
+    fetchFinalModelStatus();
 
     if (btnOpenTraining) {
         btnOpenTraining.addEventListener("click", () => {

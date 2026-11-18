@@ -14,6 +14,11 @@ class Config:
     DATA_DIR = BASE_DIR / "data"
     DB_PATH = DATA_DIR / "antiburnout.db"
 
+    # Penyimpanan Pipeline Model Final & Metadata (Poin 5)
+    FINAL_MODEL_DIR = DATA_DIR / "final_model"
+    FINAL_MODEL_PIPELINE_PATH = FINAL_MODEL_DIR / "pipeline.joblib"
+    FINAL_MODEL_METADATA_PATH = FINAL_MODEL_DIR / "metadata.json"
+
     # Firebase Cloud Firestore Credentials
     FIREBASE_CREDENTIALS_PATH = BASE_DIR / "serviceAccountKey.json"
 
