@@ -43,6 +43,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const trainingClassChart = document.getElementById("training-class-chart");
     const trainingMetricsBody = document.getElementById("training-metrics-body");
     const trainingConfusionMatrices = document.getElementById("training-confusion-matrices");
+    const trainingLeakageAudit = document.getElementById("training-leakage-audit");
+    const toggleRawMetrics = document.getElementById("toggle-raw-metrics");
+    const trainingVerificationDetails = document.getElementById("training-verification-details");
+    const trainingFinalTestSamples = document.getElementById("training-final-test-samples");
 
     const prepOptDedup = document.getElementById("prep-opt-dedup");
     const prepDupsBadge = document.getElementById("prep-dups-badge");
@@ -61,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentDataset = null;
     let trainingValidationMethod = "cross_validation";
     let detectedOutliersInfo = { totalOutliers: 0, columnsWithOutliers: 0, columnBounds: {} };
+    let lastComparisonData = null;
 
     if (!fileInput || !status || !results) return;
 
@@ -582,6 +587,50 @@ document.addEventListener("DOMContentLoaded", () => {
         btnRunTraining.disabled = !valid;
     };
 
+    const renderMetricsTable = (payload) => {
+        const showRaw = Boolean(toggleRawMetrics && toggleRawMetrics.checked);
+        trainingMetricsBody.replaceChildren(...payload.results.map((result) => {
+            const row = document.createElement("tr");
+            const modelCell = makeCell("th", result.model_name, "row");
+            if (result.model_name === payload.top_evaluated_model) {
+                modelCell.appendChild(document.createTextNode(" (F1 tertinggi)"));
+            }
+            const raw = result.raw_validation_metrics || {};
+            const accText = showRaw && raw.accuracy !== undefined
+                ? String(raw.accuracy)
+                : `${(result.validation_accuracy * 100).toFixed(2)}%`;
+            const precText = showRaw && raw.precision_macro !== undefined
+                ? String(raw.precision_macro)
+                : result.validation_precision_macro.toFixed(4);
+            const recText = showRaw && raw.recall_macro !== undefined
+                ? String(raw.recall_macro)
+                : result.validation_recall_macro.toFixed(4);
+            const f1Text = showRaw && raw.f1_macro !== undefined
+                ? String(raw.f1_macro)
+                : result.validation_f1_macro.toFixed(4);
+            const timeText = showRaw && raw.training_time_seconds !== undefined
+                ? String(raw.training_time_seconds)
+                : result.training_time_seconds.toFixed(4);
+            row.append(
+                modelCell,
+                makeCell("td", accText),
+                makeCell("td", precText),
+                makeCell("td", recText),
+                makeCell("td", f1Text),
+                makeCell("td", timeText)
+            );
+            return row;
+        }));
+    };
+
+    if (toggleRawMetrics) {
+        toggleRawMetrics.addEventListener("change", () => {
+            if (lastComparisonData) {
+                renderMetricsTable(lastComparisonData);
+            }
+        });
+    }
+
     const renderTrainingResults = (data) => {
         const validationLabel = data.validation_method === "cross_validation"
             ? `validasi silang ${data.validation_folds}-fold`
@@ -666,52 +715,194 @@ document.addEventListener("DOMContentLoaded", () => {
             return row;
         }));
 
-        trainingMetricsBody.replaceChildren(...data.results.map((result) => {
-            const row = document.createElement("tr");
-            const modelCell = makeCell("th", result.model_name, "row");
-            if (result.model_name === data.top_evaluated_model) {
-                modelCell.appendChild(document.createTextNode(" (F1 tertinggi)"));
-            }
-            row.append(
-                modelCell,
-                makeCell("td", `${(result.validation_accuracy * 100).toFixed(2)}%`),
-                makeCell("td", result.validation_precision_macro.toFixed(4)),
-                makeCell("td", result.validation_recall_macro.toFixed(4)),
-                makeCell("td", result.validation_f1_macro.toFixed(4)),
-                makeCell("td", result.training_time_seconds.toFixed(4))
+        const buildConfusionMatrixTable = (labels, matrix) => {
+            const table = document.createElement("table");
+            table.className = "training-confusion-table";
+            const head = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+            headerRow.append(makeCell("th", "Aktual \\ Prediksi"));
+            labels.forEach((label) => headerRow.appendChild(makeCell("th", label, "col")));
+            head.appendChild(headerRow);
+            const body = document.createElement("tbody");
+            labels.forEach((label, rowIndex) => {
+                const row = document.createElement("tr");
+                row.appendChild(makeCell("th", label, "row"));
+                (matrix[rowIndex] || []).forEach((count) => {
+                    row.appendChild(makeCell("td", String(count)));
+                });
+                body.appendChild(row);
+            });
+            table.append(head, body);
+            return table;
+        };
+
+        const buildPredictionSamplesTable = (samples) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "pma-table-container";
+            const table = document.createElement("table");
+            table.className = "pma-table";
+            table.style.fontSize = "11px";
+            const thead = document.createElement("thead");
+            const headRow = document.createElement("tr");
+            headRow.append(
+                makeCell("th", "Baris #"),
+                makeCell("th", "Label Aktual"),
+                makeCell("th", "Prediksi Model"),
+                makeCell("th", "Hasil")
             );
-            return row;
-        }));
+            thead.appendChild(headRow);
+            const tbody = document.createElement("tbody");
+            samples.forEach((item) => {
+                const tr = document.createElement("tr");
+                const statusCell = makeCell("td", item.correct ? "✅ Cocok" : "❌ Meleset");
+                statusCell.style.color = item.correct ? "#274e13" : "#cc0000";
+                statusCell.style.fontWeight = "600";
+                tr.append(
+                    makeCell("td", String(item.row_index)),
+                    makeCell("td", item.actual),
+                    makeCell("td", item.predicted),
+                    statusCell
+                );
+                tbody.appendChild(tr);
+            });
+            table.append(thead, tbody);
+            wrapper.appendChild(table);
+            return wrapper;
+        };
+
+        lastComparisonData = data;
+        renderMetricsTable(data);
+
+        if (trainingLeakageAudit && data.leakage_check) {
+            const excludedCols = data.leakage_check.excluded_leakage_columns || [];
+            trainingLeakageAudit.hidden = false;
+            trainingLeakageAudit.innerHTML = `
+                <strong>🛡️ Audit Anti-Data-Leakage: LOLOS</strong><br>
+                <span>${data.leakage_check.message}</span><br>
+                <span style="font-size: 11px;">Kolom target &amp; turunan yang dikecualikan dari fitur: <code>${excludedCols.length ? excludedCols.join(", ") : "-"}</code></span>
+            `;
+        }
+
+        if (trainingVerificationDetails) {
+            trainingVerificationDetails.replaceChildren(...data.results.map((result, idx) => {
+                const details = document.createElement("details");
+                details.className = "training-verify-card";
+                if (idx === 0) details.open = true;
+
+                const summary = document.createElement("summary");
+                summary.className = "training-verify-summary";
+                const raw = result.raw_validation_metrics || {};
+                const dist = result.prediction_distribution || {};
+                const distText = data.labels.map((l) => `${l}: ${dist[l] ?? 0}`).join(" | ");
+                summary.innerHTML = `
+                    <span>${idx + 1}. ${result.model_name}${result.model_name === data.top_evaluated_model ? " ⭐" : ""}</span>
+                    <span style="font-weight: normal; font-size: 11px; color: #555;">F1 Mentah: <code>${raw.f1_macro ?? result.validation_f1_macro}</code> &bull; Distribusi Prediksi: ${distText}</span>
+                `;
+
+                const body = document.createElement("div");
+                body.className = "training-verify-body";
+
+                const rawBox = document.createElement("div");
+                rawBox.style.cssText = "background: #f9fbfd; border: 1px solid #d6e2ec; padding: 8px 10px; border-radius: 2px; margin-bottom: 10px; font-family: monospace; font-size: 11px;";
+                rawBox.innerHTML = `
+                    <strong>Nilai Metrik Mentah (Sebelum Pembulatan):</strong><br>
+                    Accuracy: ${raw.accuracy ?? result.validation_accuracy} |
+                    Precision Macro: ${raw.precision_macro ?? result.validation_precision_macro} |
+                    Recall Macro: ${raw.recall_macro ?? result.validation_recall_macro} |
+                    F1 Macro: ${raw.f1_macro ?? result.validation_f1_macro} |
+                    Waktu: ${raw.training_time_seconds ?? result.training_time_seconds}s
+                `;
+                body.appendChild(rawBox);
+
+                if (Array.isArray(result.fold_scores) && result.fold_scores.length) {
+                    const foldTitle = document.createElement("div");
+                    foldTitle.style.cssText = "font-weight: 600; color: #235a81; margin-bottom: 4px;";
+                    foldTitle.textContent = `Skor Per Fold (${result.fold_scores.length}-Fold Cross-Validation, nilai mentah):`;
+                    body.appendChild(foldTitle);
+
+                    const foldWrap = document.createElement("div");
+                    foldWrap.className = "pma-table-container";
+                    foldWrap.style.marginBottom = "10px";
+                    const foldTable = document.createElement("table");
+                    foldTable.className = "pma-table";
+                    foldTable.style.fontSize = "11px";
+                    const fHead = document.createElement("thead");
+                    const fHeadRow = document.createElement("tr");
+                    fHeadRow.append(
+                        makeCell("th", "Fold"),
+                        makeCell("th", "Baris Latih / Val"),
+                        makeCell("th", "Accuracy"),
+                        makeCell("th", "Precision Macro"),
+                        makeCell("th", "Recall Macro"),
+                        makeCell("th", "F1 Macro")
+                    );
+                    fHead.appendChild(fHeadRow);
+                    const fBody = document.createElement("tbody");
+                    result.fold_scores.forEach((fold) => {
+                        const tr = document.createElement("tr");
+                        tr.append(
+                            makeCell("td", `Fold ${fold.fold}`),
+                            makeCell("td", `${fold.train_rows} / ${fold.validation_rows}`),
+                            makeCell("td", String(fold.accuracy)),
+                            makeCell("td", String(fold.precision_macro)),
+                            makeCell("td", String(fold.recall_macro)),
+                            makeCell("td", String(fold.f1_macro))
+                        );
+                        fBody.appendChild(tr);
+                    });
+                    foldTable.append(fHead, fBody);
+                    foldWrap.appendChild(foldTable);
+                    body.appendChild(foldWrap);
+                }
+
+                const grid = document.createElement("div");
+                grid.className = "training-verify-grid";
+
+                const cmCard = document.createElement("div");
+                cmCard.className = "training-confusion-card";
+                const cmTitle = document.createElement("h4");
+                cmTitle.textContent = data.validation_method === "cross_validation"
+                    ? "Confusion Matrix Out-of-Fold (80% Latih)"
+                    : "Confusion Matrix Validasi";
+                cmCard.append(cmTitle, buildConfusionMatrixTable(data.labels, result.validation_confusion_matrix || []));
+
+                const sampleCard = document.createElement("div");
+                const sampleTitle = document.createElement("div");
+                sampleTitle.style.cssText = "font-weight: 600; color: #235a81; margin-bottom: 4px;";
+                sampleTitle.textContent = "Sampel Prediksi vs Aktual (10 baris pertama):";
+                sampleCard.append(sampleTitle, buildPredictionSamplesTable(result.sample_predictions || []));
+
+                grid.append(cmCard, sampleCard);
+                body.appendChild(grid);
+                details.append(summary, body);
+                return details;
+            }));
+        }
 
         const finalMetrics = data.final_test_metrics;
+        const rawTest = finalMetrics.raw_metrics || {};
         document.getElementById("training-final-test-summary").textContent =
-            `${data.final_test_model} — akurasi ${(finalMetrics.accuracy * 100).toFixed(2)}%, ` +
+            `${data.final_test_model} — akurasi ${(finalMetrics.accuracy * 100).toFixed(2)}% ` +
+            `(mentah: ${rawTest.accuracy ?? finalMetrics.accuracy}), ` +
             `precision macro ${finalMetrics.precision_macro.toFixed(4)}, recall macro ${finalMetrics.recall_macro.toFixed(4)}, ` +
-            `F1 macro ${finalMetrics.f1_macro.toFixed(4)} pada ${data.test_rows} baris uji.`;
+            `F1 macro ${finalMetrics.f1_macro.toFixed(4)} (mentah: ${rawTest.f1_macro ?? finalMetrics.f1_macro}) pada ${data.test_rows} baris uji.`;
 
         const card = document.createElement("section");
         card.className = "training-confusion-card";
         const title = document.createElement("h4");
         title.textContent = data.final_test_model;
-        const table = document.createElement("table");
-        table.className = "training-confusion-table";
-        const head = document.createElement("thead");
-        const headerRow = document.createElement("tr");
-        headerRow.append(makeCell("th", "Aktual \\ Prediksi"));
-        data.labels.forEach((label) => headerRow.appendChild(makeCell("th", label, "col")));
-        head.appendChild(headerRow);
-        const body = document.createElement("tbody");
-        data.labels.forEach((label, rowIndex) => {
-            const row = document.createElement("tr");
-            row.appendChild(makeCell("th", label, "row"));
-            finalMetrics.confusion_matrix[rowIndex].forEach((count) => {
-                row.appendChild(makeCell("td", String(count)));
-            });
-            body.appendChild(row);
-        });
-        table.append(head, body);
-        card.append(title, table);
+        card.append(title, buildConfusionMatrixTable(data.labels, finalMetrics.confusion_matrix));
         trainingConfusionMatrices.replaceChildren(card);
+
+        if (trainingFinalTestSamples) {
+            const sampleTitle = document.createElement("div");
+            sampleTitle.style.cssText = "font-weight: 600; color: #235a81; margin-bottom: 4px; font-size: 12px;";
+            sampleTitle.textContent = `Sampel Prediksi Data Uji (${data.final_test_model}, maksimal 10 baris):`;
+            trainingFinalTestSamples.replaceChildren(
+                sampleTitle,
+                buildPredictionSamplesTable(finalMetrics.sample_predictions || [])
+            );
+        }
 
         trainingResults.hidden = false;
         trainingStatus.textContent =

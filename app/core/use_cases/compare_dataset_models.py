@@ -54,7 +54,13 @@ class CompareDatasetModelsUseCase:
     """Train and evaluate candidate classifiers without persisting any model."""
 
     LABELS = ("Low", "Moderate", "High")
-    MAX_ROWS = 25_000
+    LEAKAGE_COLUMN_KEYS = {
+        "burnoutscore",
+        "mentalhealthstatus",
+        "aiwellnessrecommendation",
+        "recommendation",
+    }
+    MAX_ROWS = 100_000
     RANDOM_STATE = 42
 
     def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -163,6 +169,19 @@ class CompareDatasetModelsUseCase:
             raise ValueError(f"Kolom fitur tidak ditemukan: {', '.join(unknown_columns)}.")
         if any(self._is_target_column(column) for column in feature_columns):
             raise ValueError("Kolom target tidak boleh digunakan sebagai fitur.")
+        leaking_columns = [
+            column for column in feature_columns if self._is_leakage_column(column)
+        ]
+        if leaking_columns:
+            raise ValueError(
+                "Fitur berikut membocorkan label burnout (data leakage) dan tidak boleh dipakai: "
+                f"{', '.join(leaking_columns)}."
+            )
+        excluded_leakage_columns = [
+            column
+            for column in cleaned_headers
+            if self._is_target_column(column) or self._is_leakage_column(column)
+        ]
 
         frame = pd.DataFrame(rows, columns=cleaned_headers)
         labels = frame[target_column].map(self._normalize_label)
@@ -342,16 +361,20 @@ class CompareDatasetModelsUseCase:
         results = []
         for model_name, classifier in candidates:
             started_at = perf_counter()
+            fold_scores = []
             if validation_method == "cross_validation":
                 fold_results = []
+                oof_actual: List[str] = []
+                oof_predicted: List[str] = []
+                oof_indices: List[Any] = []
                 fit_time = 0.0
                 splitter = StratifiedKFold(
                     n_splits=validation_folds,
                     shuffle=True,
                     random_state=self.RANDOM_STATE,
                 )
-                for fold_train_positions, fold_validation_positions in splitter.split(
-                    x_train, y_train
+                for fold_index, (fold_train_positions, fold_validation_positions) in enumerate(
+                    splitter.split(x_train, y_train), start=1
                 ):
                     fold_x_train = x_train.iloc[fold_train_positions]
                     fold_y_train = y_train.iloc[fold_train_positions]
@@ -368,7 +391,7 @@ class CompareDatasetModelsUseCase:
                     fold_pipeline = self._build_model_pipeline(
                         numeric_columns,
                         categorical_columns,
-                        classifier,
+                        clone(classifier),
                         preprocessing,
                     )
                     self._set_knn_neighbors(fold_pipeline, len(fold_y_train))
@@ -376,17 +399,35 @@ class CompareDatasetModelsUseCase:
                     fold_pipeline.fit(fold_x_train, fold_y_train)
                     fit_time += perf_counter() - fold_started_at
                     fold_predictions = fold_pipeline.predict(fold_x_validation)
-                    fold_results.append(
-                        self._calculate_metrics(fold_y_validation, fold_predictions)
+                    fold_metric = self._calculate_metrics(
+                        fold_y_validation, fold_predictions
                     )
-                validation_metrics = {
-                    metric: round(
-                        sum(fold[metric] for fold in fold_results) / len(fold_results),
-                        4,
+                    fold_results.append(fold_metric)
+                    fold_scores.append(
+                        {
+                            "fold": fold_index,
+                            "train_rows": len(fold_y_train),
+                            "validation_rows": len(fold_y_validation),
+                            "accuracy": fold_metric["accuracy"],
+                            "precision_macro": fold_metric["precision_macro"],
+                            "recall_macro": fold_metric["recall_macro"],
+                            "f1_macro": fold_metric["f1_macro"],
+                        }
+                    )
+                    oof_actual.extend(str(val) for val in fold_y_validation.tolist())
+                    oof_predicted.extend(str(val) for val in fold_predictions.tolist())
+                    oof_indices.extend(fold_x_validation.index.tolist())
+
+                raw_validation_metrics = {
+                    metric: float(
+                        sum(fold[metric] for fold in fold_results) / len(fold_results)
                     )
                     for metric in ("accuracy", "precision_macro", "recall_macro", "f1_macro")
                 }
                 training_time = fit_time
+                eval_actual_series = pd.Series(oof_actual)
+                eval_predicted_list = oof_predicted
+                eval_indices = oof_indices
             else:
                 fit_x_train, fit_y_train, dropped_outliers = self._drop_training_outliers(
                     x_train,
@@ -399,34 +440,56 @@ class CompareDatasetModelsUseCase:
                 pipeline = self._build_model_pipeline(
                     numeric_columns,
                     categorical_columns,
-                    classifier,
+                    clone(classifier),
                     preprocessing,
                 )
                 self._set_knn_neighbors(pipeline, len(fit_y_train))
                 pipeline.fit(fit_x_train, fit_y_train)
                 validation_predictions = pipeline.predict(x_validation)
-                validation_metrics = self._calculate_metrics(
+                raw_validation_metrics = self._calculate_metrics(
                     y_validation, validation_predictions
                 )
                 training_time = perf_counter() - started_at
+                eval_actual_series = y_validation
+                eval_predicted_list = [str(val) for val in validation_predictions.tolist()]
+                eval_indices = x_validation.index.tolist()
 
+            prediction_summary = self._summarize_predictions(
+                eval_actual_series, eval_predicted_list, eval_indices
+            )
             results.append(
                 {
                     "model_name": model_name,
-                    "validation_accuracy": validation_metrics["accuracy"],
-                    "validation_precision_macro": validation_metrics["precision_macro"],
-                    "validation_recall_macro": validation_metrics["recall_macro"],
-                    "validation_f1_macro": validation_metrics["f1_macro"],
+                    "validation_accuracy": round(raw_validation_metrics["accuracy"], 4),
+                    "validation_precision_macro": round(
+                        raw_validation_metrics["precision_macro"], 4
+                    ),
+                    "validation_recall_macro": round(
+                        raw_validation_metrics["recall_macro"], 4
+                    ),
+                    "validation_f1_macro": round(raw_validation_metrics["f1_macro"], 4),
                     "training_time_seconds": round(float(training_time), 4),
+                    "raw_validation_metrics": {
+                        **raw_validation_metrics,
+                        "training_time_seconds": float(training_time),
+                    },
+                    "fold_scores": fold_scores,
+                    "validation_confusion_matrix": prediction_summary[
+                        "confusion_matrix"
+                    ],
+                    "prediction_distribution": prediction_summary[
+                        "prediction_distribution"
+                    ],
+                    "sample_predictions": prediction_summary["sample_predictions"],
                     "classifier": classifier,
                 }
             )
 
         results.sort(
             key=lambda result: (
-                result["validation_f1_macro"],
-                result["validation_accuracy"],
-                result["validation_precision_macro"],
+                result["raw_validation_metrics"]["f1_macro"],
+                result["raw_validation_metrics"]["accuracy"],
+                result["raw_validation_metrics"]["precision_macro"],
             ),
             reverse=True,
         )
@@ -448,29 +511,29 @@ class CompareDatasetModelsUseCase:
         selected_pipeline = self._build_model_pipeline(
             numeric_columns,
             categorical_columns,
-            selected_classifier,
+            clone(selected_classifier),
             preprocessing,
         )
         self._set_knn_neighbors(selected_pipeline, len(final_y_train))
         selected_pipeline.fit(final_x_train, final_y_train)
         test_predictions = selected_pipeline.predict(x_test)
+        raw_test_metrics = self._calculate_metrics(y_test, test_predictions)
+        test_prediction_summary = self._summarize_predictions(
+            y_test,
+            [str(val) for val in test_predictions.tolist()],
+            x_test.index.tolist(),
+        )
         final_test_metrics = {
-            "accuracy": round(float(accuracy_score(y_test, test_predictions)), 4),
-            "precision_macro": round(
-                float(precision_score(y_test, test_predictions, labels=self.LABELS, average="macro", zero_division=0)),
-                4,
-            ),
-            "recall_macro": round(
-                float(recall_score(y_test, test_predictions, labels=self.LABELS, average="macro", zero_division=0)),
-                4,
-            ),
-            "f1_macro": round(
-                float(f1_score(y_test, test_predictions, labels=self.LABELS, average="macro", zero_division=0)),
-                4,
-            ),
-            "confusion_matrix": confusion_matrix(
-                y_test, test_predictions, labels=self.LABELS
-            ).tolist(),
+            "accuracy": round(raw_test_metrics["accuracy"], 4),
+            "precision_macro": round(raw_test_metrics["precision_macro"], 4),
+            "recall_macro": round(raw_test_metrics["recall_macro"], 4),
+            "f1_macro": round(raw_test_metrics["f1_macro"], 4),
+            "raw_metrics": raw_test_metrics,
+            "confusion_matrix": test_prediction_summary["confusion_matrix"],
+            "prediction_distribution": test_prediction_summary[
+                "prediction_distribution"
+            ],
+            "sample_predictions": test_prediction_summary["sample_predictions"],
         }
         for result in results:
             result.pop("classifier")
@@ -501,6 +564,15 @@ class CompareDatasetModelsUseCase:
                 "test": round(len(x_test) / len(frame) * 100, 1),
             },
             "feature_columns": active_features,
+            "leakage_check": {
+                "passed": True,
+                "target_column": target_column,
+                "excluded_leakage_columns": excluded_leakage_columns,
+                "message": (
+                    "Verifikasi anti-data-leakage lolos: kolom target dan fitur turunan label "
+                    "burnout tidak termasuk ke dalam fitur pelatihan."
+                ),
+            },
             "class_distribution": {
                 label: int(class_counts[label]) for label in self.LABELS
             },
@@ -739,6 +811,39 @@ class CompareDatasetModelsUseCase:
             ),
         }
 
+    @classmethod
+    def _summarize_predictions(
+        cls,
+        actual: pd.Series,
+        predicted: Sequence[str],
+        row_indices: Sequence[Any],
+        limit: int = 10,
+    ) -> Dict[str, Any]:
+        actual_list = [str(value) for value in actual.tolist()]
+        predicted_list = [str(value) for value in predicted]
+        distribution = {label: 0 for label in cls.LABELS}
+        for pred in predicted_list:
+            if pred in distribution:
+                distribution[pred] += 1
+        samples = [
+            {
+                "row_index": int(row_idx) + 1 if isinstance(row_idx, (int, float)) else str(row_idx),
+                "actual": act,
+                "predicted": pred,
+                "correct": act == pred,
+            }
+            for row_idx, act, pred in list(
+                zip(row_indices, actual_list, predicted_list)
+            )[:limit]
+        ]
+        return {
+            "confusion_matrix": confusion_matrix(
+                actual_list, predicted_list, labels=cls.LABELS
+            ).tolist(),
+            "prediction_distribution": distribution,
+            "sample_predictions": samples,
+        }
+
     @staticmethod
     def _normalize_header(value: str) -> str:
         return "".join(character.lower() for character in value if character.isalnum())
@@ -746,6 +851,10 @@ class CompareDatasetModelsUseCase:
     @classmethod
     def _is_target_column(cls, value: str) -> bool:
         return cls._normalize_header(value) in {"burnoutrisk", "burnoutlevel"}
+
+    @classmethod
+    def _is_leakage_column(cls, value: str) -> bool:
+        return cls._normalize_header(value) in cls.LEAKAGE_COLUMN_KEYS
 
     @classmethod
     def _find_target_column(cls, headers: Sequence[str]) -> Optional[str]:
