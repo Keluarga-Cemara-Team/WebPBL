@@ -5,6 +5,7 @@ from app.core.use_cases.get_assessment_history import GetAssessmentHistoryUseCas
 from app.core.use_cases.get_dashboard_analytics import GetDashboardAnalyticsUseCase
 from app.core.use_cases.login_admin import LoginAdminUseCase
 from app.core.use_cases.import_dataset import ImportDatasetUseCase
+from app.core.use_cases.save_final_model import SaveFinalModelUseCase, GetFinalModelUseCase
 
 __all__ = [
     "SubmitAssessmentUseCase",
@@ -13,5 +14,7 @@ __all__ = [
     "GetAssessmentHistoryUseCase",
     "GetDashboardAnalyticsUseCase",
     "LoginAdminUseCase",
-    "ImportDatasetUseCase"
+    "ImportDatasetUseCase",
+    "SaveFinalModelUseCase",
+    "GetFinalModelUseCase",
 ]

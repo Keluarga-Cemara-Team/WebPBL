@@ -86,6 +86,41 @@ def compare_dataset_models():
             "message": "Terjadi kesalahan saat melatih model. Periksa log server untuk detail.",
         }), 500
 
+@main_bp.route("/dataset-management/final-model", methods=["GET"])
+def get_final_model_status():
+    """Mengambil status dan metadata pipeline model final yang tersimpan."""
+    from app.core.use_cases.save_final_model import GetFinalModelUseCase
+
+    pipeline_path = current_app.config["FINAL_MODEL_PIPELINE_PATH"]
+    metadata_path = current_app.config["FINAL_MODEL_METADATA_PATH"]
+    result = GetFinalModelUseCase(pipeline_path, metadata_path).execute()
+    return jsonify({"status": "success", "data": result}), 200
+
+
+@main_bp.route("/dataset-management/finalize", methods=["POST"])
+def save_final_model():
+    """Melatih dan menyimpan pipeline model final beserta metadata evaluasi."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"status": "error", "message": "Payload penetapan model harus berupa JSON object."}), 400
+
+    try:
+        from app.core.use_cases.save_final_model import SaveFinalModelUseCase
+
+        pipeline_path = current_app.config["FINAL_MODEL_PIPELINE_PATH"]
+        metadata_path = current_app.config["FINAL_MODEL_METADATA_PATH"]
+        result = SaveFinalModelUseCase(pipeline_path, metadata_path).execute(payload)
+        return jsonify({"status": "success", "data": result}), 200
+    except ValueError as error:
+        return jsonify({"status": "error", "message": str(error)}), 400
+    except Exception:
+        current_app.logger.exception("Gagal menyimpan pipeline model final.")
+        return jsonify({
+            "status": "error",
+            "message": "Terjadi kesalahan saat menyimpan pipeline model final.",
+        }), 500
+
+
 @main_bp.route("/healthz")
 def health_check():
     """Endpoint Pemantauan Kesehatan Sistem (Standar Industri Uptime Monitor)"""

@@ -63,7 +63,44 @@ class CompareDatasetModelsUseCase:
     MAX_ROWS = 100_000
     RANDOM_STATE = 42
 
-    def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def get_candidates(cls) -> List[tuple[str, BaseEstimator]]:
+        return [
+            ("Gaussian Naive Bayes", GaussianNB()),
+            (
+                "SVM RBF",
+                SVC(kernel="rbf", C=1.0, gamma="scale"),
+            ),
+            (
+                "Logistic Regression L1",
+                LogisticRegression(
+                    solver="saga",
+                    l1_ratio=1.0,
+                    C=0.01,
+                    max_iter=5000,
+                    random_state=cls.RANDOM_STATE,
+                ),
+            ),
+            (
+                "KNN Manhattan",
+                KNeighborsClassifier(
+                    n_neighbors=5,
+                    metric="manhattan",
+                    weights="uniform",
+                ),
+            ),
+            (
+                "Random Forest GINI",
+                RandomForestClassifier(
+                    criterion="gini",
+                    n_estimators=100,
+                    random_state=cls.RANDOM_STATE,
+                    n_jobs=-1,
+                ),
+            ),
+        ]
+
+    def prepare_and_split(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         headers = payload.get("headers")
         rows = payload.get("rows")
         feature_columns = payload.get("feature_columns")
@@ -323,40 +360,59 @@ class CompareDatasetModelsUseCase:
                         f"{', '.join(missing_split_classes)}. Tambahkan data atau ubah persentase pembagian."
                     )
 
-        candidates = [
-            ("Gaussian Naive Bayes", GaussianNB()),
-            (
-                "SVM RBF",
-                SVC(kernel="rbf", C=1.0, gamma="scale"),
-            ),
-            (
-                "Logistic Regression L1",
-                LogisticRegression(
-                    solver="saga",
-                    l1_ratio=1.0,
-                    C=0.01,
-                    max_iter=5000,
-                    random_state=self.RANDOM_STATE,
-                ),
-            ),
-            (
-                "KNN Manhattan",
-                KNeighborsClassifier(
-                    n_neighbors=5,
-                    metric="manhattan",
-                    weights="uniform",
-                ),
-            ),
-            (
-                "Random Forest GINI",
-                RandomForestClassifier(
-                    criterion="gini",
-                    n_estimators=100,
-                    random_state=self.RANDOM_STATE,
-                    n_jobs=-1,
-                ),
-            ),
-        ]
+        return {
+            "x_train": x_train,
+            "y_train": y_train,
+            "x_validation": x_validation,
+            "y_validation": y_validation,
+            "x_test": x_test,
+            "y_test": y_test,
+            "numeric_columns": numeric_columns,
+            "categorical_columns": categorical_columns,
+            "active_features": active_features,
+            "preprocessing": preprocessing,
+            "validation_method": validation_method,
+            "validation_folds": validation_folds,
+            "train_percent": train_percent,
+            "validation_percent": validation_percent,
+            "test_percent": test_percent,
+            "target_column": target_column,
+            "excluded_leakage_columns": excluded_leakage_columns,
+            "frame": frame,
+            "class_counts": class_counts,
+            "rows_received": len(rows),
+            "invalid_label_rows_excluded": invalid_label_count,
+            "duplicate_rows_removed": duplicate_count,
+            "preprocessing_excluded_rows": preprocessing_excluded_rows,
+        }
+
+    def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        prepared = self.prepare_and_split(payload)
+        x_train = prepared["x_train"]
+        y_train = prepared["y_train"]
+        x_validation = prepared["x_validation"]
+        y_validation = prepared["y_validation"]
+        x_test = prepared["x_test"]
+        y_test = prepared["y_test"]
+        numeric_columns = prepared["numeric_columns"]
+        categorical_columns = prepared["categorical_columns"]
+        active_features = prepared["active_features"]
+        preprocessing = prepared["preprocessing"]
+        validation_method = prepared["validation_method"]
+        validation_folds = prepared["validation_folds"]
+        train_percent = prepared["train_percent"]
+        validation_percent = prepared["validation_percent"]
+        test_percent = prepared["test_percent"]
+        target_column = prepared["target_column"]
+        excluded_leakage_columns = prepared["excluded_leakage_columns"]
+        frame = prepared["frame"]
+        class_counts = prepared["class_counts"]
+        rows_received = prepared["rows_received"]
+        invalid_label_count = prepared["invalid_label_rows_excluded"]
+        duplicate_count = prepared["duplicate_rows_removed"]
+        preprocessing_excluded_rows = prepared["preprocessing_excluded_rows"]
+
+        candidates = self.get_candidates()
 
         results = []
         for model_name, classifier in candidates:
@@ -541,7 +597,7 @@ class CompareDatasetModelsUseCase:
         return {
             "target_column": target_column,
             "labels": list(self.LABELS),
-            "rows_received": len(rows),
+            "rows_received": rows_received,
             "invalid_label_rows_excluded": invalid_label_count,
             "duplicate_rows_removed": duplicate_count,
             "missing_feature_rows_removed": preprocessing_excluded_rows,

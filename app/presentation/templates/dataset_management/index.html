@@ -26,6 +26,18 @@
         File CSV dapat diperiksa struktur datanya, diunggah langsung ke database <code>antiburnout_db</code>, serta dianalisis (EDA & Preprocessing).
     </div>
 
+    <!-- Status Pipeline Model Final Tersimpan (Poin 5) -->
+    <section id="final-model-status-card" class="pma-card" aria-labelledby="final-model-heading">
+        <h2 class="pma-card-header" id="final-model-heading">
+            <span>📦</span>
+            <span>Pipeline Model Final Tersimpan</span>
+            <span id="final-model-badge" class="pma-badge pma-badge-warning" style="margin-left: auto;">Memeriksa...</span>
+        </h2>
+        <div id="final-model-status-body" class="pma-card-body" style="font-size: 12px; color: #555;">
+            Memuat status pipeline model tersimpan...
+        </div>
+    </section>
+
     <!-- 1. Pilihan Dataset -->
     <section class="pma-card" aria-labelledby="upload-heading">
         <h2 class="pma-card-header" id="upload-heading"><span>1.</span> Sumber Dataset (Pilih CSV atau Muat Database)</h2>
@@ -447,6 +459,26 @@
                     <h3 class="training-subheading">Confusion matrix data uji (baris: label aktual, kolom: prediksi)</h3>
                     <div id="training-confusion-matrices" class="training-confusion-grid"></div>
                     <div id="training-final-test-samples" style="margin-top: 12px;"></div>
+
+                    <!-- Simpan Pipeline Model Final (Poin 5) -->
+                    <div id="finalize-model-panel" style="margin-top: 16px; background: #f2f8f2; border: 1px solid #b7d7b7; border-left: 5px solid #38761d; padding: 14px 16px; border-radius: 3px;">
+                        <div style="font-weight: bold; color: #274e13; font-size: 13px; margin-bottom: 6px;">
+                            💾 Simpan Pipeline Model Final (.joblib + Metadata)
+                        </div>
+                        <p class="dataset-help" style="margin-bottom: 10px;">
+                            Menyimpan satu pipeline utuh (preprocessing + model terpilih) beserta nama model, daftar fitur aktif, versi/tanggal dataset, dan hasil evaluasi ke server.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <label for="finalize-model-select" style="font-size: 12px; font-weight: 600; color: #235a81;">
+                                Pilih Model untuk Disimpan:
+                            </label>
+                            <select id="finalize-model-select" class="pma-select" style="min-width: 220px;"></select>
+                            <button id="btn-save-final-model" type="button" class="pma-btn pma-btn-primary" style="font-weight: bold;">
+                                💾 Simpan Pipeline Model Final
+                            </button>
+                        </div>
+                        <div id="finalize-status" class="dataset-status" role="status" aria-live="polite" style="margin-top: 8px;" hidden></div>
+                    </div>
                 </div>
             </div>
         </section>
