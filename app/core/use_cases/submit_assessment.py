@@ -32,6 +32,7 @@ class SubmitAssessmentUseCase:
         # 1. Instansiasi Domain Entity dengan atribut lengkap dataset
         assessment = RespondentAssessment(
             person_id=str(raw.get("person_id") or "").strip() or None,
+            user_id=str(raw.get("user_id") or "").strip() or None,
             full_name=str(raw.get("full_name") or "Responden").strip(),
             age=_f("age", 28.0),
             gender=str(raw.get("gender") or "Male"),

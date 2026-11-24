@@ -11,6 +11,7 @@ class RespondentAssessment:
     # Identitas & Demografi
     id: Optional[Any] = None
     person_id: Optional[str] = None
+    user_id: Optional[str] = None
     full_name: str = "Responden"
     age: float = 28.0
     gender: str = "Male"                  # Male, Female, Other
@@ -103,6 +104,7 @@ class RespondentAssessment:
         return {
             "id": self.id,
             "person_id": self.person_id or str(self.id),
+            "user_id": self.user_id,
             "full_name": self.full_name,
             "age": self.age,
             "gender": self.gender,

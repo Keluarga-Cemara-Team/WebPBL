@@ -20,9 +20,47 @@ class FirestoreAssessmentRepository(IAssessmentRepository):
     def save(self, assessment: RespondentAssessment) -> RespondentAssessment:
         data = assessment.to_dict()
         data["operator"] = "admin@localhost"
-
-        # Simpan ke koleksi Firestore
         col_ref = self.db.collection(self.collection_name)
+
+        # 1. Safety Anti-Duplikasi berdasarkan person_id (jika person_id spesifik diberikan)
+        if assessment.person_id and not assessment.person_id.startswith("PID-MOB-"):
+            existing_by_pid = col_ref.where("person_id", "==", assessment.person_id).limit(1).get()
+            if existing_by_pid:
+                matched_doc = existing_by_pid[0]
+                matched_doc.reference.set(data, merge=True)
+                assessment.id = matched_doc.id
+                logger.info(f"Anti-Duplikasi: Dokumen dengan person_id '{assessment.person_id}' diperbarui ({matched_doc.id}).")
+                return assessment
+
+        # 2. Safety Anti-Duplikasi berdasarkan user_id dan parameter input survei
+        if assessment.user_id:
+            query = col_ref.where("user_id", "==", assessment.user_id).limit(10).get()
+            for doc in query:
+                d = doc.to_dict()
+                if (d.get("sleep_hours") == assessment.sleep_hours and
+                    d.get("screen_time_hours") == assessment.screen_time_hours and
+                    d.get("stress_level") == assessment.stress_level and
+                    d.get("coffee_cups_per_day") == assessment.coffee_cups_per_day and
+                    d.get("mood_score") == assessment.mood_score):
+                    logger.info(f"Anti-Duplikasi: Data identik untuk user '{assessment.user_id}' sudah ada di Firestore ({doc.id}).")
+                    doc.reference.set(data, merge=True)
+                    assessment.id = doc.id
+                    return assessment
+        elif assessment.full_name and assessment.full_name != "Responden":
+            # Safety Anti-Duplikasi untuk input web berdasarkan nama & atribut utama
+            query = col_ref.where("full_name", "==", assessment.full_name).limit(5).get()
+            for doc in query:
+                d = doc.to_dict()
+                if (d.get("sleep_hours") == assessment.sleep_hours and
+                    d.get("screen_time_hours") == assessment.screen_time_hours and
+                    d.get("stress_level") == assessment.stress_level and
+                    d.get("coffee_cups_per_day") == assessment.coffee_cups_per_day):
+                    logger.info(f"Anti-Duplikasi: Data identik untuk '{assessment.full_name}' sudah ada di Firestore ({doc.id}).")
+                    doc.reference.set(data, merge=True)
+                    assessment.id = doc.id
+                    return assessment
+
+        # 3. Jika bukan duplikat, simpan sebagai dokumen baru
         new_doc_ref = col_ref.add(data)[1]  # add() returns (timestamp, doc_ref)
         assessment.id = new_doc_ref.id
 
