@@ -143,7 +143,7 @@ class CompareDatasetModelsUseCase:
             "numeric_imputation": "mean",
             "categorical_imputation": "mode",
             "outlier_handling": "none",
-            "encoding": "onehot",
+            "encoding": "label",
             "scaling": "standard",
         }
         preprocessing = {

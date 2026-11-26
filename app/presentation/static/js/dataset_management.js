@@ -1112,9 +1112,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="dataset-summary-item"><dt>Preprocessing Pipeline</dt><dd>num: ${prep.numeric_imputation}, cat: ${prep.categorical_imputation}, outlier: ${prep.outlier_handling}, enc: ${prep.encoding}, scale: ${prep.scaling}</dd></div>
                 <div class="dataset-summary-item"><dt>Fitur Aktif (${(meta.feature_columns || []).length})</dt><dd style="word-break: break-word;">${(meta.feature_columns || []).join(", ")}</dd></div>
             </dl>
-            <div style="font-size: 11px; color: #274e13;">
-                📁 Artifact Pipeline: <code>${statusData.pipeline_path}</code> &bull; Metadata: <code>${statusData.metadata_path}</code>
-            </div>
         `;
     };
 
@@ -1468,16 +1465,16 @@ document.addEventListener("DOMContentLoaded", () => {
             prepOptDedup.checked = true;
             prepOptImputeNum.value = "mean";
             prepOptImputeCat.value = "mode";
-            prepOptOutlier.value = "iqr_cap";
+            prepOptOutlier.value = "none";
             prepOptEncoding.value = "label";
-            prepOptScaling.value = "none";
+            prepOptScaling.value = "standard";
             if (prepOptSampling) prepOptSampling.value = "all";
             if (prepOptSamplingCustom) prepOptSamplingCustom.value = "";
             if (btnColRecommend) btnColRecommend.click();
             renderEncodingPreview();
             updateSamplingBadge();
             invalidateComparisonIfConfigChanged("Reset pengaturan preprocessing");
-            setStatus("Pengaturan pra-pemrosesan telah direset ke rekomendasi default ML (Mean Imputation & Feature Selection).", "success");
+            setStatus("Pengaturan pra-pemrosesan telah direset ke pengaturan default (Mean Imputation, Label Encoding, StandardScaler).", "success");
         });
     }
 

@@ -15,15 +15,13 @@
 <section class="dataset-page" aria-labelledby="dataset-title">
     <header class="dataset-page-heading">
         <div>
-            <p class="dataset-kicker">machine_learning_pbl</p>
             <h1 id="dataset-title">Dataset Management</h1>
             <p class="dataset-intro">Pilih CSV untuk memeriksa struktur, eksplorasi data (EDA), dan pra-pemrosesan sebelum pelatihan ML.</p>
         </div>
-        <span class="pma-badge pma-badge-warning">Analisis Interaktif</span>
     </header>
 
     <div class="pma-alert-warning dataset-local-notice" role="note">
-        File CSV dapat diperiksa struktur datanya, diunggah langsung ke database <code>antiburnout_db</code>, serta dianalisis (EDA & Preprocessing).
+        Halaman ini khusus untuk <strong>eksperimen Machine Learning offline</strong> (EDA, Preprocessing, Perbandingan 5 Model, &amp; Penetapan Pipeline Model Final)</a>.
     </div>
 
     <!-- Status Pipeline Model Final Tersimpan (Poin 5) -->
@@ -48,15 +46,12 @@
                 <input id="dataset-file" class="pma-input dataset-file-input" type="file" accept=".csv,text/csv">
                 <span id="dataset-filename" class="dataset-filename" aria-live="polite">Belum ada file dipilih</span>
                 <div style="margin-left: auto; display: flex; gap: 8px;">
-                    <button id="btn-save-db" type="button" class="pma-btn pma-btn-primary" style="display: none;">
-                        💾 Simpan ke Database
-                    </button>
                     <button id="btn-load-db" type="button" class="pma-btn">
                         🗄️ Muat dari Database (antiburnout_db)
                     </button>
                 </div>
             </div>
-            <p class="dataset-help">Pilih file .csv dari komputer Anda, lalu klik "Simpan ke Database" untuk memasukkan datanya ke sistem, atau muat data yang sudah tersimpan.</p>
+            <p class="dataset-help">Pilih file .csv latih dari komputer Anda untuk dianalisis &amp; dilatih tanpa membebani database operasional, atau muat data primer yang sudah tersimpan di <code>antiburnout_db</code>.</p>
         </div>
     </section>
 
@@ -79,17 +74,6 @@
                 </dl>
                 <div id="target-readiness" class="pma-alert-warning" role="status" aria-live="polite" style="margin-top: 12px;">
                     Pemeriksaan label target akan ditampilkan setelah dataset dibaca.
-                </div>
-                <div class="dataset-save-bar" style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #dcdcdc; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <button id="btn-save-db-summary" type="button" class="pma-btn pma-btn-primary" style="font-weight: 600;">
-                            💾 Masukkan Seluruh Data CSV ke Database
-                        </button>
-                        <a id="btn-view-dataset" href="{{ url_for('assessment.dataset_view') }}" target="_blank" class="pma-btn" style="display: none; background: #eaf5ea; border-color: #5bb75b; color: #1e691e;">
-                            📋 Lihat Data di Tabel Assessments &raquo;
-                        </a>
-                    </div>
-                    <span id="db-save-feedback" style="font-size: 12px; font-weight: 500;"></span>
                 </div>
             </div>
         </section>
@@ -316,8 +300,8 @@
                             <div style="margin-bottom: 10px;">
                                 <label class="pma-form-label" for="prep-opt-encoding">Metode Encoding:</label>
                                 <select id="prep-opt-encoding" class="pma-select" style="max-width: 100%; margin-top: 4px;">
-                                    <option value="label">Label Encoding (0, 1, 2...)</option>
-                                    <option value="onehot" selected>One-Hot Encoding (Rekomendasi fitur kategorikal)</option>
+                                    <option value="label" selected>Label Encoding (0, 1, 2... - Default)</option>
+                                    <option value="onehot">One-Hot Encoding (Dummy Columns)</option>
                                     <option value="none">Biarkan Teks Asli (CSV saja; model memerlukan encoding)</option>
                                 </select>
                             </div>
@@ -339,13 +323,13 @@
                                 <label class="pma-form-label" for="prep-opt-scaling">Metode Penskalaan:</label>
                                 <select id="prep-opt-scaling" class="pma-select" style="max-width: 100%; margin-top: 4px;">
                                     <option value="none">Tanpa Standarisasi (Nilai Asli)</option>
-                                    <option value="minmax">Min-Max Normalization (Rentang 0.0 - 1.0 - Rekomendasi Neural Net / KNN)</option>
-                                    <option value="standard" selected>StandardScaler / Z-Score (Rekomendasi perbandingan model)</option>
+                                    <option value="minmax">Min-Max Normalization (Rentang 0.0 - 1.0)</option>
+                                    <option value="standard" selected>StandardScaler / Z-Score (Default)</option>
                                 </select>
                             </div>
 
                             <div id="prep-scaling-desc" style="font-size: 12px; color: #555; background: #fdfdfd; border: 1px solid #e0e0e0; padding: 8px; border-radius: 2px;">
-                                Pilihan encoding dan scaling diterapkan di pipeline per model; parameternya dipelajari hanya dari data latih dan diulang pada setiap fold validasi silang. Scaling penting untuk KNN, SVM, dan Logistic Regression.
+                                Default menggunakan <strong>StandardScaler</strong> (Logistic Regression, SVM, Random Forest, KNN), sedangkan <strong>Naive Bayes Multinomial</strong> otomatis memakai <code>MinMaxScaler</code> agar fitur tetap non-negatif. Parameter scaling dipelajari hanya dari data latih pada setiap fold.
                             </div>
                         </div>
                     </div>
