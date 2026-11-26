@@ -97,6 +97,8 @@ class RespondentAssessment:
             raise ValueError("Jam kerja mingguan harus berada di antara 0 sampai 120 jam/minggu.")
         if not (0.0 <= self.sleep_hours <= 24.0):
             raise ValueError("Jam tidur harus berada di antara 0 sampai 24 jam/hari.")
+        if self.monthly_income_usd < 0.0:
+            raise ValueError("Penghasilan bulanan (Monthly_Income_USD) tidak boleh kurang dari 0.")
 
     def to_dict(self) -> Dict[str, Any]:
         """Konversi entity ke dictionary"""
