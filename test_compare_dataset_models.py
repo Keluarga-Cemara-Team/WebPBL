@@ -35,6 +35,16 @@ class CompareDatasetModelsUseCaseTests(unittest.TestCase):
         )
 
         self.assertEqual(len(result["results"]), 5)
+        self.assertEqual(
+            {item["model_name"] for item in result["results"]},
+            {
+                "Logistic Regression L2",
+                "SVM RBF",
+                "Random Forest GINI",
+                "Naive Bayes Multinomial",
+                "KNN Manhattan",
+            },
+        )
         self.assertEqual(result["target_column"], "Burnout_Risk")
         self.assertEqual(result["rows_received"], 30)
         self.assertEqual(result["rows_used"], 30)
