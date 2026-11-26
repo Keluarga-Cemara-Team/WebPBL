@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
@@ -112,6 +112,11 @@ class CompareDatasetModelsUseCase:
         test_percent = payload.get("test_percent", 20)
         validation_method = payload.get("validation_method", "cross_validation")
         preprocessing = payload.get("preprocessing", {})
+        sample_size = payload.get("sample_size", None)
+
+        if sample_size is not None:
+            if isinstance(sample_size, bool) or not isinstance(sample_size, int) or sample_size < 15:
+                raise ValueError("Jumlah sampling data harus berupa bilangan bulat minimal 15 baris.")
 
         if not isinstance(headers, list) or not headers or not all(
             isinstance(header, str) and header.strip() for header in headers
@@ -269,6 +274,22 @@ class CompareDatasetModelsUseCase:
             frame = frame.loc[~duplicate_mask].copy()
             labels = labels.loc[~duplicate_mask]
 
+        sample_size_applied: Optional[int] = None
+        if sample_size is not None and sample_size < len(frame):
+            try:
+                frame, _, labels, _ = train_test_split(
+                    frame,
+                    labels,
+                    train_size=sample_size,
+                    stratify=labels,
+                    random_state=self.RANDOM_STATE,
+                )
+            except ValueError as err:
+                raise ValueError(
+                    f"Gagal melakukan stratified sampling sebanyak {sample_size} baris: {err}"
+                ) from err
+            sample_size_applied = len(frame)
+
         missing_classes = [label for label in self.LABELS if label not in set(labels)]
         if missing_classes:
             raise ValueError(
@@ -386,6 +407,7 @@ class CompareDatasetModelsUseCase:
             "invalid_label_rows_excluded": invalid_label_count,
             "duplicate_rows_removed": duplicate_count,
             "preprocessing_excluded_rows": preprocessing_excluded_rows,
+            "sample_size_applied": sample_size_applied,
         }
 
     def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -413,6 +435,7 @@ class CompareDatasetModelsUseCase:
         invalid_label_count = prepared["invalid_label_rows_excluded"]
         duplicate_count = prepared["duplicate_rows_removed"]
         preprocessing_excluded_rows = prepared["preprocessing_excluded_rows"]
+        sample_size_applied = prepared["sample_size_applied"]
 
         candidates = self.get_candidates()
 
@@ -605,6 +628,7 @@ class CompareDatasetModelsUseCase:
             "missing_feature_rows_removed": preprocessing_excluded_rows,
             "final_training_outliers_removed": dropped_outliers,
             "rows_used": len(frame),
+            "sample_size_applied": sample_size_applied,
             "train_rows": len(x_train),
             "validation_rows": len(x_validation),
             "test_rows": len(x_test),

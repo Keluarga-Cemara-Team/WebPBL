@@ -64,6 +64,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const prepOptEncoding = document.getElementById("prep-opt-encoding");
     const prepEncodingPreview = document.getElementById("prep-encoding-preview");
     const prepOptScaling = document.getElementById("prep-opt-scaling");
+    const prepOptSampling = document.getElementById("prep-opt-sampling");
+    const prepOptSamplingCustom = document.getElementById("prep-opt-sampling-custom");
+    const prepSamplingBadge = document.getElementById("prep-sampling-badge");
     const prepSummaryStatus = document.getElementById("prep-summary-status");
     const btnDownloadCleaned = document.getElementById("btn-download-cleaned");
     const btnGoTraining = document.getElementById("btn-go-training");
@@ -537,6 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 3. Render Preview Encoding Kategorikal
         renderEncodingPreview();
+        updateSamplingBadge();
     };
 
     const updateSelectedColsCount = () => {
@@ -599,6 +603,39 @@ document.addEventListener("DOMContentLoaded", () => {
         btnRunTraining.disabled = !valid;
     };
 
+    const getSelectedSampleSize = () => {
+        if (!prepOptSampling || prepOptSampling.value === "all") return null;
+        const raw = prepOptSampling.value === "custom"
+            ? Number(prepOptSamplingCustom?.value)
+            : Number(prepOptSampling.value);
+        if (!Number.isInteger(raw) || raw < 15) return null;
+        return raw;
+    };
+
+    const updateSamplingBadge = () => {
+        if (!prepSamplingBadge) return;
+        const totalRows = currentDataset?.dataRows?.length || 0;
+        const isCustom = prepOptSampling && prepOptSampling.value === "custom";
+        if (prepOptSamplingCustom) {
+            prepOptSamplingCustom.hidden = !isCustom;
+        }
+        const sampleSize = getSelectedSampleSize();
+        if (isCustom && sampleSize === null) {
+            prepSamplingBadge.textContent = "Isi jumlah sampel (minimal 15 baris)";
+            prepSamplingBadge.className = "pma-badge pma-badge-warning";
+            return;
+        }
+        if (sampleSize === null || (totalRows > 0 && sampleSize >= totalRows)) {
+            prepSamplingBadge.textContent = totalRows
+                ? `Semua baris aktif (${totalRows.toLocaleString("id-ID")} baris)`
+                : "Semua baris aktif (Tanpa sampling)";
+            prepSamplingBadge.className = "pma-badge pma-badge-success";
+        } else {
+            prepSamplingBadge.textContent = `Stratified sampling: ${sampleSize.toLocaleString("id-ID")} dari ${totalRows.toLocaleString("id-ID")} baris`;
+            prepSamplingBadge.className = "pma-badge pma-badge-warning";
+        }
+    };
+
     const getCurrentConfigSignature = () => {
         if (!currentDataset) return "";
         const featureColumns = Array.from(prepColumnsGrid.querySelectorAll(".prep-col-check:checked"))
@@ -614,6 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
             outlierHandling: prepOptOutlier?.value,
             encoding: prepOptEncoding?.value,
             scaling: prepOptScaling?.value,
+            sampleSize: getSelectedSampleSize(),
             validationMethod: trainingValidationMethod,
             trainPercent: trainingTrainPercent?.value,
             validationPercent: trainingValidationPercent?.value,
@@ -1212,11 +1250,19 @@ document.addEventListener("DOMContentLoaded", () => {
             trainingColumnIndices.map((index) => row[index])
         );
 
+        const selectedSampleSize = getSelectedSampleSize();
+        if (prepOptSampling && prepOptSampling.value === "custom" && selectedSampleSize === null) {
+            trainingStatus.textContent = "Jumlah baris sampling kustom harus berupa bilangan bulat minimal 15.";
+            trainingStatus.dataset.state = "error";
+            return;
+        }
+
         const requestPayload = {
             headers: trainingHeaders,
             rows: trainingRows,
             feature_columns: featureColumns,
             deduplicate: prepOptDedup.checked,
+            sample_size: selectedSampleSize,
             train_percent: splitPercentages.train,
             validation_percent: splitPercentages.validation,
             test_percent: splitPercentages.test,
@@ -1322,6 +1368,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    if (prepOptSampling) {
+        prepOptSampling.addEventListener("change", () => {
+            updateSamplingBadge();
+            invalidateComparisonIfConfigChanged("Sampling data");
+        });
+    }
+    if (prepOptSamplingCustom) {
+        prepOptSamplingCustom.addEventListener("input", () => {
+            updateSamplingBadge();
+            invalidateComparisonIfConfigChanged("Sampling data");
+        });
+    }
+
     // Render Preview Mapping Encoding
     const renderEncodingPreview = () => {
         if (!currentDataset) return;
@@ -1412,8 +1471,11 @@ document.addEventListener("DOMContentLoaded", () => {
             prepOptOutlier.value = "iqr_cap";
             prepOptEncoding.value = "label";
             prepOptScaling.value = "none";
+            if (prepOptSampling) prepOptSampling.value = "all";
+            if (prepOptSamplingCustom) prepOptSamplingCustom.value = "";
             if (btnColRecommend) btnColRecommend.click();
             renderEncodingPreview();
+            updateSamplingBadge();
             invalidateComparisonIfConfigChanged("Reset pengaturan preprocessing");
             setStatus("Pengaturan pra-pemrosesan telah direset ke rekomendasi default ML (Mean Imputation & Feature Selection).", "success");
         });
@@ -1468,10 +1530,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedColIndices = selectedCheckboxes.map(cb => parseInt(cb.dataset.colIdx, 10));
         const selectedHeaders = selectedColIndices.map(idx => headers[idx]);
 
-        // 2. Baris Duplikat
-        const filteredSourceIndices = dataRows
+        // 2. Baris Duplikat & Sampling Opsional
+        let filteredSourceIndices = dataRows
             .map((_, index) => index)
             .filter((index) => !prepOptDedup.checked || !duplicateRows.has(index));
+        const requestedSampleSize = getSelectedSampleSize();
+        if (requestedSampleSize !== null && requestedSampleSize < filteredSourceIndices.length) {
+            const step = filteredSourceIndices.length / requestedSampleSize;
+            const sampledIndices = [];
+            for (let i = 0; i < requestedSampleSize; i += 1) {
+                sampledIndices.push(filteredSourceIndices[Math.floor(i * step)]);
+            }
+            filteredSourceIndices = sampledIndices;
+        }
         const filteredRows = filteredSourceIndices.map((index) => dataRows[index]);
 
         // 3. Imputasi Nilai Kosong

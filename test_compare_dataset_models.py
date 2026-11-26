@@ -337,6 +337,29 @@ class CompareDatasetModelsUseCaseTests(unittest.TestCase):
                 {"Low", "Moderate", "High"},
             )
 
+    def test_optional_stratified_sampling_reduces_rows_and_validates_minimum(self):
+        result = self.use_case.execute(
+            {
+                "headers": self.headers,
+                "rows": self.rows,
+                "feature_columns": ["Work_Hours", "Sleep_Quality"],
+                "sample_size": 18,
+            }
+        )
+        self.assertEqual(result["rows_used"], 18)
+        self.assertEqual(result["sample_size_applied"], 18)
+        self.assertEqual(result["class_distribution"], {"Low": 6, "Moderate": 6, "High": 6})
+
+        with self.assertRaisesRegex(ValueError, "minimal 15 baris"):
+            self.use_case.execute(
+                {
+                    "headers": self.headers,
+                    "rows": self.rows,
+                    "feature_columns": ["Work_Hours", "Sleep_Quality"],
+                    "sample_size": 10,
+                }
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

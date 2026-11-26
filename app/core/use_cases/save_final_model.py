@@ -149,6 +149,7 @@ class SaveFinalModelUseCase:
                 "validation_percent": validation_percent,
                 "test_percent": test_percent,
                 "deduplicate": bool(payload.get("deduplicate", True)),
+                "sample_size_applied": prepared.get("sample_size_applied"),
                 "random_state": comparer.RANDOM_STATE,
             },
             "evaluation_results": {

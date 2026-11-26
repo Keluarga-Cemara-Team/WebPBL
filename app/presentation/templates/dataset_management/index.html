@@ -351,6 +351,34 @@
                     </div>
                 </div>
 
+                <!-- LANGKAH 6: SAMPLING DATA (OPSIONAL - DEFAULT PENUH) -->
+                <div class="pma-card" style="margin-bottom: 14px;">
+                    <div class="pma-card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <span>6️⃣</span>
+                            <span>Sampling Data (Opsional &mdash; Default Penuh Semua Baris)</span>
+                        </div>
+                        <span id="prep-sampling-badge" class="pma-badge pma-badge-success">Semua baris aktif (Tanpa sampling)</span>
+                    </div>
+                    <div class="pma-card-body">
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px;">
+                            <label class="pma-form-label" for="prep-opt-sampling" style="margin: 0;">Jumlah Sampel Data:</label>
+                            <select id="prep-opt-sampling" class="pma-select" style="min-width: 280px;">
+                                <option value="all" selected>Tanpa Sampling &mdash; Gunakan Semua Baris (Default / 50.000 data)</option>
+                                <option value="1000">Stratified Sample 1.000 baris (Uji Cepat)</option>
+                                <option value="5000">Stratified Sample 5.000 baris (Eksperimen Cepat)</option>
+                                <option value="10000">Stratified Sample 10.000 baris (Seimbang)</option>
+                                <option value="20000">Stratified Sample 20.000 baris</option>
+                                <option value="custom">Jumlah Baris Kustom...</option>
+                            </select>
+                            <input id="prep-opt-sampling-custom" class="pma-input" type="number" min="15" max="100000" step="1" placeholder="Misal: 3000" style="width: 140px;" hidden>
+                        </div>
+                        <p class="pma-form-desc" style="margin: 0;">
+                            Secara default seluruh baris dataset (hingga 50.000+ baris) digunakan tanpa pemotongan. Jika ingin eksperimen lebih cepat, pilih jumlah sampel menggunakan <strong>Stratified Sampling</strong> (<code>random_state=42</code>) agar proporsi kelas <code>Low</code>/<code>Moderate</code>/<code>High</code> tetap terjaga.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- EKSPOR DATASET BERSIH ATAU LANJUT KE PERBANDINGAN -->
                 <div style="background: #eaf2fa; border: 1px solid #a4c2e0; border-left: 5px solid #235a81; padding: 14px 18px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                     <div>
