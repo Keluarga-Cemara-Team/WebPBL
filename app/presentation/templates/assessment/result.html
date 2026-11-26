@@ -10,16 +10,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- phpMyAdmin Success Query Banner -->
-<div class="pma-alert-success">
-    <div style="font-weight: bold; margin-bottom: 2px;">
-        ✅ 1 row inserted. Admin berhasil menginput data responden (Record ID: #{{ user.id }})
-    </div>
-    <div style="font-family: monospace; font-size: 11px; color: #2e5917;">
-        INSERT INTO `assessments` (`id`, `full_name`, `burnout_score`, `burnout_risk`, `mental_health_status`) VALUES ('{{ user.id }}', '{{ user.full_name }}', {{ user.burnout_score }}, '{{ user.burnout_risk }}', '{{ user.mental_health_status }}');
-    </div>
-</div>
-
 {% if result.is_simulation %}
 <div class="pma-alert-warning">
     <span>⚠️</span>
@@ -79,11 +69,11 @@
         </div>
     </div>
 
-    <!-- Panel 2: Parameter Input yang Tersimpan ke Cloud Firestore -->
+    <!-- Panel 2: Parameter Input yang Tersimpan ke Database Aktif -->
     <div class="pma-card">
         <div class="pma-card-header">
             <span>🗄️</span>
-            <span>Recorded Primary Attributes (Firestore Doc #{{ user.id }})</span>
+            <span>Recorded Primary Attributes (Record #{{ user.id }} &bull; {{ active_db_engine }})</span>
         </div>
         <div class="pma-card-body">
             <table class="pma-table" style="margin-bottom: 10px;">
@@ -127,16 +117,13 @@
 <!-- phpMyAdmin Navigation Actions -->
 <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
     <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary">
-        ➕ Lanjut Input Responden Lain (Admin Entry)
+        ➕ Lanjut Input Responden Lain
     </a>
     <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">
-        📋 Browse Dataset (Kelola Tabel)
-    </a>
-    <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn">
-        💾 Export Dataset 40 Kolom (.csv)
+        📋 Tabel Data Survei
     </a>
     <a href="{{ url_for('main.index') }}" class="pma-btn">
-        🏠 Admin Dashboard
+        🏠 Beranda
     </a>
 </div>
 {% endblock %}

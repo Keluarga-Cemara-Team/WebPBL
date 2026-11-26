@@ -47,13 +47,50 @@ def submit():
 
 @assessment_bp.route("/dataset", methods=["GET"])
 def dataset_view():
-    """Halaman tabel data primer yang terkumpul beserta metrik ringkas"""
+    """Halaman tabel data primer yang terkumpul beserta metrik ringkas dan pagination"""
     _, _, history_uc, _, _ = _get_use_cases()
     data = history_uc.execute()
+    all_records = data["assessments"]
+
+    try:
+        per_page = int(request.args.get("per_page", 20))
+    except (TypeError, ValueError):
+        per_page = 20
+    if per_page not in (10, 20, 50, 100):
+        per_page = 20
+
+    total_records = len(all_records)
+    total_pages = max(1, (total_records + per_page - 1) // per_page)
+
+    try:
+        page = int(request.args.get("page", 1))
+    except (TypeError, ValueError):
+        page = 1
+    page = max(1, min(page, total_pages))
+
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_records = all_records[start_idx:end_idx]
+
+    window_start = max(1, page - 2)
+    window_end = min(total_pages, window_start + 4)
+    window_start = max(1, window_end - 4)
+
+    pagination = {
+        "page": page,
+        "per_page": per_page,
+        "total_records": total_records,
+        "total_pages": total_pages,
+        "start_row": start_idx + 1 if total_records else 0,
+        "end_row": min(end_idx, total_records),
+        "page_numbers": list(range(window_start, window_end + 1)),
+    }
+
     return render_template(
         "assessment/dataset.html",
-        records=data["assessments"],
-        metrics=data["metrics"]
+        records=paginated_records,
+        metrics=data["metrics"],
+        pagination=pagination,
     )
 
 @assessment_bp.route("/detail/<assessment_id>", methods=["GET"])

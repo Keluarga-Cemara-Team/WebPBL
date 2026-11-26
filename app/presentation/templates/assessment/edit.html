@@ -15,7 +15,7 @@
     <div>
         <code>UPDATE `assessments` SET `full_name` = '{{ item.full_name }}', `age` = {{ item.age|int if item.age is not none else 28 }}, `gender` = '{{ item.gender }}', `work_hours_per_week` = {{ item.work_hours_per_week if item.work_hours_per_week is not none else 40 }}, `stress_level` = '{{ item.stress_level }}' WHERE `id` = '{{ item.id }}';</code>
         <div class="pma-sql-meta">
-            Panel Edit Data Responden #{{ item.id }} &bull; Person_ID: <strong>{{ item.person_id or item.id }}</strong> &bull; Storage: Local SQLite / Cloud Firestore
+            Panel Edit Data Responden #{{ item.id }} &bull; Person_ID: <strong>{{ item.person_id or item.id }}</strong> &bull; Storage: {{ active_db_engine }}
         </div>
     </div>
     <div style="display: flex; gap: 8px;">
@@ -166,7 +166,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="monthly_income_usd" class="pma-input" step="50" value="{{ item.monthly_income_usd if item.monthly_income_usd is not none else 1500 }}" style="max-width: 180px;">
+                            <input type="number" name="monthly_income_usd" class="pma-input" min="0" step="any" value="{{ item.monthly_income_usd if item.monthly_income_usd is not none else 1500 }}" style="max-width: 180px;">
                         </td>
                     </tr>
                     <tr>
@@ -507,7 +507,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="physical_activity_hours" class="pma-input" step="0.5" value="{{ item.physical_activity_hours if item.physical_activity_hours is not none else 4.0 }}" style="max-width: 140px;">
+                            <input type="number" name="physical_activity_hours" class="pma-input" min="0" step="any" value="{{ item.physical_activity_hours if item.physical_activity_hours is not none else 4.0 }}" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -517,7 +517,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="meditation_minutes" class="pma-input" step="5" value="{{ item.meditation_minutes if item.meditation_minutes is not none else 10 }}" style="max-width: 140px;">
+                            <input type="number" name="meditation_minutes" class="pma-input" min="0" step="any" value="{{ item.meditation_minutes if item.meditation_minutes is not none else 10 }}" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -527,7 +527,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="screen_time_hours" class="pma-input" step="0.5" value="{{ item.screen_time_hours if item.screen_time_hours is not none else 8.0 }}" style="max-width: 140px;">
+                            <input type="number" name="screen_time_hours" class="pma-input" min="0" step="any" value="{{ item.screen_time_hours if item.screen_time_hours is not none else 8.0 }}" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -537,7 +537,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="social_media_hours" class="pma-input" step="0.5" value="{{ item.social_media_hours if item.social_media_hours is not none else 2.5 }}" style="max-width: 140px;">
+                            <input type="number" name="social_media_hours" class="pma-input" min="0" step="any" value="{{ item.social_media_hours if item.social_media_hours is not none else 2.5 }}" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -547,7 +547,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="gaming_hours" class="pma-input" step="0.5" value="{{ item.gaming_hours if item.gaming_hours is not none else 1.0 }}" style="max-width: 140px;">
+                            <input type="number" name="gaming_hours" class="pma-input" min="0" step="any" value="{{ item.gaming_hours if item.gaming_hours is not none else 1.0 }}" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>

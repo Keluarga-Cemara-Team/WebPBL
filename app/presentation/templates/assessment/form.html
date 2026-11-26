@@ -10,23 +10,26 @@
 {% endblock %}
 
 {% block content %}
-<!-- phpMyAdmin SQL Execution Preview Box -->
-<div class="pma-sql-box">
-    <div>
-        <code>INSERT INTO `assessments` (`Person_ID`, `Age`, `Gender`, `Occupation`, `Work_Hours_Per_Week`, `Sleep_Hours`, `Stress_Level`, `Anxiety_Score`, `Depression_Score`, ...) VALUES (...);</code>
-        <div class="pma-sql-meta">
-            Panel Admin Input Data Primer &bull; Skema Standar: <code>mental_health_burnout_prediction_dataset.csv</code> &bull; Terhubung ke Cloud Firestore
-        </div>
-    </div>
-</div>
-
 <div class="pma-card" style="margin-bottom: 14px; border-left: 4px solid #235a81;">
     <div class="pma-card-body" style="padding: 10px 14px;">
         <div style="font-weight: bold; color: #235a81; margin-bottom: 3px;">
             📋 Formulir Entri Data Primer Terpadu (40 Kolom Standar Machine Learning)
         </div>
-        <div style="font-size: 12px; color: #555;">
-            Input survei ini telah diselaraskan 100% dengan dataset pelatihan Machine Learning. Data yang disimpan akan langsung diteruskan ke Cloud Firestore dan siap dievaluasi oleh model ML.
+        <div style="font-size: 12px; color: #555; margin-bottom: 10px;">
+            Input survei ini telah diselaraskan 100% dengan dataset pelatihan Machine Learning. Data yang disimpan akan langsung dievaluasi oleh model ML.
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e5e5e5;">
+            <span style="font-size: 12px; font-weight: bold; color: #235a81;">⚡ Isi Contoh Data Cepat (Probabilitas Tinggi):</span>
+            <button type="button" class="pma-btn" onclick="fillAssessmentPreset('low')" style="background: #eef8ee; border-color: #8bc38b; color: #274e13; font-weight: 600;">
+                🟢 Contoh Risiko Rendah (Low)
+            </button>
+            <button type="button" class="pma-btn" onclick="fillAssessmentPreset('moderate')" style="background: #fff9e6; border-color: #e6c35c; color: #7f6000; font-weight: 600;">
+                🟡 Contoh Risiko Sedang (Moderate)
+            </button>
+            <button type="button" class="pma-btn" onclick="fillAssessmentPreset('high')" style="background: #fdf0f0; border-color: #e09b9b; color: #a00000; font-weight: 600;">
+                🔴 Contoh Risiko Tinggi (High)
+            </button>
+            <span id="preset-fill-status" style="font-size: 11px; color: #555; margin-left: auto;"></span>
         </div>
     </div>
 </div>
@@ -141,7 +144,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="monthly_income_usd" class="pma-input" step="50" value="1500" style="max-width: 180px;">
+                            <input type="number" name="monthly_income_usd" class="pma-input" min="0" step="any" value="1500" style="max-width: 180px;">
                         </td>
                     </tr>
                     <tr>
@@ -472,7 +475,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="physical_activity_hours" class="pma-input" step="0.5" value="4.0" style="max-width: 140px;">
+                            <input type="number" name="physical_activity_hours" class="pma-input" min="0" step="any" value="4.0" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -482,7 +485,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="meditation_minutes" class="pma-input" step="5" value="10" style="max-width: 140px;">
+                            <input type="number" name="meditation_minutes" class="pma-input" min="0" step="any" value="10" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -492,7 +495,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="screen_time_hours" class="pma-input" step="0.5" value="8.0" style="max-width: 140px;">
+                            <input type="number" name="screen_time_hours" class="pma-input" min="0" step="any" value="8.0" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -502,7 +505,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="social_media_hours" class="pma-input" step="0.5" value="2.5" style="max-width: 140px;">
+                            <input type="number" name="social_media_hours" class="pma-input" min="0" step="any" value="2.5" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -512,7 +515,7 @@
                         </td>
                         <td><code>FLOAT</code></td>
                         <td>
-                            <input type="number" name="gaming_hours" class="pma-input" step="0.5" value="1.0" style="max-width: 140px;">
+                            <input type="number" name="gaming_hours" class="pma-input" min="0" step="any" value="1.0" style="max-width: 140px;">
                         </td>
                     </tr>
                     <tr>
@@ -564,16 +567,6 @@
                             </select>
                         </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <span class="pma-form-label">Notes (Observasi Admin)</span>
-                            <div class="pma-form-desc">Catatan Tambahan Lapangan</div>
-                        </td>
-                        <td><code>TEXT</code></td>
-                        <td>
-                            <textarea name="notes" rows="2" class="pma-textarea" placeholder="Catatan hasil wawancara atau pengamatan petugas admin..."></textarea>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
         </div>
@@ -582,7 +575,7 @@
     <!-- phpMyAdmin Bottom Submit Bar -->
     <div style="background: #e4e4e4; border: 1px solid #ccc; padding: 12px 18px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <div style="font-size: 11px; color: #555;">
-            Status: <strong>40 Atribut Sesuai Dataset ML</strong> &bull; Tersimpan ke: <code>Google Cloud Firestore (assessments)</code>
+            Status: <strong>40 Atribut Sesuai Dataset ML</strong> &bull; Tersimpan ke: <code>{{ active_db_engine }} (assessments)</code>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn">Batal & Lihat Tabel</a>
@@ -592,4 +585,151 @@
         </div>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const ASSESSMENT_PRESETS = {
+    low: {
+        label: "Risiko Rendah (Low)",
+        values: {
+            full_name: "Contoh Responden Low Risk",
+            age: 20,
+            gender: "Female",
+            country: "Indonesia",
+            occupation: "Software Engineer",
+            education_level: "High School",
+            employment_status: "Employed",
+            monthly_income_usd: 2961,
+            remote_work: "No",
+            work_hours_per_week: 20,
+            job_satisfaction: 10,
+            work_life_balance: 9,
+            productivity_score: 94,
+            absenteeism_days: 2,
+            stress_level: "Low",
+            chronic_stress: "No",
+            anxiety_score: 0,
+            depression_score: 0,
+            mood_score: 100,
+            emotional_stability: 93,
+            support_system: "Excellent",
+            family_history_mental_illness: "Yes",
+            therapy_attendance: "No",
+            life_satisfaction: 7,
+            sleep_hours: 7.6,
+            sleep_quality: "Good",
+            exercise_frequency: "Daily",
+            physical_activity_hours: 9.7,
+            meditation_minutes: 43,
+            screen_time_hours: 2.6,
+            social_media_hours: 5.7,
+            gaming_hours: 5.2,
+            coffee_cups_per_day: 0,
+            alcohol_consumption: "No",
+            smoking: "No",
+            healthy_diet: "No"
+        }
+    },
+    moderate: {
+        label: "Risiko Sedang (Moderate)",
+        values: {
+            full_name: "Contoh Responden Moderate Risk",
+            age: 46,
+            gender: "Other",
+            country: "Indonesia",
+            occupation: "Researcher",
+            education_level: "High School",
+            employment_status: "Self-Employed",
+            monthly_income_usd: 7605,
+            remote_work: "No",
+            work_hours_per_week: 67,
+            job_satisfaction: 10,
+            work_life_balance: 8,
+            productivity_score: 50,
+            absenteeism_days: 9,
+            stress_level: "Moderate",
+            chronic_stress: "No",
+            anxiety_score: 46,
+            depression_score: 66,
+            mood_score: 43,
+            emotional_stability: 62,
+            support_system: "Poor",
+            family_history_mental_illness: "No",
+            therapy_attendance: "No",
+            life_satisfaction: 8,
+            sleep_hours: 9,
+            sleep_quality: "Excellent",
+            exercise_frequency: "Rarely",
+            physical_activity_hours: 6.6,
+            meditation_minutes: 46,
+            screen_time_hours: 7.5,
+            social_media_hours: 4.6,
+            gaming_hours: 5.9,
+            coffee_cups_per_day: 1,
+            alcohol_consumption: "No",
+            smoking: "Yes",
+            healthy_diet: "Yes"
+        }
+    },
+    high: {
+        label: "Risiko Tinggi (High)",
+        values: {
+            full_name: "Contoh Responden High Risk",
+            age: 29,
+            gender: "Other",
+            country: "Indonesia",
+            occupation: "Civil Engineer",
+            education_level: "Diploma",
+            employment_status: "Student",
+            monthly_income_usd: 8840,
+            remote_work: "Hybrid",
+            work_hours_per_week: 70,
+            job_satisfaction: 7,
+            work_life_balance: 2,
+            productivity_score: 9,
+            absenteeism_days: 19,
+            stress_level: "High",
+            chronic_stress: "Yes",
+            anxiety_score: 100,
+            depression_score: 100,
+            mood_score: 0,
+            emotional_stability: 0,
+            support_system: "Good",
+            family_history_mental_illness: "Yes",
+            therapy_attendance: "No",
+            life_satisfaction: 8,
+            sleep_hours: 4.5,
+            sleep_quality: "Average",
+            exercise_frequency: "Rarely",
+            physical_activity_hours: 2.9,
+            meditation_minutes: 2,
+            screen_time_hours: 11.6,
+            social_media_hours: 3.8,
+            gaming_hours: 0.2,
+            coffee_cups_per_day: 8,
+            alcohol_consumption: "Yes",
+            smoking: "No",
+            healthy_diet: "No"
+        }
+    }
+};
+
+function fillAssessmentPreset(level) {
+    const preset = ASSESSMENT_PRESETS[level];
+    if (!preset) return;
+    Object.entries(preset.values).forEach(([fieldName, val]) => {
+        const el = document.querySelector(`[name="${fieldName}"]`);
+        if (el) {
+            el.value = String(val);
+        }
+    });
+    const statusEl = document.getElementById("preset-fill-status");
+    if (statusEl) {
+        statusEl.textContent = `✅ Form terisi contoh ${preset.label}. Silakan klik "Go / Simpan & Prediksi ML".`;
+        statusEl.style.color = "#235a81";
+        statusEl.style.fontWeight = "600";
+    }
+}
+</script>
 {% endblock %}

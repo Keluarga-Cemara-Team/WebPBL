@@ -8,16 +8,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- phpMyAdmin SQL Execution Box -->
-<div class="pma-sql-box">
-    <div>
-        <code>SELECT `id`, `username`, `email`, `role`, `division`, `full_name`, `created_at` FROM `users` ORDER BY `id` ASC;</code>
-        <div class="pma-sql-meta">
-            Menampilkan {{ users|length }} akun &bull; Database: SQLite Engine (<code>data/antiburnout.db</code>)
-        </div>
-    </div>
-</div>
-
 <!-- phpMyAdmin Table Operations Bar -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px;">
     <div style="display: flex; align-items: center; gap: 10px;">

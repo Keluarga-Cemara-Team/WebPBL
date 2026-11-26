@@ -8,29 +8,8 @@
 {% endblock %}
 
 {% block content %}
-<!-- phpMyAdmin SQL Execution Box -->
-<div class="pma-sql-box">
-    <div>
-        <code>SELECT `Person_ID`, `Age`, `Gender`, `Occupation`, `Work_Hours_Per_Week`, `Sleep_Hours`, `Stress_Level`, `Burnout_Score`, `Burnout_Risk`, `Mental_Health_Status` FROM `assessments` ORDER BY `created_at` DESC;</code>
-        <div class="pma-sql-meta">
-            Showing {{ records|length }} rows &bull; Storage: Local SQLite / Cloud Firestore &bull; Skema: <code>mental_health_burnout_prediction_dataset.csv</code>
-        </div>
-    </div>
-    <div style="display: flex; gap: 6px;">
-        <a href="{{ url_for('assessment.import_view') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
-            📥 Import Excel / CSV
-        </a>
-        <a href="{{ url_for('assessment.export_csv') }}" class="pma-btn" style="font-size: 11px;">
-            💾 Download Dataset CSV (40 Kolom)
-        </a>
-        <a href="{{ url_for('assessment.form') }}" class="pma-btn" style="font-size: 11px;">
-            ➕ Insert Baru
-        </a>
-    </div>
-</div>
-
 <!-- phpMyAdmin Table Operations Bar -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px;">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 12px;">
     <div style="display: flex; align-items: center; gap: 10px;">
         <span><strong>Database:</strong> antiburnout_db</span>
         <span>&bull;</span>
@@ -40,6 +19,15 @@
         <span>&bull;</span>
         <span><strong>Risiko Tinggi:</strong> <span class="pma-badge pma-badge-danger">{{ metrics.high_risk_count }}</span></span>
     </div>
+    <form method="GET" action="{{ url_for('assessment.dataset_view') }}" style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+        <label for="per-page-select" style="color: #555;">Tampilkan:</label>
+        <select id="per-page-select" name="per_page" class="pma-select" style="padding: 2px 6px; font-size: 11px;" onchange="this.form.submit()">
+            {% for size in [10, 20, 50, 100] %}
+            <option value="{{ size }}" {% if pagination.per_page == size %}selected{% endif %}>{{ size }} baris</option>
+            {% endfor %}
+        </select>
+        <input type="hidden" name="page" value="1">
+    </form>
 </div>
 
 <!-- phpMyAdmin Browse Data Table -->
@@ -120,10 +108,42 @@
                 <button type="button" id="unselect-all-btn" class="pma-btn" style="font-size: 11px;">Batal Pilih</button>
             </div>
             <div style="font-size: 11px; color: #666;">
-                Total baris: <strong>{{ records|length }}</strong>
+                Menampilkan <strong>{{ pagination.start_row }}–{{ pagination.end_row }}</strong> dari <strong>{{ pagination.total_records }}</strong> baris
             </div>
         </div>
     </form>
+
+    {% if pagination.total_pages > 1 %}
+    <!-- phpMyAdmin Pagination Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; background: #fafafa; border-top: 1px solid #ddd; padding: 8px 12px; font-size: 11px;">
+        <div style="color: #555;">
+            Halaman <strong>{{ pagination.page }}</strong> dari <strong>{{ pagination.total_pages }}</strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            {% if pagination.page > 1 %}
+            <a href="{{ url_for('assessment.dataset_view', page=1, per_page=pagination.per_page) }}" class="pma-btn" style="padding: 3px 8px; font-size: 11px;">&laquo; Awal</a>
+            <a href="{{ url_for('assessment.dataset_view', page=pagination.page - 1, per_page=pagination.per_page) }}" class="pma-btn" style="padding: 3px 8px; font-size: 11px;">&lsaquo; Sebelumnya</a>
+            {% else %}
+            <span class="pma-btn" style="padding: 3px 8px; font-size: 11px; opacity: 0.45; pointer-events: none;">&laquo; Awal</span>
+            <span class="pma-btn" style="padding: 3px 8px; font-size: 11px; opacity: 0.45; pointer-events: none;">&lsaquo; Sebelumnya</span>
+            {% endif %}
+
+            {% for p in pagination.page_numbers %}
+            <a href="{{ url_for('assessment.dataset_view', page=p, per_page=pagination.per_page) }}"
+               class="pma-btn {% if p == pagination.page %}pma-btn-primary{% endif %}"
+               style="padding: 3px 9px; font-size: 11px;">{{ p }}</a>
+            {% endfor %}
+
+            {% if pagination.page < pagination.total_pages %}
+            <a href="{{ url_for('assessment.dataset_view', page=pagination.page + 1, per_page=pagination.per_page) }}" class="pma-btn" style="padding: 3px 8px; font-size: 11px;">Berikutnya &rsaquo;</a>
+            <a href="{{ url_for('assessment.dataset_view', page=pagination.total_pages, per_page=pagination.per_page) }}" class="pma-btn" style="padding: 3px 8px; font-size: 11px;">Akhir &raquo;</a>
+            {% else %}
+            <span class="pma-btn" style="padding: 3px 8px; font-size: 11px; opacity: 0.45; pointer-events: none;">Berikutnya &rsaquo;</span>
+            <span class="pma-btn" style="padding: 3px 8px; font-size: 11px; opacity: 0.45; pointer-events: none;">Akhir &raquo;</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Hidden form for single item deletion -->
     <form id="single-delete-form" method="POST" style="display: none;"></form>
