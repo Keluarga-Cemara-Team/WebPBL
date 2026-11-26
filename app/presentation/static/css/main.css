@@ -83,6 +83,11 @@ a:hover {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: flex-start;
+  overflow-y: auto;
 }
 
 .pma-sidebar-brand {
@@ -191,6 +196,25 @@ a:hover {
   width: 16px;
   text-align: center;
 }
+.pma-tree-toggle {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.pma-tree-toggle::-webkit-details-marker {
+  display: none;
+}
+.pma-tree-arrow {
+  margin-left: auto;
+  font-size: 11px;
+  color: #666;
+}
+.pma-tree-arrow::before {
+  content: "▸";
+}
+.pma-tree-group[open] .pma-tree-arrow::before {
+  content: "▾";
+}
 
 /* ==========================================================================
    Main Content Area
@@ -225,8 +249,10 @@ a:hover {
   border-bottom: 1px solid #cccccc;
   padding: 8px 14px 0 14px;
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: 4px;
-  overflow-x: auto;
+  overflow: visible;
 }
 
 .pma-tab {
@@ -236,6 +262,7 @@ a:hover {
   padding: 7px 12px;
   font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
   color: #444;
   background: #e4e4e4;
   border: 1px solid #cccccc;
@@ -585,6 +612,8 @@ a:hover {
 @media (max-width: 700px) {
   .pma-wrapper { flex-direction: column; min-width: 0; }
   .pma-sidebar {
+    position: static;
+    height: auto;
     width: 100%; max-height: 230px; border-right: 0;
     border-bottom: 1px solid var(--pma-sidebar-border);
   }

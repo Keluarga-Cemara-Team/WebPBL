@@ -10,24 +10,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- phpMyAdmin SQL Execution Preview Box -->
-<div class="pma-sql-box">
-    <div>
-        <code>LOAD DATA INFILE 'dataset.xlsx' INTO TABLE `antiburnout_db`.`assessments` FORMAT EXCEL/CSV FIELDS TERMINATED BY ',' (40 Columns Schema);</code>
-        <div class="pma-sql-meta">
-            Import Batch Data Responden &bull; Format Didukung: <strong>.xlsx (Microsoft Excel)</strong>, <strong>.xls</strong>, dan <strong>.csv</strong> &bull; Terhubung ke Database Aktif
-        </div>
-    </div>
-    <div style="display: flex; gap: 8px;">
-        <a href="{{ url_for('assessment.download_template') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
-            📥 Download Template Excel (.xlsx)
-        </a>
-        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
-            📋 Lihat Data Saat Ini
-        </a>
-    </div>
-</div>
-
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
     <!-- KOLOM KIRI: FORM IMPORT FILE EXCEL/CSV -->
     <div>

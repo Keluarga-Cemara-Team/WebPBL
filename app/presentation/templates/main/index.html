@@ -60,24 +60,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- phpMyAdmin SQL Execution Banner -->
-<div class="pma-sql-box">
-    <div>
-        <code>SELECT 'ADMIN_INPUT_PORTAL' AS role, 'antiburnout_db' AS database, {{ analytics.total_respondents or 0 }} AS total_records FROM `assessments`;</code>
-        <div class="pma-sql-meta">
-            Portal Administrator AntiBurnout &bull; Penginputan & Kurasi Dataset Primer &bull; Status: Terhubung ke {{ db_engine }}
-        </div>
-    </div>
-    <div style="display: flex; gap: 6px;">
-        <a href="{{ url_for('assessment.form') }}" class="pma-btn pma-btn-primary" style="font-size: 11px;">
-            ➕ Input Responden
-        </a>
-        <a href="{{ url_for('assessment.dataset_view') }}" class="pma-btn" style="font-size: 11px;">
-            🔍 Browse Table
-        </a>
-    </div>
-</div>
-
 <!-- =========================================================================
      1. KARTU METRIK UTAMA (QUICK KPI CARDS)
      ========================================================================= -->

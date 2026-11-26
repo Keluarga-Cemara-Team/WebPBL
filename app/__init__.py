@@ -138,6 +138,7 @@ def create_app(config_name="development"):
     @app.context_processor
     def inject_auth_context():
         return {
+            "active_db_engine": getattr(app, "db_engine_name", "Local SQLite Engine"),
             "current_user": {
                 "id": session.get("user_id"),
                 "username": session.get("username", "admin"),
