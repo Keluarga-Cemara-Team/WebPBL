@@ -18,7 +18,7 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder, StandardScaler
@@ -66,28 +66,18 @@ class CompareDatasetModelsUseCase:
     @classmethod
     def get_candidates(cls) -> List[tuple[str, BaseEstimator]]:
         return [
-            ("Gaussian Naive Bayes", GaussianNB()),
             (
-                "SVM RBF",
-                SVC(kernel="rbf", C=1.0, gamma="scale"),
-            ),
-            (
-                "Logistic Regression L1",
+                "Logistic Regression L2",
                 LogisticRegression(
-                    solver="saga",
-                    l1_ratio=1.0,
-                    C=0.01,
-                    max_iter=5000,
+                    solver="lbfgs",
+                    C=0.1,
+                    max_iter=1000,
                     random_state=cls.RANDOM_STATE,
                 ),
             ),
             (
-                "KNN Manhattan",
-                KNeighborsClassifier(
-                    n_neighbors=5,
-                    metric="manhattan",
-                    weights="uniform",
-                ),
+                "SVM RBF",
+                SVC(kernel="rbf", C=1.0, gamma="scale"),
             ),
             (
                 "Random Forest GINI",
@@ -96,6 +86,18 @@ class CompareDatasetModelsUseCase:
                     n_estimators=100,
                     random_state=cls.RANDOM_STATE,
                     n_jobs=-1,
+                ),
+            ),
+            (
+                "Naive Bayes Multinomial",
+                MultinomialNB(alpha=1.0),
+            ),
+            (
+                "KNN Manhattan",
+                KNeighborsClassifier(
+                    n_neighbors=5,
+                    metric="manhattan",
+                    weights="uniform",
                 ),
             ),
         ]
@@ -774,22 +776,23 @@ class CompareDatasetModelsUseCase:
         steps = []
         if preprocessing["outlier_handling"] == "iqr_cap":
             steps.append(("outlier_capper", _IQRCapper(list(numeric_columns))))
-        steps.extend(
-            [
-                (
-                    "preprocessing",
-                    cls._build_preprocessor(
-                        numeric_columns,
-                        categorical_columns,
-                        preprocessing["numeric_imputation"],
-                        preprocessing["categorical_imputation"],
-                        preprocessing["encoding"],
-                        preprocessing["scaling"],
-                    ),
+        cloned_classifier = clone(classifier)
+        steps.append(
+            (
+                "preprocessing",
+                cls._build_preprocessor(
+                    numeric_columns,
+                    categorical_columns,
+                    preprocessing["numeric_imputation"],
+                    preprocessing["categorical_imputation"],
+                    preprocessing["encoding"],
+                    preprocessing["scaling"],
                 ),
-                ("classifier", clone(classifier)),
-            ]
+            )
         )
+        if isinstance(cloned_classifier, MultinomialNB):
+            steps.append(("nonneg_scaler", MinMaxScaler(clip=True)))
+        steps.append(("classifier", cloned_classifier))
         return Pipeline(steps)
 
     @staticmethod

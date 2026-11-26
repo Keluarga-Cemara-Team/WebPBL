@@ -96,7 +96,7 @@ class SaveFinalModelUseCaseTests(unittest.TestCase):
                         "headers": self.headers,
                         "rows": self.rows,
                         "feature_columns": ["Work_Hours", "Burnout_Score"],
-                        "selected_model_name": "Gaussian Naive Bayes",
+                        "selected_model_name": "Naive Bayes Multinomial",
                     }
                 )
 
@@ -123,13 +123,13 @@ class SaveFinalModelUseCaseTests(unittest.TestCase):
                     "headers": self.headers,
                     "rows": self.rows,
                     "feature_columns": ["Work_Hours", "Sleep_Quality"],
-                    "selected_model_name": "Gaussian Naive Bayes",
+                    "selected_model_name": "Logistic Regression L2",
                 },
             )
             self.assertEqual(post_res.status_code, 200)
             post_json = post_res.get_json()
             self.assertEqual(post_json["status"], "success")
-            self.assertEqual(post_json["data"]["metadata"]["model_name"], "Gaussian Naive Bayes")
+            self.assertEqual(post_json["data"]["metadata"]["model_name"], "Logistic Regression L2")
 
             get_after = client.get("/dataset-management/final-model")
             self.assertEqual(get_after.status_code, 200)
