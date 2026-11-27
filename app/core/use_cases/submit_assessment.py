@@ -78,9 +78,14 @@ class SubmitAssessmentUseCase:
         features_payload = assessment.to_dict()
         ml_result = self.ml_service.predict_burnout(features_payload)
 
-        # 4. Update Entity dengan Hasil Target ML
+        # 4. Update Entity dengan Hasil Target ML (Validasi kontrak 3 kategori)
+        valid_risks = {"Low", "Moderate", "High"}
+        raw_risk = str(ml_result.get("burnout_risk") or ml_result.get("burnout_level", "")).strip()
+        if raw_risk not in valid_risks:
+            raise ValueError(f"Kategori risiko burnout tidak dikenali: '{raw_risk}'. Harus salah satu dari Low, Moderate, High.")
+
         assessment.burnout_score = float(ml_result.get("burnout_score", 0.0))
-        assessment.burnout_risk = str(ml_result.get("burnout_risk") or ml_result.get("burnout_level", "Moderate"))
+        assessment.burnout_risk = raw_risk
         assessment.mental_health_status = str(ml_result.get("mental_health_status") or "Needs Attention")
         assessment.ai_wellness_recommendation = str(ml_result.get("ai_wellness_recommendation") or ml_result.get("recommendation", "Take Regular Breaks"))
 

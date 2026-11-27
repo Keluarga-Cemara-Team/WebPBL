@@ -248,6 +248,31 @@ def api_predict():
     payload = request.get_json(silent=True) or request.form.to_dict()
 
     try:
+        if not isinstance(payload, dict) or not payload:
+            raise ValueError("Payload JSON tidak boleh kosong.")
+
+        # Validasi field wajib & tipe numerik sesuai kontrak PMPL (TS-DET-03)
+        if "sleep_quality" in payload and (
+            payload["sleep_quality"] is None or str(payload["sleep_quality"]).strip() == ""
+        ):
+            raise ValueError("Field 'sleep_quality' wajib diisi dan tidak boleh kosong.")
+
+        numeric_fields = (
+            "age",
+            "work_hours_per_week",
+            "sleep_hours",
+            "screen_time_hours",
+            "coffee_cups_per_day",
+            "meditation_minutes",
+            "mood_score",
+        )
+        for field in numeric_fields:
+            if field in payload and payload[field] not in (None, ""):
+                try:
+                    float(payload[field])
+                except (ValueError, TypeError):
+                    raise ValueError(f"Field numerik '{field}' harus berupa angka yang valid.")
+
         saved_entity, ml_result = submit_uc.execute(payload)
         resp = jsonify({
             "status": "success",

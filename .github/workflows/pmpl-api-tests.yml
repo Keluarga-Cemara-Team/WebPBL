@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   pmpl-suite:
-    name: "PMPL: ${{ matrix.label }} (Py ${{ matrix.python-version }})"
+    name: "PMPL: ${{ matrix.suite.label }} (Py ${{ matrix.python-version }})"
     runs-on: ubuntu-latest
 
     strategy:
@@ -39,6 +39,8 @@ jobs:
             label: "TS-DET-02 & TS-HAS Fallback & Penyimpanan"
           - id: TestPMPLWebEndpointsAndPerformance
             label: "TS-DET-01,04 & TS-PERF API & Performa"
+          - id: TestPMPLModelEvaluation
+            label: "TS-ML-01..03 Akurasi, F1-Macro & Confusion Matrix"
 
     steps:
       - name: Checkout repository
@@ -56,7 +58,7 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
-      - name: Run ${{ matrix.label }}
+      - name: Run ${{ matrix.suite.label }}
         env:
           FLASK_ENV: development
         run: pytest -v tests/test_webpbl.py -k "${{ matrix.suite.id }}"

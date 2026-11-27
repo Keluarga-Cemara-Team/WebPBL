@@ -1,5 +1,8 @@
+import socket
+import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from app import create_app
@@ -7,6 +10,8 @@ from app.config import config_by_name
 from app.core.entities.assessment import RespondentAssessment
 from app.core.interfaces.ml_service import IMLPredictorService
 from app.core.interfaces.repositories import IAssessmentRepository
+from app.core.use_cases.compare_dataset_models import CompareDatasetModelsUseCase
+from app.core.use_cases.save_final_model import SaveFinalModelUseCase
 from app.core.use_cases.submit_assessment import SubmitAssessmentUseCase
 from app.infrastructure.external.http_ml_service import HttpMLPredictorService
 
@@ -61,8 +66,23 @@ class FailingMLService(IMLPredictorService):
         raise RuntimeError("Simulated ML API HTTP 500 error")
 
 
+class InvalidCategoryMLService(IMLPredictorService):
+    """Simulasi model mengembalikan kategori tidak dikenali atau kosong (TC-KLA-05)."""
+
+    def __init__(self, bad_category: str):
+        self.bad_category = bad_category
+
+    def predict_burnout(self, features):
+        return {
+            "burnout_score": 50.0,
+            "burnout_risk": self.bad_category,
+            "mental_health_status": "Unknown",
+            "ai_wellness_recommendation": "None",
+        }
+
+
 class TestPMPLValidationAndEntity(unittest.TestCase):
-    """TS-DET-03: Validasi data input dan batasan entitas RespondentAssessment."""
+    """TS-DET-03: Validasi data input, field kosong/hilang, dan tipe data numerik."""
 
     def test_TC_DET_007_008_invalid_or_empty_name_rejected(self):
         entity_empty = RespondentAssessment(full_name="")
@@ -100,7 +120,7 @@ class TestPMPLValidationAndEntity(unittest.TestCase):
 
 
 class TestPMPLClassificationAndRecommendation(unittest.TestCase):
-    """TS-KLA-01..04 & TS-REK-01..03: Klasifikasi 3 kategori risiko dan rekomendasi sesuai kategori."""
+    """TS-KLA-01..04 (TC-KLA-01..05) & TS-REK-01..03: Klasifikasi 3 kelas, penolakan kategori ilegal & rekomendasi."""
 
     def setUp(self):
         self.ml = DeterministicHeuristicMLService()
@@ -164,11 +184,16 @@ class TestPMPLClassificationAndRecommendation(unittest.TestCase):
 
     def test_TC_KLA_04_and_TC_DET_003_ten_random_variations_within_3_categories(self):
         samples = [
-            {"work_hours_per_week": 20 + i * 7, "sleep_hours": max(3.5, 9.0 - i * 0.5),
-             "anxiety_score": 10 + i * 9, "depression_score": 10 + i * 8,
-             "job_satisfaction": max(1, 10 - i), "work_life_balance": max(1, 10 - i),
-             "stress_level": ["Low", "Moderate", "High"][i % 3],
-             "chronic_stress": "Yes" if i >= 6 else "No"}
+            {
+                "work_hours_per_week": 20 + i * 7,
+                "sleep_hours": max(3.5, 9.0 - i * 0.5),
+                "anxiety_score": 10 + i * 9,
+                "depression_score": 10 + i * 8,
+                "job_satisfaction": max(1, 10 - i),
+                "work_life_balance": max(1, 10 - i),
+                "stress_level": ["Low", "Moderate", "High"][i % 3],
+                "chronic_stress": "Yes" if i >= 6 else "No",
+            }
             for i in range(10)
         ]
         for sample in samples:
@@ -177,11 +202,21 @@ class TestPMPLClassificationAndRecommendation(unittest.TestCase):
             self.assertTrue(0.0 <= res["burnout_score"] <= 100.0)
             self.assertTrue(len(res["ai_wellness_recommendation"]) > 0)
 
+    def test_TC_KLA_05_unknown_or_empty_category_rejected_and_not_saved(self):
+        for bad_label in ("TidakDikenal", ""):
+            repo = InMemoryAssessmentRepository()
+            use_case = SubmitAssessmentUseCase(repo, InvalidCategoryMLService(bad_label))
+            with self.assertRaises(ValueError):
+                use_case.execute(
+                    {"person_id": "PID-BAD", "full_name": "Tester Kategori", "sleep_hours": 7.0}
+                )
+            self.assertEqual(len(repo.find_all()), 0)
+
 
 class TestPMPLDetectionAndFallback(unittest.TestCase):
-    """TS-DET-01, TS-DET-02, TS-HAS-03: Eksekusi use case, fallback saat koneksi terputus, dan penyimpanan riwayat."""
+    """TS-DET-01, TS-DET-02, TS-HAS-03: Eksekusi use case, fallback saat koneksi terputus/timeout, dan riwayat."""
 
-    def test_TC_DET_004_005_ml_service_unreachable_graceful_fallback(self):
+    def test_TC_DET_004_ml_service_unreachable_graceful_fallback(self):
         service = HttpMLPredictorService("http://127.0.0.1:59999/predict")
         res = service.predict_burnout(
             {
@@ -191,6 +226,20 @@ class TestPMPLDetectionAndFallback(unittest.TestCase):
                 "chronic_stress": "Yes",
             }
         )
+        self.assertTrue(res["is_simulation"])
+        self.assertIn(res["burnout_risk"], VALID_RISK_CATEGORIES)
+
+    def test_TC_DET_005_ml_service_timeout_graceful_fallback(self):
+        service = HttpMLPredictorService("http://127.0.0.1:59999/predict")
+        with patch("urllib.request.urlopen", side_effect=socket.timeout("Simulated read timeout")):
+            res = service.predict_burnout(
+                {
+                    "work_hours_per_week": 50,
+                    "sleep_hours": 5.5,
+                    "stress_level": "Moderate",
+                    "chronic_stress": "No",
+                }
+            )
         self.assertTrue(res["is_simulation"])
         self.assertIn(res["burnout_risk"], VALID_RISK_CATEGORIES)
 
@@ -213,7 +262,7 @@ class TestPMPLDetectionAndFallback(unittest.TestCase):
 
 
 class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
-    """TS-DET-01, TS-DET-02, TS-DET-03, TS-DET-04, TS-PERF-01, TS-PERF-02 pada Flask API."""
+    """TS-DET-01..04, TS-PERF-01, TS-PERF-02 pada Flask API."""
 
     def setUp(self):
         with patch.object(config_by_name["development"], "FIREBASE_CREDENTIALS_PATH", None):
@@ -252,6 +301,7 @@ class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
                 "full_name": "Tester CI",
                 "age": 22,
                 "sleep_hours": 5.0,
+                "sleep_quality": "Poor",
                 "work_hours_per_week": 60,
                 "screen_time_hours": 9.0,
                 "stress_level": "High",
@@ -264,13 +314,38 @@ class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
         self.assertEqual(body["data"]["full_name"], "Tester CI")
         self.assertIn(body["evaluation"]["burnout_risk"], VALID_RISK_CATEGORIES)
 
-    def test_TC_DET_007_008_009_api_predict_invalid_payload_returns_400(self):
-        resp = self.client.post(
+    def test_TC_DET_007_008_009_api_predict_invalid_payloads_return_400(self):
+        # TC-DET-007: Payload kosong / nama tidak valid
+        resp_empty = self.client.post("/assessment/api/predict", json={})
+        self.assertEqual(resp_empty.status_code, 400)
+
+        # TC-DET-008: Field wajib sleep_quality dikirim kosong atau null
+        for bad_val in ("", None):
+            resp_null = self.client.post(
+                "/assessment/api/predict",
+                json={"full_name": "Tester Null", "sleep_quality": bad_val},
+            )
+            self.assertEqual(resp_null.status_code, 400)
+            self.assertEqual(resp_null.get_json()["status"], "error")
+
+        # TC-DET-009: Field numerik waktu layar dikirim teks "abc"
+        resp_type = self.client.post(
+            "/assessment/api/predict",
+            json={
+                "full_name": "Tester Tipe",
+                "sleep_quality": "Good",
+                "screen_time_hours": "abc",
+            },
+        )
+        self.assertEqual(resp_type.status_code, 400)
+        self.assertIn("screen_time_hours", resp_type.get_json()["message"])
+
+        # TC-DET-009: Nilai numerik di luar batas
+        resp_bounds = self.client.post(
             "/assessment/api/predict",
             json={"full_name": "X", "age": 5},
         )
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.get_json()["status"], "error")
+        self.assertEqual(resp_bounds.status_code, 400)
 
     def test_TC_DET_006_api_error_when_ml_service_crashes(self):
         self.app.ml_service = FailingMLService()
@@ -291,6 +366,7 @@ class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
             "age": 21,
             "work_hours_per_week": 48,
             "sleep_hours": 6.0,
+            "sleep_quality": "Average",
             "screen_time_hours": 8.0,
             "stress_level": "Moderate",
             "chronic_stress": "No",
@@ -310,6 +386,84 @@ class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
 
         # Seluruh 10 percobaan dengan input identik harus menghasilkan kategori konsisten
         self.assertEqual(len(set(observed_risks)), 1)
+
+
+class TestPMPLModelEvaluation(unittest.TestCase):
+    """TS-ML-01 (Akurasi), TS-ML-02 (Macro F1-Score), TS-ML-03 (Confusion Matrix 3 Kelas)."""
+
+    def setUp(self):
+        self.headers = ["Work_Hours", "Sleep_Hours", "Sleep_Quality", "Burnout_Risk"]
+        self.rows = []
+        specs = [
+            ("Low", 30, 8.0, "Good"),
+            ("Moderate", 48, 6.0, "Average"),
+            ("High", 68, 4.0, "Poor"),
+        ]
+        for label, base_work, base_sleep, sq in specs:
+            for i in range(15):
+                self.rows.append(
+                    [
+                        str(base_work + (i % 5)),
+                        str(base_sleep + (i % 3) * 0.2),
+                        sq,
+                        label,
+                    ]
+                )
+
+    def test_TS_ML_01_02_03_accuracy_macro_f1_and_3x3_confusion_matrix(self):
+        use_case = CompareDatasetModelsUseCase()
+        result = use_case.execute(
+            {
+                "headers": self.headers,
+                "rows": self.rows,
+                "feature_columns": ["Work_Hours", "Sleep_Hours", "Sleep_Quality"],
+            }
+        )
+
+        # TS-ML-01: Evaluasi akurasi model memenuhi target performa
+        final_metrics = result["final_test_metrics"]
+        self.assertIn("accuracy", final_metrics)
+        self.assertGreaterEqual(final_metrics["accuracy"], 0.75)
+
+        # TS-ML-02: Evaluasi macro F1-score seimbang di seluruh 5 model & model final
+        self.assertIn("f1_macro", final_metrics)
+        self.assertGreaterEqual(final_metrics["f1_macro"], 0.75)
+        for model_res in result["results"]:
+            self.assertIn("validation_f1_macro", model_res)
+            self.assertTrue(0.0 <= model_res["validation_f1_macro"] <= 1.0)
+
+        # TS-ML-03: Confusion matrix 3 kelas (Low, Moderate, High)
+        cm = final_metrics["confusion_matrix"]
+        self.assertEqual(len(cm), 3)
+        for row in cm:
+            self.assertEqual(len(row), 3)
+        self.assertEqual(sum(sum(row) for row in cm), result["test_rows"])
+
+    def test_TS_ML_final_pipeline_save_and_3class_prediction(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_path = Path(tmpdir) / "pipeline.joblib"
+            metadata_path = Path(tmpdir) / "metadata.json"
+            save_uc = SaveFinalModelUseCase(pipeline_path, metadata_path)
+            saved = save_uc.execute(
+                {
+                    "dataset_name": "pmpl_eval.csv",
+                    "headers": self.headers,
+                    "rows": self.rows,
+                    "feature_columns": ["Work_Hours", "Sleep_Hours", "Sleep_Quality"],
+                    "selected_model_name": "Random Forest GINI",
+                }
+            )
+            self.assertTrue(saved["is_saved"])
+            svc = HttpMLPredictorService(
+                "http://127.0.0.1:59999/predict",
+                pipeline_path=pipeline_path,
+                metadata_path=metadata_path,
+            )
+            pred = svc.predict_burnout(
+                {"work_hours": 69, "sleep_hours": 4.0, "sleep_quality": "Poor"}
+            )
+            self.assertEqual(pred["prediction_source"], "final_model_pipeline")
+            self.assertIn(pred["burnout_risk"], VALID_RISK_CATEGORIES)
 
 
 if __name__ == "__main__":
