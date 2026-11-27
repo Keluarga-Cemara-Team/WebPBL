@@ -49,4 +49,5 @@ jobs:
       - name: Verify Flask application factory import
         env:
           FLASK_ENV: development
+          PYTHONPATH: .
         run: python -c "from app import create_app; print(create_app)"

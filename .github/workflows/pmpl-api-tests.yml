@@ -61,4 +61,5 @@ jobs:
       - name: Run ${{ matrix.suite.label }}
         env:
           FLASK_ENV: development
-        run: pytest -v tests/test_webpbl.py -k "${{ matrix.suite.id }}"
+          PYTHONPATH: .
+        run: python -m pytest -v tests/test_webpbl.py -k "${{ matrix.suite.id }}"
