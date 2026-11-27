@@ -1,7 +1,9 @@
 import time
 import unittest
+from unittest.mock import patch
 
 from app import create_app
+from app.config import config_by_name
 from app.core.entities.assessment import RespondentAssessment
 from app.core.interfaces.ml_service import IMLPredictorService
 from app.core.interfaces.repositories import IAssessmentRepository
@@ -33,6 +35,13 @@ class InMemoryAssessmentRepository(IAssessmentRepository):
         before = len(self.items)
         self.items = [i for i in self.items if i.id != assessment_id]
         return len(self.items) < before
+
+    def update(self, assessment: RespondentAssessment) -> bool:
+        for idx, item in enumerate(self.items):
+            if item.id == assessment.id:
+                self.items[idx] = assessment
+                return True
+        return False
 
     def bulk_save(self, assessments) -> int:
         for a in assessments:
@@ -207,7 +216,8 @@ class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
     """TS-DET-01, TS-DET-02, TS-DET-03, TS-DET-04, TS-PERF-01, TS-PERF-02 pada Flask API."""
 
     def setUp(self):
-        self.app = create_app("development")
+        with patch.object(config_by_name["development"], "FIREBASE_CREDENTIALS_PATH", None):
+            self.app = create_app("development")
         self.repo = InMemoryAssessmentRepository()
         self.app.assessment_repository = self.repo
         self.app.db_engine_name = "In-Memory Test Repository"
@@ -220,8 +230,19 @@ class TestPMPLWebEndpointsAndPerformance(unittest.TestCase):
         self.assertEqual(resp_health.status_code, 200)
         self.assertEqual(resp_health.get_json()["status"], "healthy")
 
-        resp_home = self.client.get("/")
-        self.assertEqual(resp_home.status_code, 200)
+        resp_login = self.client.get("/login")
+        self.assertEqual(resp_login.status_code, 200)
+
+        resp_home_unauth = self.client.get("/")
+        self.assertEqual(resp_home_unauth.status_code, 302)
+        self.assertIn("/login", resp_home_unauth.headers.get("Location", ""))
+
+        with self.client.session_transaction() as sess:
+            sess["logged_in"] = True
+            sess["username"] = "admin"
+            sess["user_role"] = "admin"
+        resp_home_auth = self.client.get("/")
+        self.assertEqual(resp_home_auth.status_code, 200)
 
     def test_TC_DET_001_002_api_predict_valid_payload_returns_201(self):
         resp = self.client.post(

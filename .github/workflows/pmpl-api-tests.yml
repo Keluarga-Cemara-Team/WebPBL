@@ -1,0 +1,62 @@
+name: WebPBL PMPL API & ML Tests
+
+on:
+  push:
+    branches: [ main, master, develop, "feat/**", "fix/**" ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/pmpl-api-tests.yml"
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/pmpl-api-tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: webpbl-pmpl-api-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pmpl-suite:
+    name: "PMPL: ${{ matrix.label }} (Py ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
+        suite:
+          - id: TestPMPLValidationAndEntity
+            label: "TS-DET-03 Validasi Entity & Payload"
+          - id: TestPMPLClassificationAndRecommendation
+            label: "TS-KLA & TS-REK Klasifikasi & Rekomendasi"
+          - id: TestPMPLDetectionAndFallback
+            label: "TS-DET-02 & TS-HAS Fallback & Penyimpanan"
+          - id: TestPMPLWebEndpointsAndPerformance
+            label: "TS-DET-01,04 & TS-PERF API & Performa"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run ${{ matrix.label }}
+        env:
+          FLASK_ENV: development
+        run: pytest -v tests/test_webpbl.py -k "${{ matrix.suite.id }}"

@@ -1,0 +1,52 @@
+name: WebPBL Code Quality
+
+on:
+  push:
+    branches: [ main, master, develop, "feat/**", "fix/**" ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "run.py"
+      - "requirements.txt"
+      - ".github/workflows/code-quality.yml"
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "run.py"
+      - "requirements.txt"
+      - ".github/workflows/code-quality.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: webpbl-code-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  syntax-check:
+    name: Python Syntax & Import Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Python syntax (compileall)
+        run: python -m compileall -q app run.py tests
+
+      - name: Verify Flask application factory import
+        env:
+          FLASK_ENV: development
+        run: python -c "from app import create_app; print(create_app)"
